@@ -1,0 +1,1 @@
+start main -nosound
