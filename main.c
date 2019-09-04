@@ -1,12 +1,18 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
-#include <SDL\SDL.h>
+#include <SDL/SDL.h>
 
 #define B_WIDTH		15
 #define B_HEIGHT	30
 #define F_DIM		4					// height and width
 #define BLOCK_SIZE	16
+
+#define ERROR_SDLINIT		1
+#define ERROR_SDLVIDEO		2
+#define ERROR_NOBMPFILE		3
+#define ERROR_NOWAVFILE		4
+#define ERROR_OPENAUDIO		5
 
 SDL_Surface *screen = NULL;
 SDL_Surface *sidemenu = NULL;
@@ -129,73 +135,73 @@ void Initialize(void)
 {
 	int i;
 	if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) < 0)
-		exit(1);
+		exit(ERROR_SDLINIT);
 	atexit(Finalize);
 	screen = SDL_SetVideoMode(400, 480, 32, SDL_HWSURFACE | SDL_DOUBLEBUF);
 	if(screen == NULL)
-		exit(1);
+		exit(ERROR_SDLVIDEO);
 	SDL_WM_SetCaption("Y A T K A", NULL);
-	sidemenu = SDL_LoadBMP("gfx\\side.bmp");
+	sidemenu = SDL_LoadBMP("gfx/side.bmp");
 	if(sidemenu == NULL)
-		exit(1);
-	blue = SDL_LoadBMP("gfx\\blue.bmp");
+		exit(ERROR_NOBMPFILE);
+	blue = SDL_LoadBMP("gfx/blue.bmp");
 	if(blue == NULL)
-		exit(1);
-	gray = SDL_LoadBMP("gfx\\gray.bmp");
+		exit(ERROR_NOBMPFILE);
+	gray = SDL_LoadBMP("gfx/gray.bmp");
 	if(gray == NULL)
-		exit(1);
-	green = SDL_LoadBMP("gfx\\green.bmp");
+		exit(ERROR_NOBMPFILE);
+	green = SDL_LoadBMP("gfx/green.bmp");
 	if(green == NULL)
-		exit(1);
-	orange = SDL_LoadBMP("gfx\\orange.bmp");
+		exit(ERROR_NOBMPFILE);
+	orange = SDL_LoadBMP("gfx/orange.bmp");
 	if(orange == NULL)
-		exit(1);
-	red = SDL_LoadBMP("gfx\\red.bmp");
+		exit(ERROR_NOBMPFILE);
+	red = SDL_LoadBMP("gfx/red.bmp");
 	if(red == NULL)
-		exit(1);
-	digit0 = SDL_LoadBMP("gfx\\0.bmp");
+		exit(ERROR_NOBMPFILE);
+	digit0 = SDL_LoadBMP("gfx/0.bmp");
 	if(digit0 == NULL)
-		exit(1);
-	digit1 = SDL_LoadBMP("gfx\\1.bmp");
+		exit(ERROR_NOBMPFILE);
+	digit1 = SDL_LoadBMP("gfx/1.bmp");
 	if(digit1 == NULL)
-		exit(1);
-	digit2 = SDL_LoadBMP("gfx\\2.bmp");
+		exit(ERROR_NOBMPFILE);
+	digit2 = SDL_LoadBMP("gfx/2.bmp");
 	if(digit2 == NULL)
-		exit(1);
-	digit3 = SDL_LoadBMP("gfx\\3.bmp");
+		exit(ERROR_NOBMPFILE);
+	digit3 = SDL_LoadBMP("gfx/3.bmp");
 	if(digit3 == NULL)
-		exit(1);
-	digit4 = SDL_LoadBMP("gfx\\4.bmp");
+		exit(ERROR_NOBMPFILE);
+	digit4 = SDL_LoadBMP("gfx/4.bmp");
 	if(digit4 == NULL)
-		exit(1);
-	digit5 = SDL_LoadBMP("gfx\\5.bmp");
+		exit(ERROR_NOBMPFILE);
+	digit5 = SDL_LoadBMP("gfx/5.bmp");
 	if(digit5 == NULL)
-		exit(1);
-	digit6 = SDL_LoadBMP("gfx\\6.bmp");
+		exit(ERROR_NOBMPFILE);
+	digit6 = SDL_LoadBMP("gfx/6.bmp");
 	if(digit6 == NULL)
-		exit(1);
-	digit7 = SDL_LoadBMP("gfx\\7.bmp");
+		exit(ERROR_NOBMPFILE);
+	digit7 = SDL_LoadBMP("gfx/7.bmp");
 	if(digit7 == NULL)
-		exit(1);
-	digit8 = SDL_LoadBMP("gfx\\8.bmp");
+		exit(ERROR_NOBMPFILE);
+	digit8 = SDL_LoadBMP("gfx/8.bmp");
 	if(digit8 == NULL)
-		exit(1);
-	digit9 = SDL_LoadBMP("gfx\\9.bmp");
+		exit(ERROR_NOBMPFILE);
+	digit9 = SDL_LoadBMP("gfx/9.bmp");
 	if(digit9 == NULL)
-		exit(1);
+		exit(ERROR_NOBMPFILE);
 	if(!nosound)
 	{
-		if(!SDL_LoadWAV("sfx\\gameover.wav",&audiospec,&gosound,&gosound_length))
-			exit(1);
+		if(!SDL_LoadWAV("sfx/gameover.wav",&audiospec,&gosound,&gosound_length))
+			exit(ERROR_NOWAVFILE);
 		gosound_sample = gosound;
 		gosound_tmplen = gosound_length;
-		if(!SDL_LoadWAV("sfx\\bgmusic.wav",&audiospec,&bgmusic,&bgmusic_length))
-			exit(1);
+		if(!SDL_LoadWAV("sfx/bgmusic.wav",&audiospec,&bgmusic,&bgmusic_length))
+			exit(ERROR_NOWAVFILE);
 		audiospec.samples = 1024;
 		audiospec.callback = FillAudio;
 		audiospec.userdata = NULL;
 		if(SDL_OpenAudio(&audiospec,NULL) == -1)
-			exit(1);
+			exit(ERROR_OPENAUDIO);
 		SDL_PauseAudio(0);
 	}
 	SDL_EnableKeyRepeat(100, 100);
