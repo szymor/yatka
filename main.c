@@ -1,11 +1,12 @@
 #include <stdlib.h>
+#include <stdbool.h>
 #include <time.h>
 #include <string.h>
 #include <SDL/SDL.h>
 
 #define B_WIDTH		15
 #define B_HEIGHT	30
-#define F_DIM		4					// height and width
+#define F_DIM		4				// height and width
 #define BLOCK_SIZE	16
 
 #define ERROR_SDLINIT		1
@@ -16,14 +17,14 @@
 
 SDL_Surface *screen = NULL;
 SDL_Surface *sidemenu = NULL;
-SDL_Surface *blue = NULL;				// sprites for blocks
+SDL_Surface *blue = NULL;			// sprites for blocks
 SDL_Surface *gray = NULL;
 SDL_Surface *green = NULL;
 SDL_Surface *orange = NULL;
 SDL_Surface *red = NULL;
-SDL_Surface *color = NULL;				// color of currently falling figure
+SDL_Surface *color = NULL;			// color of currently falling figure
 SDL_Surface *next_color = NULL;
-SDL_Surface *digit0 = NULL;				// digits
+SDL_Surface *digit0 = NULL;			// digits
 SDL_Surface *digit1 = NULL;
 SDL_Surface *digit2 = NULL;
 SDL_Surface *digit3 = NULL;
@@ -47,12 +48,11 @@ Uint32 gosound_tmplen = 0;
 int *board = NULL;
 int *figure = NULL;
 int *next_figure = NULL;
-// 0 - no block
-// 1 - block
 
-int f_x, f_y;							// coordinates of falling figure
+int f_x, f_y;	// coordinates of falling figure
 
-int pause, gameover, lines, nosound;
+bool pause, gameover, nosound;
+int lines;
 
 // shapes - correct for 4x4 figure size
 int square[]		= { 0, 0, 0, 0,
@@ -93,21 +93,19 @@ void DisplayBoard(void);
 void MakeOneStep(void);
 void CheckForFullLines(void);
 void HandleInput(void);
-int CheckForGameEnd(void);
+bool CheckForGameEnd(void);
 int* RandomFigure(void);
 SDL_Surface* RandomColor(void);
 int IsFigureColliding(void);
 void RotateFigureClockwise(int *fig);
+bool ScreenUpdated(bool v);
 
 int main(int argc, char *argv[])
 {
 	int next_time;
 	int delay = 500;
 	
-	if((argc == 2) && (!strcmp(argv[1],"-nosound")))
-		nosound = 1;
-	else
-		nosound = 0;
+	nosound = ((argc == 2) && (!strcmp(argv[1],"--nosound")));
 		
 	Initialize();
 	next_time = SDL_GetTicks() + delay;
@@ -115,20 +113,28 @@ int main(int argc, char *argv[])
 	{
 		HandleInput();
 		DisplayBoard();
+		
 		if(SDL_GetTicks() > next_time)
 		{
 			if(!(pause || gameover))
 			{
 				MakeOneStep();
 				CheckForFullLines();
-				delay = (lines > 45) ? 50 : (500 - 10*lines);
-				if(CheckForGameEnd())
-					gameover = 1;
+				delay = (lines > 45) ? 50 : (500 - 10 * lines);
+				gameover = CheckForGameEnd();
 			}
 			next_time += delay;
 		}
 	}
 	return 0;
+}
+
+bool ScreenUpdated(bool v)
+{
+	static bool value = true;
+	bool old = value;
+	value = v;
+	return old;
 }
 
 void Initialize(void)
@@ -212,8 +218,8 @@ void Initialize(void)
 	srand((unsigned)time(NULL));
 	next_figure = RandomFigure();
 	next_color = RandomColor();
-	pause = 0;
-	gameover = 0;
+	pause = false;
+	gameover = false;
 	lines = 0;
 }
 
@@ -264,10 +270,14 @@ void FillAudio(void *userdata, Uint8 *stream, int len)
 
 void DisplayBoard(void)
 {
+	if (!ScreenUpdated(false))
+		return;
+		
 	int i;
 	SDL_Rect rect;
 	SDL_Surface *mask;
 	SDL_Surface *digit;
+	
 	SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 255, 255, 255));
 	for( i = 0; i < (B_WIDTH*B_HEIGHT); ++i )
 	{
@@ -372,6 +382,8 @@ void MakeOneStep(void)
 			figure = NULL;
 		}
 	}
+	
+	ScreenUpdated(true);
 }
 
 void CheckForFullLines(void)
@@ -429,6 +441,7 @@ void HandleInput(void)
 								}
 							}
 						}
+						ScreenUpdated(true);
 						break;
 					case SDLK_DOWN:	
 						if(!pause)
@@ -437,6 +450,7 @@ void HandleInput(void)
 							if(IsFigureColliding())
 								--f_y;
 						}
+						ScreenUpdated(true);
 						break;
 					case SDLK_LEFT:
 						if(!pause)
@@ -445,6 +459,7 @@ void HandleInput(void)
 							if(IsFigureColliding())
 								++f_x;
 						}
+						ScreenUpdated(true);
 						break;
 					case SDLK_RIGHT:
 						if(!pause)
@@ -453,9 +468,11 @@ void HandleInput(void)
 							if(IsFigureColliding())
 								--f_x;
 						}
+						ScreenUpdated(true);
 						break;
 					case SDLK_ESCAPE:
-						pause = pause ? 0 : 1;
+						pause = !pause;
+						ScreenUpdated(true);
 						break;
 				}
 				break;
@@ -465,13 +482,13 @@ void HandleInput(void)
 		}
 }
 
-int CheckForGameEnd(void)
+bool CheckForGameEnd(void)
 {
 	int i;
 	for( i = 0; i < B_WIDTH; ++i )
 		if( board[i] != 0 )
-			return 1;
-	return 0;
+			return true;
+	return false;
 }
 
 int* RandomFigure(void)
