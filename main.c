@@ -104,16 +104,16 @@ int main(int argc, char *argv[])
 {
 	int next_time;
 	int delay = 500;
-	
+
 	nosound = ((argc == 2) && (!strcmp(argv[1],"--nosound")));
-		
+
 	Initialize();
 	next_time = SDL_GetTicks() + delay;
 	while(1)
 	{
 		HandleInput();
 		DisplayBoard();
-		
+
 		if(SDL_GetTicks() > next_time)
 		{
 			if(!(pause || gameover))
@@ -211,7 +211,7 @@ void Initialize(void)
 		SDL_PauseAudio(0);
 	}
 	SDL_EnableKeyRepeat(100, 100);
-		
+
 	board = malloc(sizeof(int)*B_WIDTH*B_HEIGHT);
 	for( i = 0; i < (B_WIDTH*B_HEIGHT); ++i )
 		board[i] = 0;
@@ -272,12 +272,12 @@ void DisplayBoard(void)
 {
 	if (!ScreenUpdated(false))
 		return;
-		
+
 	int i;
 	SDL_Rect rect;
 	SDL_Surface *mask;
 	SDL_Surface *digit;
-	
+
 	SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 255, 255, 255));
 	for( i = 0; i < (B_WIDTH*B_HEIGHT); ++i )
 	{
@@ -294,7 +294,7 @@ void DisplayBoard(void)
 			if( figure[i] == 1 )
 				SDL_BlitSurface(color, NULL, screen, &rect);
 		}
-	
+
 	// display the side menu
 	rect.x = B_WIDTH*BLOCK_SIZE;
 	rect.y = 0;
@@ -339,7 +339,7 @@ void DisplayBoard(void)
 	rect.x = B_WIDTH*BLOCK_SIZE + 115;
 	rect.y = 350;
 	SDL_BlitSurface(digit, NULL, screen, &rect);
-	
+
 	// pause
 	if(pause || gameover)
 	{
@@ -348,7 +348,7 @@ void DisplayBoard(void)
 		SDL_BlitSurface(mask, NULL, screen, NULL);
 		SDL_FreeSurface(mask);
 	}
-	
+
 	SDL_Flip(screen);
 }
 
@@ -382,7 +382,7 @@ void MakeOneStep(void)
 			figure = NULL;
 		}
 	}
-	
+
 	ScreenUpdated(true);
 }
 
@@ -443,7 +443,7 @@ void HandleInput(void)
 						}
 						ScreenUpdated(true);
 						break;
-					case SDLK_DOWN:	
+					case SDLK_DOWN:
 						if(!pause)
 						{
 							++f_y;
@@ -523,12 +523,12 @@ int* RandomFigure(void)
 	// random turn of figure
 	for( i = 0; i <= (rand() % 4); ++i )
 		RotateFigureClockwise(temp);
-	
+
 	// creating a new instance of figure (simply copying ;p)
 	temp2 = malloc(sizeof(int)*F_DIM*F_DIM);
 	for( i = 0; i < F_DIM*F_DIM; ++i )
 		temp2[i] = temp[i];
-	
+
 	return temp2;
 }
 
@@ -578,7 +578,7 @@ int IsFigureColliding(void)
 			else
 				break;
 		}
-		
+
 		// the same as above but for the lefthand side
 		empty_columns_left = 0;
 		for( x = 0; x < F_DIM; ++x )
@@ -595,7 +595,7 @@ int IsFigureColliding(void)
 			else
 				break;
 		}
-		
+
 		// ...and for the bottom side
 		empty_rows_down = 0;
 		for( y = F_DIM-1; y >= 0; --y )
@@ -612,7 +612,7 @@ int IsFigureColliding(void)
 			else
 				break;
 		}
-			
+
 		// proper collision checking
 		if( (f_x < -empty_columns_left) || (f_x > B_WIDTH-F_DIM+empty_columns_right) )
 			return 2;
@@ -635,7 +635,7 @@ void RotateFigureClockwise(int *fig)
 {
 	int i, empty_rows, x, y;
 	int temp[F_DIM*F_DIM];
-	
+
 	if(fig != NULL)
 	{
 		for( i = 0; i < F_DIM*F_DIM; ++i )
