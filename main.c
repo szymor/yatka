@@ -4,16 +4,37 @@
 #include <string.h>
 #include <SDL/SDL.h>
 
+#define KEY_LEFT		SDLK_LEFT
+#define KEY_RIGHT		SDLK_RIGHT
+#define KEY_DOWN		SDLK_DOWN
+#define KEY_ROTATE		SDLK_UP
+#define KEY_PAUSE		SDLK_ESCAPE
+
 #define B_WIDTH		15
 #define B_HEIGHT	30
 #define F_DIM		4				// height and width
 #define BLOCK_SIZE	16
 
-#define ERROR_SDLINIT		1
-#define ERROR_SDLVIDEO		2
-#define ERROR_NOBMPFILE		3
-#define ERROR_NOWAVFILE		4
-#define ERROR_OPENAUDIO		5
+#define KEY_REPEAT_RATE		80		// in ms
+
+enum Error
+{
+	ERROR_NONE,
+	ERROR_SDLINIT,
+	ERROR_SDLVIDEO,
+	ERROR_NOBMPFILE,
+	ERROR_NOWAVFILE,
+	ERROR_OPENAUDIO,
+	ERROR_END
+};
+
+enum Collision
+{
+	COLLISION_NONE,
+	COLLISION_DOWN,
+	COLLISION_SIDE,
+	COLLISION_END
+};
 
 SDL_Surface *screen = NULL;
 SDL_Surface *sidemenu = NULL;
@@ -53,36 +74,37 @@ int f_x, f_y;	// coordinates of falling figure
 
 bool pause, gameover, nosound;
 int lines;
+int next_time, delay = 500;
 
-// shapes - correct for 4x4 figure size
-int square[]		= { 0, 0, 0, 0,
-						0, 1, 1, 0,
-						0, 1, 1, 0,
-						0, 0, 0, 0 };
-int Lshape[]		= { 0, 0, 0, 0,
-						0, 1, 0, 0,
-						0, 1, 0, 0,
-						0, 1, 1, 0 };
-int mirrorL[]		= { 0, 0, 0, 0,
-						0, 0, 1, 0,
-						0, 0, 1, 0,
-						0, 1, 1, 0 };
-int fourshape[]		= { 0, 0, 0, 0,
-						0, 1, 0, 0,
-						0, 1, 1, 0,
-						0, 0, 1, 0 };
-int mirrorfour[]	= { 0, 0, 0, 0,
-						0, 0, 1, 0,
-						0, 1, 1, 0,
-						0, 1, 0, 0 };
-int stick[]			= { 0, 1, 0, 0,
-						0, 1, 0, 0,
-						0, 1, 0, 0,
-						0, 1, 0, 0 };
-int shortT[]		= { 0, 0, 0, 0,
-						1, 1, 1, 0,
-						0, 1, 0, 0,
-						0, 0, 0, 0 };
+// shapes - 4x4 figure size
+const int square[]		= { 0, 0, 0, 0,
+							0, 1, 1, 0,
+							0, 1, 1, 0,
+							0, 0, 0, 0 };
+const int Lshape[]		= { 0, 0, 0, 0,
+							0, 1, 0, 0,
+							0, 1, 0, 0,
+							0, 1, 1, 0 };
+const int mirrorL[]		= { 0, 0, 0, 0,
+							0, 0, 1, 0,
+							0, 0, 1, 0,
+							0, 1, 1, 0 };
+const int fourshape[]	= { 0, 0, 0, 0,
+							0, 1, 0, 0,
+							0, 1, 1, 0,
+							0, 0, 1, 0 };
+const int mirrorfour[]	= { 0, 0, 0, 0,
+							0, 0, 1, 0,
+							0, 1, 1, 0,
+							0, 1, 0, 0 };
+const int stick[]		= { 0, 1, 0, 0,
+							0, 1, 0, 0,
+							0, 1, 0, 0,
+							0, 1, 0, 0 };
+const int shortT[]		= { 0, 0, 0, 0,
+							1, 1, 1, 0,
+							0, 1, 0, 0,
+							0, 0, 0, 0 };
 
 void Initialize(void);
 void Finalize(void);
@@ -96,15 +118,12 @@ void HandleInput(void);
 bool CheckForGameEnd(void);
 int* RandomFigure(void);
 SDL_Surface* RandomColor(void);
-int IsFigureColliding(void);
+enum Collision IsFigureColliding(void);
 void RotateFigureClockwise(int *fig);
 bool ScreenUpdated(bool v);
 
 int main(int argc, char *argv[])
 {
-	int next_time;
-	int delay = 500;
-
 	nosound = ((argc == 2) && (!strcmp(argv[1],"--nosound")));
 
 	Initialize();
@@ -117,14 +136,11 @@ int main(int argc, char *argv[])
 		if(SDL_GetTicks() > next_time)
 		{
 			if(!(pause || gameover))
-			{
 				MakeOneStep();
-				CheckForFullLines();
-				delay = (lines > 45) ? 50 : (500 - 10 * lines);
-				gameover = CheckForGameEnd();
-			}
-			next_time += delay;
 		}
+
+		// workaround for high CPU usage
+		SDL_Delay(10);
 	}
 	return 0;
 }
@@ -210,7 +226,7 @@ void Initialize(void)
 			exit(ERROR_OPENAUDIO);
 		SDL_PauseAudio(0);
 	}
-	SDL_EnableKeyRepeat(100, 100);
+	SDL_EnableKeyRepeat(1, KEY_REPEAT_RATE);
 
 	board = malloc(sizeof(int)*B_WIDTH*B_HEIGHT);
 	for( i = 0; i < (B_WIDTH*B_HEIGHT); ++i )
@@ -340,7 +356,6 @@ void DisplayBoard(void)
 	rect.y = 350;
 	SDL_BlitSurface(digit, NULL, screen, &rect);
 
-	// pause
 	if(pause || gameover)
 	{
 		mask = SDL_CreateRGBSurface(SDL_SRCALPHA, 640, 480, 32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
@@ -354,8 +369,7 @@ void DisplayBoard(void)
 
 void MakeOneStep(void)
 {
-	int i, x, y;
-	if( figure == NULL )
+	if (figure == NULL)
 	{
 		figure = next_figure;
 		color = next_color;
@@ -367,15 +381,15 @@ void MakeOneStep(void)
 	else
 	{
 		++f_y;
-		if(IsFigureColliding() == 1)
+		if (IsFigureColliding() == COLLISION_DOWN)
 		{
 			--f_y;
-			for( i = 0; i < (F_DIM*F_DIM); ++i )
-				if( figure[i] != 0 )
+			for (int i = 0; i < (F_DIM*F_DIM); ++i)
+				if (figure[i] != 0)
 				{
-					x = i % F_DIM + f_x;
-					y = i / F_DIM + f_y;
-					if( (x >= 0) && (x < B_WIDTH) && (y >= 0) && (y < B_HEIGHT) )
+					int x = i % F_DIM + f_x;
+					int y = i / F_DIM + f_y;
+					if ((x >= 0) && (x < B_WIDTH) && (y >= 0) && (y < B_HEIGHT))
 						board[y*B_WIDTH + x] = 1;
 				}
 			free(figure);
@@ -383,30 +397,34 @@ void MakeOneStep(void)
 		}
 	}
 
+	CheckForFullLines();
+	delay = (lines > 45) ? 50 : (500 - 10 * lines);
+	gameover = CheckForGameEnd();
+
+	next_time = SDL_GetTicks() + delay;
 	ScreenUpdated(true);
 }
 
 void CheckForFullLines(void)
 {
-	int x, y, ys, i;
 	// checking and removing full lines
-	for( y = 1; y < B_HEIGHT; ++y )
+	for (int y = 1; y < B_HEIGHT; ++y)
 	{
-		i = 1;
-		for( x = 0; x < B_WIDTH; ++x )
+		int i = 1;
+		for (int x = 0; x < B_WIDTH; ++x)
 		{
-			if( board[y*B_WIDTH + x] == 0 )
+			if (board[y*B_WIDTH + x] == 0)
 			{
 				i = 0;
 				break;
 			}
 		}
 		// removing
-		if(i)
+		if (i)
 		{
 			++lines;
-			for( ys = y-1; ys >= 0; --ys )
-				for( x = 0; x < B_WIDTH; ++x )
+			for (int ys = y-1; ys >= 0; --ys)
+				for (int x = 0; x < B_WIDTH; ++x)
 					board[(ys+1)*B_WIDTH + x] = board[ys*B_WIDTH + x];
 		}
 	}
@@ -414,46 +432,62 @@ void CheckForFullLines(void)
 
 void HandleInput(void)
 {
+	static bool rotate_key_state = false;
+	static bool pause_key_state = false;
 	SDL_Event event;
+
 	if(SDL_PollEvent(&event))
 		switch(event.type)
 		{
-			case SDL_KEYDOWN:
-				switch(event.key.keysym.sym)
+			case SDL_KEYUP:
+				switch (event.key.keysym.sym)
 				{
-					case SDLK_UP:
-						if(!pause)
+					case KEY_ROTATE:
+						rotate_key_state = false;
+						break;
+					case KEY_PAUSE:
+						pause_key_state = false;
+						break;
+				}
+				break;
+			case SDL_KEYDOWN:
+				switch (event.key.keysym.sym)
+				{
+					case KEY_ROTATE:
+						if (!rotate_key_state)
 						{
-							RotateFigureClockwise(figure);
-							if(IsFigureColliding())
+							rotate_key_state = true;
+							if(!pause && !gameover)
 							{
-								++f_x;
+								RotateFigureClockwise(figure);
 								if(IsFigureColliding())
 								{
-									f_x -= 2;
+									++f_x;
 									if(IsFigureColliding())
 									{
-										RotateFigureClockwise(figure);
-										RotateFigureClockwise(figure);
-										RotateFigureClockwise(figure);
-										++f_x;
+										f_x -= 2;
+										if(IsFigureColliding())
+										{
+											RotateFigureClockwise(figure);
+											RotateFigureClockwise(figure);
+											RotateFigureClockwise(figure);
+											++f_x;
+										}
 									}
 								}
 							}
+							ScreenUpdated(true);
 						}
-						ScreenUpdated(true);
 						break;
-					case SDLK_DOWN:
-						if(!pause)
+					case KEY_DOWN:
+						if(!pause && !gameover)
 						{
-							++f_y;
-							if(IsFigureColliding())
-								--f_y;
+							MakeOneStep();
 						}
 						ScreenUpdated(true);
 						break;
-					case SDLK_LEFT:
-						if(!pause)
+					case KEY_LEFT:
+						if(!pause && !gameover)
 						{
 							--f_x;
 							if(IsFigureColliding())
@@ -461,8 +495,8 @@ void HandleInput(void)
 						}
 						ScreenUpdated(true);
 						break;
-					case SDLK_RIGHT:
-						if(!pause)
+					case KEY_RIGHT:
+						if(!pause && !gameover)
 						{
 							++f_x;
 							if(IsFigureColliding())
@@ -470,9 +504,13 @@ void HandleInput(void)
 						}
 						ScreenUpdated(true);
 						break;
-					case SDLK_ESCAPE:
-						pause = !pause;
-						ScreenUpdated(true);
+					case KEY_PAUSE:
+						if (!pause_key_state)
+						{
+							pause_key_state = true;
+							pause = !pause;
+							ScreenUpdated(true);
+						}
 						break;
 				}
 				break;
@@ -484,19 +522,18 @@ void HandleInput(void)
 
 bool CheckForGameEnd(void)
 {
-	int i;
-	for( i = 0; i < B_WIDTH; ++i )
-		if( board[i] != 0 )
+	for (int i = 0; i < B_WIDTH; ++i)
+		if (board[i] != 0)
 			return true;
 	return false;
 }
 
 int* RandomFigure(void)
 {
-	int *temp;
+	const int *temp;
 	int *temp2;
-	int i;
-	switch( rand() % 7 )
+
+	switch (rand() % 7)
 	{
 		case 0:
 			temp = square;
@@ -520,14 +557,15 @@ int* RandomFigure(void)
 			temp = shortT;
 			break;
 	}
-	// random turn of figure
-	for( i = 0; i <= (rand() % 4); ++i )
-		RotateFigureClockwise(temp);
 
 	// creating a new instance of figure (simply copying ;p)
 	temp2 = malloc(sizeof(int)*F_DIM*F_DIM);
-	for( i = 0; i < F_DIM*F_DIM; ++i )
+	for (int i = 0; i < F_DIM*F_DIM; ++i)
 		temp2[i] = temp[i];
+
+	// random turn of figure
+	for (int i = 0; i <= (rand() % 4); ++i)
+		RotateFigureClockwise(temp2);
 
 	return temp2;
 }
@@ -553,7 +591,7 @@ SDL_Surface* RandomColor(void)
 	return temp;
 }
 
-int IsFigureColliding(void)
+enum Collision IsFigureColliding(void)
 // returns 0 when no collision occured
 // returns 1 when colliding at the bottom
 // returns 2 when colliding at sides
@@ -615,9 +653,9 @@ int IsFigureColliding(void)
 
 		// proper collision checking
 		if( (f_x < -empty_columns_left) || (f_x > B_WIDTH-F_DIM+empty_columns_right) )
-			return 2;
+			return COLLISION_SIDE;
 		if( f_y > (B_HEIGHT-F_DIM+empty_rows_down) )
-			return 1;
+			return COLLISION_DOWN;
 		for( i = 0; i < (F_DIM*F_DIM); ++i )
 			if( figure[i] != 0 )
 			{
@@ -625,10 +663,10 @@ int IsFigureColliding(void)
 				y = i / F_DIM + f_y;
 				if( ((y*B_WIDTH + x) < (B_WIDTH*B_HEIGHT)) && ((y*B_WIDTH + x) >= 0) )
 					if( board[y*B_WIDTH + x] & figure[i] )
-						return 1;
+						return COLLISION_DOWN;
 			}
 	}
-	return 0;
+	return COLLISION_NONE;
 }
 
 void RotateFigureClockwise(int *fig)
