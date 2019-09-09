@@ -3,7 +3,7 @@
 PROJECT = yatka
 
 $(PROJECT): main.c
-	gcc -o $(PROJECT) main.c -lSDL
+	gcc -o $(PROJECT) main.c -lSDL -lSDL_image
 
 all: $(PROJECT)
 

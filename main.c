@@ -2,18 +2,27 @@
 #include <stdbool.h>
 #include <time.h>
 #include <string.h>
+
 #include <SDL/SDL.h>
+#include <SDL/SDL_image.h>
 
 #define KEY_LEFT		SDLK_LEFT
 #define KEY_RIGHT		SDLK_RIGHT
-#define KEY_DOWN		SDLK_DOWN
+#define KEY_SOFTDROP	SDLK_DOWN
+#define KEY_HARDDROP	SDLK_SPACE
 #define KEY_ROTATE		SDLK_UP
 #define KEY_PAUSE		SDLK_ESCAPE
 
-#define B_WIDTH		15
-#define B_HEIGHT	30
-#define F_DIM		4				// height and width
-#define BLOCK_SIZE	16
+#define SCREEN_WIDTH	320
+#define SCREEN_HEIGHT	240
+#define SCREEN_BPP		32
+
+#define BOARD_X			100
+#define BOARD_Y			0
+#define BOARD_WIDTH		10
+#define BOARD_HEIGHT	20
+#define FIG_DIM			4
+#define BLOCK_SIZE		12
 
 #define KEY_REPEAT_RATE		80		// in ms
 
@@ -22,7 +31,7 @@ enum Error
 	ERROR_NONE,
 	ERROR_SDLINIT,
 	ERROR_SDLVIDEO,
-	ERROR_NOBMPFILE,
+	ERROR_NOIMGFILE,
 	ERROR_NOWAVFILE,
 	ERROR_OPENAUDIO,
 	ERROR_END
@@ -37,12 +46,19 @@ enum Collision
 };
 
 SDL_Surface *screen = NULL;
-SDL_Surface *sidemenu = NULL;
-SDL_Surface *blue = NULL;			// sprites for blocks
+SDL_Surface *bg = NULL;
+SDL_Surface *fg = NULL;
+
+// sprites for blocks
 SDL_Surface *gray = NULL;
+SDL_Surface *cyan = NULL;
+SDL_Surface *purple = NULL;
+SDL_Surface *yellow = NULL;
 SDL_Surface *green = NULL;
-SDL_Surface *orange = NULL;
 SDL_Surface *red = NULL;
+SDL_Surface *blue = NULL;
+SDL_Surface *orange = NULL;
+
 SDL_Surface *color = NULL;			// color of currently falling figure
 SDL_Surface *next_color = NULL;
 SDL_Surface *digit0 = NULL;			// digits
@@ -155,62 +171,93 @@ bool ScreenUpdated(bool v)
 
 void Initialize(void)
 {
-	int i;
 	if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) < 0)
 		exit(ERROR_SDLINIT);
 	atexit(Finalize);
-	screen = SDL_SetVideoMode(400, 480, 32, SDL_HWSURFACE | SDL_DOUBLEBUF);
+	screen = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BPP, SDL_HWSURFACE | SDL_DOUBLEBUF);
 	if(screen == NULL)
 		exit(ERROR_SDLVIDEO);
 	SDL_WM_SetCaption("Y A T K A", NULL);
-	sidemenu = SDL_LoadBMP("gfx/side.bmp");
-	if(sidemenu == NULL)
-		exit(ERROR_NOBMPFILE);
-	blue = SDL_LoadBMP("gfx/blue.bmp");
-	if(blue == NULL)
-		exit(ERROR_NOBMPFILE);
-	gray = SDL_LoadBMP("gfx/gray.bmp");
+	
+	bg = IMG_Load("gfx/bg.png");
+	if(bg == NULL)
+		exit(ERROR_NOIMGFILE);
+	fg = IMG_Load("gfx/fg.png");
+	if(fg == NULL)
+		exit(ERROR_NOIMGFILE);
+	gray = IMG_Load("gfx/block.png");
 	if(gray == NULL)
-		exit(ERROR_NOBMPFILE);
-	green = SDL_LoadBMP("gfx/green.bmp");
-	if(green == NULL)
-		exit(ERROR_NOBMPFILE);
-	orange = SDL_LoadBMP("gfx/orange.bmp");
-	if(orange == NULL)
-		exit(ERROR_NOBMPFILE);
-	red = SDL_LoadBMP("gfx/red.bmp");
-	if(red == NULL)
-		exit(ERROR_NOBMPFILE);
+		exit(ERROR_NOIMGFILE);
+
+	SDL_Surface *mask = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+
+	cyan = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	SDL_BlitSurface(gray, NULL, cyan, NULL);
+	SDL_FillRect(mask, NULL, SDL_MapRGBA(cyan->format, 0, 255, 255, 128));
+	SDL_BlitSurface(mask, NULL, cyan, NULL);
+	
+	purple = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	SDL_BlitSurface(gray, NULL, purple, NULL);
+	SDL_FillRect(mask, NULL, SDL_MapRGBA(purple->format, 255, 0, 255, 128));
+	SDL_BlitSurface(mask, NULL, purple, NULL);
+	
+	yellow = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	SDL_BlitSurface(gray, NULL, yellow, NULL);
+	SDL_FillRect(mask, NULL, SDL_MapRGBA(yellow->format, 255, 255, 0, 128));
+	SDL_BlitSurface(mask, NULL, yellow, NULL);
+	
+	green = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	SDL_BlitSurface(gray, NULL, green, NULL);
+	SDL_FillRect(mask, NULL, SDL_MapRGBA(green->format, 0, 255, 0, 128));
+	SDL_BlitSurface(mask, NULL, green, NULL);
+	
+	red = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	SDL_BlitSurface(gray, NULL, red, NULL);
+	SDL_FillRect(mask, NULL, SDL_MapRGBA(red->format, 255, 0, 0, 128));
+	SDL_BlitSurface(mask, NULL, red, NULL);
+	
+	blue = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	SDL_BlitSurface(gray, NULL, blue, NULL);
+	SDL_FillRect(mask, NULL, SDL_MapRGBA(blue->format, 0, 0, 255, 128));
+	SDL_BlitSurface(mask, NULL, blue, NULL);
+	
+	orange = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	SDL_BlitSurface(gray, NULL, orange, NULL);
+	SDL_FillRect(mask, NULL, SDL_MapRGBA(orange->format, 255, 128, 0, 128));
+	SDL_BlitSurface(mask, NULL, orange, NULL);
+	
+	SDL_FreeSurface(mask);
+
 	digit0 = SDL_LoadBMP("gfx/0.bmp");
 	if(digit0 == NULL)
-		exit(ERROR_NOBMPFILE);
+		exit(ERROR_NOIMGFILE);
 	digit1 = SDL_LoadBMP("gfx/1.bmp");
 	if(digit1 == NULL)
-		exit(ERROR_NOBMPFILE);
+		exit(ERROR_NOIMGFILE);
 	digit2 = SDL_LoadBMP("gfx/2.bmp");
 	if(digit2 == NULL)
-		exit(ERROR_NOBMPFILE);
+		exit(ERROR_NOIMGFILE);
 	digit3 = SDL_LoadBMP("gfx/3.bmp");
 	if(digit3 == NULL)
-		exit(ERROR_NOBMPFILE);
+		exit(ERROR_NOIMGFILE);
 	digit4 = SDL_LoadBMP("gfx/4.bmp");
 	if(digit4 == NULL)
-		exit(ERROR_NOBMPFILE);
+		exit(ERROR_NOIMGFILE);
 	digit5 = SDL_LoadBMP("gfx/5.bmp");
 	if(digit5 == NULL)
-		exit(ERROR_NOBMPFILE);
+		exit(ERROR_NOIMGFILE);
 	digit6 = SDL_LoadBMP("gfx/6.bmp");
 	if(digit6 == NULL)
-		exit(ERROR_NOBMPFILE);
+		exit(ERROR_NOIMGFILE);
 	digit7 = SDL_LoadBMP("gfx/7.bmp");
 	if(digit7 == NULL)
-		exit(ERROR_NOBMPFILE);
+		exit(ERROR_NOIMGFILE);
 	digit8 = SDL_LoadBMP("gfx/8.bmp");
 	if(digit8 == NULL)
-		exit(ERROR_NOBMPFILE);
+		exit(ERROR_NOIMGFILE);
 	digit9 = SDL_LoadBMP("gfx/9.bmp");
 	if(digit9 == NULL)
-		exit(ERROR_NOBMPFILE);
+		exit(ERROR_NOIMGFILE);
 	if(!nosound)
 	{
 		if(!SDL_LoadWAV("sfx/gameover.wav",&audiospec,&gosound,&gosound_length))
@@ -228,8 +275,8 @@ void Initialize(void)
 	}
 	SDL_EnableKeyRepeat(1, KEY_REPEAT_RATE);
 
-	board = malloc(sizeof(int)*B_WIDTH*B_HEIGHT);
-	for( i = 0; i < (B_WIDTH*B_HEIGHT); ++i )
+	board = malloc(sizeof(int)*BOARD_WIDTH*BOARD_HEIGHT);
+	for(int i = 0; i < (BOARD_WIDTH*BOARD_HEIGHT); ++i)
 		board[i] = 0;
 	srand((unsigned)time(NULL));
 	next_figure = RandomFigure();
@@ -289,41 +336,26 @@ void DisplayBoard(void)
 	if (!ScreenUpdated(false))
 		return;
 
-	int i;
 	SDL_Rect rect;
 	SDL_Surface *mask;
 	SDL_Surface *digit;
-
-	SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 255, 255, 255));
-	for( i = 0; i < (B_WIDTH*B_HEIGHT); ++i )
-	{
-		rect.x = (i % B_WIDTH) * BLOCK_SIZE;
-		rect.y = (i / B_WIDTH) * BLOCK_SIZE;
-		if( board[i] == 1 )
-			SDL_BlitSurface(gray, NULL, screen, &rect);
-	}
-	if( figure != NULL )
-		for( i = 0; i < (F_DIM*F_DIM); ++i )
-		{
-			rect.x = (i % F_DIM + f_x) * BLOCK_SIZE;
-			rect.y = (i / F_DIM + f_y) * BLOCK_SIZE;
-			if( figure[i] == 1 )
-				SDL_BlitSurface(color, NULL, screen, &rect);
-		}
-
-	// display the side menu
-	rect.x = B_WIDTH*BLOCK_SIZE;
+	
+	// display background
+	rect.x = 0;
 	rect.y = 0;
-	SDL_BlitSurface(sidemenu, NULL, screen, &rect);
-	for( i = 0; i < (F_DIM*F_DIM); ++i )
+	SDL_BlitSurface(bg, NULL, screen, &rect);
+	/*
+	// display next figure
+	for (int i = 0; i < (FIG_DIM*FIG_DIM); ++i)
 	{
-		rect.x = (i % F_DIM + B_WIDTH) * BLOCK_SIZE + 50;
-		rect.y = (i / F_DIM) * BLOCK_SIZE + 180;
-		if( next_figure[i] == 1 )
+		rect.x = (i % FIG_DIM + BOARD_WIDTH) * BLOCK_SIZE + 50;
+		rect.y = (i / FIG_DIM) * BLOCK_SIZE + 80;
+		if (next_figure[i] == 1)
 			SDL_BlitSurface(next_color, NULL, screen, &rect);
 	}
+	
 	// display number of removed lines
-	switch( lines % 10 )
+	switch(lines % 10)
 	{
 		case 0:	digit = digit0; break;
 		case 1:	digit = digit1; break;
@@ -336,8 +368,8 @@ void DisplayBoard(void)
 		case 8:	digit = digit8; break;
 		case 9:	digit = digit9; break;
 	}
-	rect.x = B_WIDTH*BLOCK_SIZE + 115 + 16;
-	rect.y = 350;
+	rect.x = BOARD_WIDTH*BLOCK_SIZE + 115 + 16;
+	rect.y = 160;
 	SDL_BlitSurface(digit, NULL, screen, &rect);
 	switch( (lines / 10) % 10 )
 	{
@@ -352,13 +384,35 @@ void DisplayBoard(void)
 		case 8:	digit = digit8; break;
 		case 9:	digit = digit9; break;
 	}
-	rect.x = B_WIDTH*BLOCK_SIZE + 115;
+	rect.x = BOARD_WIDTH*BLOCK_SIZE + 115;
 	rect.y = 350;
 	SDL_BlitSurface(digit, NULL, screen, &rect);
+*/
+	// display board
+	for (int i = 0; i < (BOARD_WIDTH*BOARD_HEIGHT); ++i)
+	{
+		rect.x = (i % BOARD_WIDTH) * BLOCK_SIZE + BOARD_X;
+		rect.y = (i / BOARD_WIDTH) * BLOCK_SIZE + BOARD_Y;
+		if (board[i] == 1)
+			SDL_BlitSurface(gray, NULL, screen, &rect);
+	}
+	if (figure != NULL)
+		for (int i = 0; i < (FIG_DIM*FIG_DIM); ++i)
+		{
+			rect.x = (i % FIG_DIM + f_x) * BLOCK_SIZE + BOARD_X;
+			rect.y = (i / FIG_DIM + f_y) * BLOCK_SIZE + BOARD_Y;
+			if (figure[i] == 1)
+				SDL_BlitSurface(color, NULL, screen, &rect);
+		}
+
+	// display foreground
+	rect.x = 0;
+	rect.y = 0;
+	SDL_BlitSurface(fg, NULL, screen, &rect);
 
 	if(pause || gameover)
 	{
-		mask = SDL_CreateRGBSurface(SDL_SRCALPHA, 640, 480, 32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+		mask = SDL_CreateRGBSurface(SDL_SRCALPHA, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
 		SDL_FillRect(mask, NULL, SDL_MapRGBA(mask->format,0,0,0,128));
 		SDL_BlitSurface(mask, NULL, screen, NULL);
 		SDL_FreeSurface(mask);
@@ -375,8 +429,8 @@ void MakeOneStep(void)
 		color = next_color;
 		next_figure = RandomFigure();
 		next_color = RandomColor();
-		f_y = -F_DIM;							// to gain a 'slide' effect from the top of screen
-		f_x = (B_WIDTH - F_DIM) >> 1;			// to center a figure
+		f_y = -FIG_DIM;							// to gain a 'slide' effect from the top of screen
+		f_x = (BOARD_WIDTH - FIG_DIM) >> 1;			// to center a figure
 	}
 	else
 	{
@@ -384,13 +438,13 @@ void MakeOneStep(void)
 		if (IsFigureColliding() == COLLISION_DOWN)
 		{
 			--f_y;
-			for (int i = 0; i < (F_DIM*F_DIM); ++i)
+			for (int i = 0; i < (FIG_DIM*FIG_DIM); ++i)
 				if (figure[i] != 0)
 				{
-					int x = i % F_DIM + f_x;
-					int y = i / F_DIM + f_y;
-					if ((x >= 0) && (x < B_WIDTH) && (y >= 0) && (y < B_HEIGHT))
-						board[y*B_WIDTH + x] = 1;
+					int x = i % FIG_DIM + f_x;
+					int y = i / FIG_DIM + f_y;
+					if ((x >= 0) && (x < BOARD_WIDTH) && (y >= 0) && (y < BOARD_HEIGHT))
+						board[y*BOARD_WIDTH + x] = 1;
 				}
 			free(figure);
 			figure = NULL;
@@ -408,12 +462,12 @@ void MakeOneStep(void)
 void CheckForFullLines(void)
 {
 	// checking and removing full lines
-	for (int y = 1; y < B_HEIGHT; ++y)
+	for (int y = 1; y < BOARD_HEIGHT; ++y)
 	{
 		int i = 1;
-		for (int x = 0; x < B_WIDTH; ++x)
+		for (int x = 0; x < BOARD_WIDTH; ++x)
 		{
-			if (board[y*B_WIDTH + x] == 0)
+			if (board[y*BOARD_WIDTH + x] == 0)
 			{
 				i = 0;
 				break;
@@ -424,8 +478,8 @@ void CheckForFullLines(void)
 		{
 			++lines;
 			for (int ys = y-1; ys >= 0; --ys)
-				for (int x = 0; x < B_WIDTH; ++x)
-					board[(ys+1)*B_WIDTH + x] = board[ys*B_WIDTH + x];
+				for (int x = 0; x < BOARD_WIDTH; ++x)
+					board[(ys+1)*BOARD_WIDTH + x] = board[ys*BOARD_WIDTH + x];
 		}
 	}
 }
@@ -434,6 +488,7 @@ void HandleInput(void)
 {
 	static bool rotate_key_state = false;
 	static bool pause_key_state = false;
+	static bool harddrop_key_state = false;
 	SDL_Event event;
 
 	if(SDL_PollEvent(&event))
@@ -447,6 +502,9 @@ void HandleInput(void)
 						break;
 					case KEY_PAUSE:
 						pause_key_state = false;
+						break;
+					case KEY_HARDDROP:
+						harddrop_key_state = false;
 						break;
 				}
 				break;
@@ -479,12 +537,18 @@ void HandleInput(void)
 							ScreenUpdated(true);
 						}
 						break;
-					case KEY_DOWN:
+					case KEY_SOFTDROP:
 						if(!pause && !gameover)
 						{
 							MakeOneStep();
 						}
 						ScreenUpdated(true);
+						break;
+					case KEY_HARDDROP:
+						if (!harddrop_key_state)
+						{
+							harddrop_key_state = true;
+						}
 						break;
 					case KEY_LEFT:
 						if(!pause && !gameover)
@@ -522,7 +586,7 @@ void HandleInput(void)
 
 bool CheckForGameEnd(void)
 {
-	for (int i = 0; i < B_WIDTH; ++i)
+	for (int i = 0; i < BOARD_WIDTH; ++i)
 		if (board[i] != 0)
 			return true;
 	return false;
@@ -559,8 +623,8 @@ int* RandomFigure(void)
 	}
 
 	// creating a new instance of figure (simply copying ;p)
-	temp2 = malloc(sizeof(int)*F_DIM*F_DIM);
-	for (int i = 0; i < F_DIM*F_DIM; ++i)
+	temp2 = malloc(sizeof(int)*FIG_DIM*FIG_DIM);
+	for (int i = 0; i < FIG_DIM*FIG_DIM; ++i)
 		temp2[i] = temp[i];
 
 	// random turn of figure
@@ -573,7 +637,7 @@ int* RandomFigure(void)
 SDL_Surface* RandomColor(void)
 {
 	SDL_Surface* temp;
-	switch( rand() % 4 )
+	switch( rand() % 7 )
 	{
 		case 0:
 			temp = blue;
@@ -586,6 +650,15 @@ SDL_Surface* RandomColor(void)
 			break;
 		case 3:
 			temp = red;
+			break;
+		case 4:
+			temp = yellow;
+			break;
+		case 5:
+			temp = purple;
+			break;
+		case 6:
+			temp = cyan;
 			break;
 	}
 	return temp;
@@ -602,11 +675,11 @@ enum Collision IsFigureColliding(void)
 		// counting empty columns on the righthand side of figure
 		// 'x' and 'y' used as counters
 		empty_columns_right = 0;
-		for( x = F_DIM-1; x >= 0; --x )
+		for( x = FIG_DIM-1; x >= 0; --x )
 		{
 			i = 1;		// empty by default
-			for( y = 0; y < F_DIM; ++y )
-				if( figure[y*F_DIM + x] != 0 )
+			for( y = 0; y < FIG_DIM; ++y )
+				if( figure[y*FIG_DIM + x] != 0 )
 				{
 					i = 0;
 					break;
@@ -619,11 +692,11 @@ enum Collision IsFigureColliding(void)
 
 		// the same as above but for the lefthand side
 		empty_columns_left = 0;
-		for( x = 0; x < F_DIM; ++x )
+		for( x = 0; x < FIG_DIM; ++x )
 		{
 			i = 1;		// empty by default
-			for( y = 0; y < F_DIM; ++y )
-				if( figure[y*F_DIM + x] != 0 )
+			for( y = 0; y < FIG_DIM; ++y )
+				if( figure[y*FIG_DIM + x] != 0 )
 				{
 					i = 0;
 					break;
@@ -636,11 +709,11 @@ enum Collision IsFigureColliding(void)
 
 		// ...and for the bottom side
 		empty_rows_down = 0;
-		for( y = F_DIM-1; y >= 0; --y )
+		for( y = FIG_DIM-1; y >= 0; --y )
 		{
 			i = 1;		// empty by default
-			for( x = 0; x < F_DIM; ++x )
-				if( figure[y*F_DIM + x] != 0 )
+			for( x = 0; x < FIG_DIM; ++x )
+				if( figure[y*FIG_DIM + x] != 0 )
 				{
 					i = 0;
 					break;
@@ -652,17 +725,17 @@ enum Collision IsFigureColliding(void)
 		}
 
 		// proper collision checking
-		if( (f_x < -empty_columns_left) || (f_x > B_WIDTH-F_DIM+empty_columns_right) )
+		if( (f_x < -empty_columns_left) || (f_x > BOARD_WIDTH-FIG_DIM+empty_columns_right) )
 			return COLLISION_SIDE;
-		if( f_y > (B_HEIGHT-F_DIM+empty_rows_down) )
+		if( f_y > (BOARD_HEIGHT-FIG_DIM+empty_rows_down) )
 			return COLLISION_DOWN;
-		for( i = 0; i < (F_DIM*F_DIM); ++i )
+		for( i = 0; i < (FIG_DIM*FIG_DIM); ++i )
 			if( figure[i] != 0 )
 			{
-				x = i % F_DIM + f_x;
-				y = i / F_DIM + f_y;
-				if( ((y*B_WIDTH + x) < (B_WIDTH*B_HEIGHT)) && ((y*B_WIDTH + x) >= 0) )
-					if( board[y*B_WIDTH + x] & figure[i] )
+				x = i % FIG_DIM + f_x;
+				y = i / FIG_DIM + f_y;
+				if( ((y*BOARD_WIDTH + x) < (BOARD_WIDTH*BOARD_HEIGHT)) && ((y*BOARD_WIDTH + x) >= 0) )
+					if( board[y*BOARD_WIDTH + x] & figure[i] )
 						return COLLISION_DOWN;
 			}
 	}
@@ -672,15 +745,15 @@ enum Collision IsFigureColliding(void)
 void RotateFigureClockwise(int *fig)
 {
 	int i, empty_rows, x, y;
-	int temp[F_DIM*F_DIM];
+	int temp[FIG_DIM*FIG_DIM];
 
 	if(fig != NULL)
 	{
-		for( i = 0; i < F_DIM*F_DIM; ++i )
+		for( i = 0; i < FIG_DIM*FIG_DIM; ++i )
 			temp[i] = fig[i];
-		for( i = 0; i < F_DIM*F_DIM; ++i )
+		for( i = 0; i < FIG_DIM*FIG_DIM; ++i )
 		{
-			fig[i] = temp[(F_DIM-1-(i % F_DIM))*F_DIM + (i / F_DIM)];	// check this out :)
+			fig[i] = temp[(FIG_DIM-1-(i % FIG_DIM))*FIG_DIM + (i / FIG_DIM)];	// check this out :)
 		}
 	}
 }
