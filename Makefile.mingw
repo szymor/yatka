@@ -1,0 +1,11 @@
+.PHONY: all clean
+
+PROJECT = yatka.exe
+
+$(PROJECT): main.c
+	gcc -mwindows -o $(PROJECT) main.c -lmingw32 -lSDLmain -lSDL -lSDL_image
+
+all: $(PROJECT)
+
+clean:
+	rm -rf $(PROJECT)
