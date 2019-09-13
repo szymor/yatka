@@ -32,17 +32,21 @@ enum Error
 	ERROR_SDLINIT,
 	ERROR_SDLVIDEO,
 	ERROR_NOIMGFILE,
-	ERROR_NOWAVFILE,
+	ERROR_NOSNDFILE,
 	ERROR_OPENAUDIO,
 	ERROR_END
 };
 
-enum Collision
+enum Figure
 {
-	COLLISION_NONE,
-	COLLISION_DOWN,
-	COLLISION_SIDE,
-	COLLISION_END
+	FIG_O,
+	FIG_L,
+	FIG_J,
+	FIG_S,
+	FIG_Z,
+	FIG_I,
+	FIG_T,
+	FIG_NUM
 };
 
 SDL_Surface *screen = NULL;
@@ -61,16 +65,7 @@ SDL_Surface *orange = NULL;
 
 SDL_Surface *color = NULL;			// color of currently falling figure
 SDL_Surface *next_color = NULL;
-SDL_Surface *digit0 = NULL;			// digits
-SDL_Surface *digit1 = NULL;
-SDL_Surface *digit2 = NULL;
-SDL_Surface *digit3 = NULL;
-SDL_Surface *digit4 = NULL;
-SDL_Surface *digit5 = NULL;
-SDL_Surface *digit6 = NULL;
-SDL_Surface *digit7 = NULL;
-SDL_Surface *digit8 = NULL;
-SDL_Surface *digit9 = NULL;
+SDL_Surface *fixed_colors[FIG_NUM];
 
 SDL_AudioSpec audiospec;
 Uint8 *bgmusic = NULL;
@@ -85,10 +80,11 @@ Uint32 gosound_tmplen = 0;
 int *board = NULL;
 int *figure = NULL;
 int *next_figure = NULL;
+int next_figure_id = -1;	// temporary solution
 
 int f_x, f_y;	// coordinates of falling figure
 
-bool pause, gameover, nosound;
+bool pause, gameover, nosound, randomcolor;
 int lines;
 int next_time, delay = 500;
 
@@ -98,61 +94,64 @@ const int square[]		= { 0, 0, 0, 0,
 							0, 1, 1, 0,
 							0, 0, 0, 0 };
 const int Lshape[]		= { 0, 0, 0, 0,
-							0, 1, 0, 0,
-							0, 1, 0, 0,
-							0, 1, 1, 0 };
-const int mirrorL[]		= { 0, 0, 0, 0,
 							0, 0, 1, 0,
-							0, 0, 1, 0,
-							0, 1, 1, 0 };
-const int fourshape[]	= { 0, 0, 0, 0,
-							0, 1, 0, 0,
-							0, 1, 1, 0,
-							0, 0, 1, 0 };
-const int mirrorfour[]	= { 0, 0, 0, 0,
-							0, 0, 1, 0,
-							0, 1, 1, 0,
-							0, 1, 0, 0 };
-const int stick[]		= { 0, 1, 0, 0,
-							0, 1, 0, 0,
-							0, 1, 0, 0,
-							0, 1, 0, 0 };
-const int shortT[]		= { 0, 0, 0, 0,
 							1, 1, 1, 0,
+							0, 0, 0, 0 };
+const int mirrorL[]		= { 0, 0, 0, 0,
+							1, 0, 0, 0,
+							1, 1, 1, 0,
+							0, 0, 0, 0 };
+const int fourshape[]	= { 0, 0, 0, 0,
+							0, 1, 1, 0,
+							1, 1, 0, 0,
+							0, 0, 0, 0 };
+const int mirrorfour[]	= { 0, 0, 0, 0,
+							1, 1, 0, 0,
+							0, 1, 1, 0,
+							0, 0, 0, 0 };
+const int stick[]		= { 0, 0, 0, 0,
+							0, 0, 0, 0,
+							1, 1, 1, 1,
+							0, 0, 0, 0 };
+const int shortT[]		= { 0, 0, 0, 0,
 							0, 1, 0, 0,
+							1, 1, 1, 0,
 							0, 0, 0, 0 };
 
-void Initialize(void);
-void Finalize(void);
+void initialize(void);
+void finalize(void);
 
-void FillAudio(void *userdata, Uint8 *stream, int len);
+void fillAudio(void *userdata, Uint8 *stream, int len);
 
-void DisplayBoard(void);
-void MakeOneStep(void);
-void CheckForFullLines(void);
-void HandleInput(void);
-bool CheckForGameEnd(void);
-int* RandomFigure(void);
-SDL_Surface* RandomColor(void);
-enum Collision IsFigureColliding(void);
-void RotateFigureClockwise(int *fig);
-bool ScreenUpdated(bool v);
+void displayBoard(void);
+void dropSoft(void);
+void dropHard(void);
+void checkFullLines(void);
+void handleInput(void);
+bool checkGameEnd(void);
+int* getRandomFigure(void);
+SDL_Surface* getNextColor(void);
+SDL_Surface* getRandomColor(void);
+bool isFigureColliding(void);
+void rotateFigureClockwise(int *fig);
+bool screenFlagUpdate(bool v);
 
 int main(int argc, char *argv[])
 {
 	nosound = ((argc == 2) && (!strcmp(argv[1],"--nosound")));
+	randomcolor = ((argc == 2) && (!strcmp(argv[1],"--randomcolor")));;
 
-	Initialize();
+	initialize();
 	next_time = SDL_GetTicks() + delay;
 	while(1)
 	{
-		HandleInput();
-		DisplayBoard();
+		handleInput();
+		displayBoard();
 
 		if(SDL_GetTicks() > next_time)
 		{
 			if(!(pause || gameover))
-				MakeOneStep();
+				dropSoft();
 		}
 
 		// workaround for high CPU usage
@@ -161,7 +160,7 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
-bool ScreenUpdated(bool v)
+bool screenFlagUpdate(bool v)
 {
 	static bool value = true;
 	bool old = value;
@@ -169,11 +168,11 @@ bool ScreenUpdated(bool v)
 	return old;
 }
 
-void Initialize(void)
+void initialize(void)
 {
 	if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) < 0)
 		exit(ERROR_SDLINIT);
-	atexit(Finalize);
+	atexit(finalize);
 	screen = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BPP, SDL_HWSURFACE | SDL_DOUBLEBUF);
 	if(screen == NULL)
 		exit(ERROR_SDLVIDEO);
@@ -227,47 +226,25 @@ void Initialize(void)
 	SDL_BlitSurface(mask, NULL, orange, NULL);
 	
 	SDL_FreeSurface(mask);
+	
+	fixed_colors[FIG_O] = yellow;
+	fixed_colors[FIG_L] = orange;
+	fixed_colors[FIG_J] = blue;
+	fixed_colors[FIG_S] = green;
+	fixed_colors[FIG_Z] = red;
+	fixed_colors[FIG_I] = cyan;
+	fixed_colors[FIG_T] = purple;
 
-	digit0 = SDL_LoadBMP("gfx/0.bmp");
-	if(digit0 == NULL)
-		exit(ERROR_NOIMGFILE);
-	digit1 = SDL_LoadBMP("gfx/1.bmp");
-	if(digit1 == NULL)
-		exit(ERROR_NOIMGFILE);
-	digit2 = SDL_LoadBMP("gfx/2.bmp");
-	if(digit2 == NULL)
-		exit(ERROR_NOIMGFILE);
-	digit3 = SDL_LoadBMP("gfx/3.bmp");
-	if(digit3 == NULL)
-		exit(ERROR_NOIMGFILE);
-	digit4 = SDL_LoadBMP("gfx/4.bmp");
-	if(digit4 == NULL)
-		exit(ERROR_NOIMGFILE);
-	digit5 = SDL_LoadBMP("gfx/5.bmp");
-	if(digit5 == NULL)
-		exit(ERROR_NOIMGFILE);
-	digit6 = SDL_LoadBMP("gfx/6.bmp");
-	if(digit6 == NULL)
-		exit(ERROR_NOIMGFILE);
-	digit7 = SDL_LoadBMP("gfx/7.bmp");
-	if(digit7 == NULL)
-		exit(ERROR_NOIMGFILE);
-	digit8 = SDL_LoadBMP("gfx/8.bmp");
-	if(digit8 == NULL)
-		exit(ERROR_NOIMGFILE);
-	digit9 = SDL_LoadBMP("gfx/9.bmp");
-	if(digit9 == NULL)
-		exit(ERROR_NOIMGFILE);
 	if(!nosound)
 	{
 		if(!SDL_LoadWAV("sfx/gameover.wav",&audiospec,&gosound,&gosound_length))
-			exit(ERROR_NOWAVFILE);
+			exit(ERROR_NOSNDFILE);
 		gosound_sample = gosound;
 		gosound_tmplen = gosound_length;
 		if(!SDL_LoadWAV("sfx/bgmusic.wav",&audiospec,&bgmusic,&bgmusic_length))
-			exit(ERROR_NOWAVFILE);
+			exit(ERROR_NOSNDFILE);
 		audiospec.samples = 1024;
-		audiospec.callback = FillAudio;
+		audiospec.callback = fillAudio;
 		audiospec.userdata = NULL;
 		if(SDL_OpenAudio(&audiospec,NULL) == -1)
 			exit(ERROR_OPENAUDIO);
@@ -279,14 +256,14 @@ void Initialize(void)
 	for(int i = 0; i < (BOARD_WIDTH*BOARD_HEIGHT); ++i)
 		board[i] = 0;
 	srand((unsigned)time(NULL));
-	next_figure = RandomFigure();
-	next_color = RandomColor();
+	next_figure = getRandomFigure();
+	next_color = getNextColor();
 	pause = false;
 	gameover = false;
 	lines = 0;
 }
 
-void Finalize(void)
+void finalize(void)
 {
 	SDL_Quit();
 	if(board != NULL)
@@ -303,7 +280,7 @@ void Finalize(void)
 	}
 }
 
-void FillAudio(void *userdata, Uint8 *stream, int len)
+void fillAudio(void *userdata, Uint8 *stream, int len)
 {
 	if(!gameover)
 	{
@@ -331,9 +308,9 @@ void FillAudio(void *userdata, Uint8 *stream, int len)
 	}
 }
 
-void DisplayBoard(void)
+void displayBoard(void)
 {
-	if (!ScreenUpdated(false))
+	if (!screenFlagUpdate(false))
 		return;
 
 	SDL_Rect rect;
@@ -421,21 +398,21 @@ void DisplayBoard(void)
 	SDL_Flip(screen);
 }
 
-void MakeOneStep(void)
+void dropSoft(void)
 {
 	if (figure == NULL)
 	{
 		figure = next_figure;
 		color = next_color;
-		next_figure = RandomFigure();
-		next_color = RandomColor();
-		f_y = -FIG_DIM;							// to gain a 'slide' effect from the top of screen
-		f_x = (BOARD_WIDTH - FIG_DIM) >> 1;			// to center a figure
+		next_figure = getRandomFigure();
+		next_color = getNextColor();
+		f_y = -FIG_DIM + 1;						// ...to gain a 'slide' effect from the top of screen
+		f_x = (BOARD_WIDTH - FIG_DIM) >> 1;		// ...to center a figure
 	}
 	else
 	{
 		++f_y;
-		if (IsFigureColliding() == COLLISION_DOWN)
+		if (isFigureColliding())
 		{
 			--f_y;
 			for (int i = 0; i < (FIG_DIM*FIG_DIM); ++i)
@@ -451,15 +428,37 @@ void MakeOneStep(void)
 		}
 	}
 
-	CheckForFullLines();
+	checkFullLines();
 	delay = (lines > 45) ? 50 : (500 - 10 * lines);
-	gameover = CheckForGameEnd();
+	gameover = checkGameEnd();
 
 	next_time = SDL_GetTicks() + delay;
-	ScreenUpdated(true);
+	screenFlagUpdate(true);
 }
 
-void CheckForFullLines(void)
+void dropHard(void)
+{
+	if (figure != NULL)
+	{
+		while (!isFigureColliding())
+			++f_y;
+		--f_y;
+		for (int i = 0; i < (FIG_DIM*FIG_DIM); ++i)
+			if (figure[i] != 0)
+			{
+				int x = i % FIG_DIM + f_x;
+				int y = i / FIG_DIM + f_y;
+				if ((x >= 0) && (x < BOARD_WIDTH) && (y >= 0) && (y < BOARD_HEIGHT))
+					board[y*BOARD_WIDTH + x] = 1;
+			}
+		free(figure);
+		figure = NULL;
+		
+		screenFlagUpdate(true);
+	}
+}
+
+void checkFullLines(void)
 {
 	// checking and removing full lines
 	for (int y = 1; y < BOARD_HEIGHT; ++y)
@@ -484,7 +483,7 @@ void CheckForFullLines(void)
 	}
 }
 
-void HandleInput(void)
+void handleInput(void)
 {
 	static bool rotate_key_state = false;
 	static bool pause_key_state = false;
@@ -517,63 +516,64 @@ void HandleInput(void)
 							rotate_key_state = true;
 							if(!pause && !gameover)
 							{
-								RotateFigureClockwise(figure);
-								if(IsFigureColliding())
+								rotateFigureClockwise(figure);
+								if(isFigureColliding())
 								{
 									++f_x;
-									if(IsFigureColliding())
+									if(isFigureColliding())
 									{
 										f_x -= 2;
-										if(IsFigureColliding())
+										if(isFigureColliding())
 										{
-											RotateFigureClockwise(figure);
-											RotateFigureClockwise(figure);
-											RotateFigureClockwise(figure);
+											rotateFigureClockwise(figure);
+											rotateFigureClockwise(figure);
+											rotateFigureClockwise(figure);
 											++f_x;
 										}
 									}
 								}
 							}
-							ScreenUpdated(true);
+							screenFlagUpdate(true);
 						}
 						break;
 					case KEY_SOFTDROP:
 						if(!pause && !gameover)
 						{
-							MakeOneStep();
+							dropSoft();
 						}
-						ScreenUpdated(true);
+						screenFlagUpdate(true);
 						break;
 					case KEY_HARDDROP:
 						if (!harddrop_key_state)
 						{
 							harddrop_key_state = true;
+							dropHard();
 						}
 						break;
 					case KEY_LEFT:
 						if(!pause && !gameover)
 						{
 							--f_x;
-							if(IsFigureColliding())
+							if(isFigureColliding())
 								++f_x;
 						}
-						ScreenUpdated(true);
+						screenFlagUpdate(true);
 						break;
 					case KEY_RIGHT:
 						if(!pause && !gameover)
 						{
 							++f_x;
-							if(IsFigureColliding())
+							if(isFigureColliding())
 								--f_x;
 						}
-						ScreenUpdated(true);
+						screenFlagUpdate(true);
 						break;
 					case KEY_PAUSE:
 						if (!pause_key_state)
 						{
 							pause_key_state = true;
 							pause = !pause;
-							ScreenUpdated(true);
+							screenFlagUpdate(true);
 						}
 						break;
 				}
@@ -584,7 +584,7 @@ void HandleInput(void)
 		}
 }
 
-bool CheckForGameEnd(void)
+bool checkGameEnd(void)
 {
 	for (int i = 0; i < BOARD_WIDTH; ++i)
 		if (board[i] != 0)
@@ -592,49 +592,56 @@ bool CheckForGameEnd(void)
 	return false;
 }
 
-int* RandomFigure(void)
+int* getRandomFigure(void)
 {
 	const int *temp;
 	int *temp2;
-
-	switch (rand() % 7)
+	
+	int id = rand() % FIG_NUM;
+	switch (id)
 	{
-		case 0:
+		case FIG_O:
 			temp = square;
 			break;
-		case 1:
+		case FIG_L:
 			temp = Lshape;
 			break;
-		case 2:
+		case FIG_J:
 			temp = mirrorL;
 			break;
-		case 3:
+		case FIG_S:
 			temp = fourshape;
 			break;
-		case 4:
+		case FIG_Z:
 			temp = mirrorfour;
 			break;
-		case 5:
+		case FIG_I:
 			temp = stick;
 			break;
-		case 6:
+		case FIG_T:
 			temp = shortT;
 			break;
 	}
+	
+	next_figure_id = id;
 
 	// creating a new instance of figure (simply copying ;p)
 	temp2 = malloc(sizeof(int)*FIG_DIM*FIG_DIM);
 	for (int i = 0; i < FIG_DIM*FIG_DIM; ++i)
 		temp2[i] = temp[i];
 
-	// random turn of figure
-	for (int i = 0; i <= (rand() % 4); ++i)
-		RotateFigureClockwise(temp2);
-
 	return temp2;
 }
 
-SDL_Surface* RandomColor(void)
+SDL_Surface* getNextColor(void)
+{	
+	if (randomcolor)
+		return getRandomColor();
+	else
+		return fixed_colors[next_figure_id];
+}
+
+SDL_Surface* getRandomColor(void)
 {
 	SDL_Surface* temp;
 	switch( rand() % 7 )
@@ -664,10 +671,7 @@ SDL_Surface* RandomColor(void)
 	return temp;
 }
 
-enum Collision IsFigureColliding(void)
-// returns 0 when no collision occured
-// returns 1 when colliding at the bottom
-// returns 2 when colliding at sides
+bool isFigureColliding(void)
 {
 	int i, x, y, empty_columns_right, empty_columns_left, empty_rows_down;
 	if( figure != NULL)
@@ -726,9 +730,9 @@ enum Collision IsFigureColliding(void)
 
 		// proper collision checking
 		if( (f_x < -empty_columns_left) || (f_x > BOARD_WIDTH-FIG_DIM+empty_columns_right) )
-			return COLLISION_SIDE;
+			return true;
 		if( f_y > (BOARD_HEIGHT-FIG_DIM+empty_rows_down) )
-			return COLLISION_DOWN;
+			return true;
 		for( i = 0; i < (FIG_DIM*FIG_DIM); ++i )
 			if( figure[i] != 0 )
 			{
@@ -736,13 +740,13 @@ enum Collision IsFigureColliding(void)
 				y = i / FIG_DIM + f_y;
 				if( ((y*BOARD_WIDTH + x) < (BOARD_WIDTH*BOARD_HEIGHT)) && ((y*BOARD_WIDTH + x) >= 0) )
 					if( board[y*BOARD_WIDTH + x] & figure[i] )
-						return COLLISION_DOWN;
+						return true;
 			}
 	}
-	return COLLISION_NONE;
+	return false;
 }
 
-void RotateFigureClockwise(int *fig)
+void rotateFigureClockwise(int *fig)
 {
 	int i, empty_rows, x, y;
 	int temp[FIG_DIM*FIG_DIM];
