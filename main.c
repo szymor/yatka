@@ -182,7 +182,7 @@ void handleInput(void);
 bool checkGameEnd(void);
 
 void initFigures(void);
-void drawFigure(void);
+void drawFigure(const struct Figure *fig, int x, int y, bool screendim);
 void spawnFigure(void);
 struct Figure *getNextFigure(void);
 const struct Shape* getShape(enum FigureId id);
@@ -190,6 +190,7 @@ enum FigureId getNextId(void);
 enum FigureId getRandomId(void);
 SDL_Surface* getNextColor(enum FigureId id);
 SDL_Surface* getRandomColor(void);
+void getShapeDimensions(const struct Shape *shape, int *minx, int *maxx, int *miny, int *maxy);
 bool isFigureColliding(void);
 void rotateFigureCW(void);
 void rotateFigureCCW(void);
@@ -201,13 +202,20 @@ void upscale4(uint32_t *to, uint32_t *from);
 
 int main(int argc, char *argv[])
 {
-	nosound = ((argc == 2) && (!strcmp(argv[1],"--nosound")));
-	randomcolor = ((argc == 2) && (!strcmp(argv[1],"--randomcolor")));
-	screenscale = ((argc == 2) && (!strcmp(argv[1],"--scale2x"))) ? 2 : 1;
-	if (screenscale == 1)
-		screenscale = ((argc == 2) && (!strcmp(argv[1],"--scale3x"))) ? 3 : 1;
-	if (screenscale == 1)
-		screenscale = ((argc == 2) && (!strcmp(argv[1],"--scale4x"))) ? 4 : 1;
+	screenscale = 1;
+	for (int i = 1; i < argc; ++i)
+	{
+		if (!strcmp(argv[i],"--nosound"))
+			nosound = true;
+		else if (!strcmp(argv[i],"--randomcolor"))
+			randomcolor = true;
+		else if (!strcmp(argv[i],"--scale2x"))
+			screenscale = 2;
+		else if (!strcmp(argv[i],"--scale3x"))
+			screenscale = 3;
+		else if (!strcmp(argv[i],"--scale4x"))
+			screenscale = 4;
+	}
 
 	initialize();
 	next_time = SDL_GetTicks() + delay;
@@ -261,9 +269,6 @@ void initialize(void)
 	
 	bg = IMG_Load("gfx/bg.png");
 	if (bg == NULL)
-		exit(ERROR_NOIMGFILE);
-	fg = IMG_Load("gfx/fg.png");
-	if (fg == NULL)
 		exit(ERROR_NOIMGFILE);
 	gray = IMG_Load("gfx/block.png");
 	if (gray == NULL)
@@ -386,17 +391,42 @@ void fillAudio(void *userdata, Uint8 *stream, int len)
 	}
 }
 
-void drawFigure(void)
+void drawFigure(const struct Figure *fig, int x, int y, bool screendim)
 {
-	if (figures[0] != NULL)
+	if (fig != NULL)
+	{
+		const struct Shape *shape = NULL;
+		int minx, maxx, miny, maxy, w, h, offset_x, offset_y;
+		
+		if (screendim)
+		{
+			shape = getShape(fig->id);
+			getShapeDimensions(shape, &minx, &maxx, &miny, &maxy);
+			w = maxx - minx + 1;
+			h = maxy - miny + 1;
+			offset_x = (4 - w) * BLOCK_SIZE / 2;
+			offset_y = (2 - h) * BLOCK_SIZE / 2;
+		}
+		
 		for (int i = 0; i < (FIG_DIM*FIG_DIM); ++i)
 		{
 			SDL_Rect rect;
-			rect.x = (i % FIG_DIM + f_x) * BLOCK_SIZE + BOARD_X;
-			rect.y = (i / FIG_DIM + f_y) * BLOCK_SIZE + BOARD_Y;
-			if (f_shape.blockmap[i] == 1)
-				SDL_BlitSurface(figures[0]->color, NULL, screen, &rect);
+			if (screendim)
+			{
+				rect.x = (i % FIG_DIM - minx) * BLOCK_SIZE + x + offset_x;
+				rect.y = (i / FIG_DIM - miny) * BLOCK_SIZE + y + offset_y;
+				if (shape->blockmap[i] == 1)
+					SDL_BlitSurface(fig->color, NULL, screen, &rect);
+			}
+			else
+			{
+				rect.x = (i % FIG_DIM + x) * BLOCK_SIZE + BOARD_X;
+				rect.y = (i / FIG_DIM + y) * BLOCK_SIZE + BOARD_Y;
+				if (f_shape.blockmap[i] == 1)
+					SDL_BlitSurface(figures[0]->color, NULL, screen, &rect);
+			}
 		}
+	}
 }
 
 void displayBoard(void)
@@ -412,16 +442,12 @@ void displayBoard(void)
 	rect.x = 0;
 	rect.y = 0;
 	SDL_BlitSurface(bg, NULL, screen, &rect);
-	/*
-	// display next figure
-	for (int i = 0; i < (FIG_DIM*FIG_DIM); ++i)
-	{
-		rect.x = (i % FIG_DIM + BOARD_WIDTH) * BLOCK_SIZE + 50;
-		rect.y = (i / FIG_DIM) * BLOCK_SIZE + 80;
-		if (next_figure[i] == 1)
-			SDL_BlitSurface(next_color, NULL, screen, &rect);
-	}
 	
+	// display next figures
+	drawFigure(figures[1], 246, 24, true);
+	drawFigure(figures[2], 246, 72, true);
+	
+	/*
 	// display number of removed lines
 	switch(lines % 10)
 	{
@@ -464,12 +490,7 @@ void displayBoard(void)
 		if (board[i] == 1)
 			SDL_BlitSurface(gray, NULL, screen, &rect);
 	}
-	drawFigure();
-
-	// display foreground
-	rect.x = 0;
-	rect.y = 0;
-	SDL_BlitSurface(fg, NULL, screen, &rect);
+	drawFigure(figures[0], f_x, f_y, false);
 
 	if(pause || gameover)
 	{
@@ -786,7 +807,7 @@ SDL_Surface* getNextColor(enum FigureId id)
 SDL_Surface* getRandomColor(void)
 {
 	SDL_Surface* temp;
-	switch( rand() % 7 )
+	switch (rand() % 7)
 	{
 		case 0:
 			temp = blue;
@@ -811,6 +832,34 @@ SDL_Surface* getRandomColor(void)
 			break;
 	}
 	return temp;
+}
+
+void getShapeDimensions(const struct Shape *shape, int *minx, int *maxx, int *miny, int *maxy)
+{
+	int min_x = FIG_DIM - 1, max_x = 0;
+	int min_y = FIG_DIM - 1, max_y = 0;
+	
+	for (int i = 0; i < FIG_DIM*FIG_DIM; ++i)
+	{
+		int x = i % FIG_DIM;
+		int y = i / FIG_DIM;
+		if (shape->blockmap[i])
+		{
+			if (x < min_x)
+				min_x = x;
+			if (x > max_x)
+				max_x = x;
+			if (y < min_y)
+				min_y = y;
+			if (y > max_y)
+				max_y = y;
+		}
+	}
+	
+	*minx = min_x;
+	*maxx = max_x;
+	*miny = min_y;
+	*maxy = max_y;
 }
 
 bool isFigureColliding(void)
