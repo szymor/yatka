@@ -14,7 +14,8 @@
 #define KEY_RIGHT			SDLK_RIGHT
 #define KEY_SOFTDROP		SDLK_DOWN
 #define KEY_HARDDROP		SDLK_SPACE
-#define KEY_ROTATE			SDLK_UP
+#define KEY_ROTATE_CW		SDLK_UP
+#define KEY_ROTATE_CCW		SDLK_z
 #define KEY_PAUSE			SDLK_ESCAPE
 
 #define BOARD_X				100
@@ -56,6 +57,12 @@ struct Figure
 	SDL_Surface *color;
 };
 
+struct Shape
+{
+	int blockmap[FIG_DIM*FIG_DIM];
+	int cx, cy;		// correction of position after CW rotation
+};
+
 SDL_Surface *screen = NULL;
 SDL_Surface *screen_scaled = NULL;
 SDL_Surface *bg = NULL;
@@ -84,43 +91,83 @@ Uint32 gosound_tmplen = 0;
 int *board = NULL;
 struct Figure *figures[FIG_NUM];
 SDL_Surface *fixed_colors[FIGID_NUM];
-int f_x, f_y;	// coordinates of the active figure
-int rotation;	// ...of the active figure
+int f_x, f_y;			// coordinates of the active figure
+struct Shape f_shape;	// shape of the active figure
 
 bool pause, gameover, nosound, randomcolor;
 int screenscale;
 int lines;
 int next_time, delay = 500;
 
-// shapes - 4x4 figure size
-const int shape_O[]		= { 0, 0, 0, 0,
-							0, 1, 1, 0,
-							0, 1, 1, 0,
-							0, 0, 0, 0 };
-const int shape_L[]		= { 0, 0, 0, 0,
-							0, 0, 1, 0,
-							1, 1, 1, 0,
-							0, 0, 0, 0 };
-const int shape_J[]		= { 0, 0, 0, 0,
-							1, 0, 0, 0,
-							1, 1, 1, 0,
-							0, 0, 0, 0 };
-const int shape_S[]		= { 0, 0, 0, 0,
-							0, 1, 1, 0,
-							1, 1, 0, 0,
-							0, 0, 0, 0 };
-const int shape_Z[]		= { 0, 0, 0, 0,
-							1, 1, 0, 0,
-							0, 1, 1, 0,
-							0, 0, 0, 0 };
-const int shape_I[]		= { 0, 0, 0, 0,
-							0, 0, 0, 0,
-							1, 1, 1, 1,
-							0, 0, 0, 0 };
-const int shape_T[]		= { 0, 0, 0, 0,
-							0, 1, 0, 0,
-							1, 1, 1, 0,
-							0, 0, 0, 0 };
+const struct Shape shape_O =
+{
+	.blockmap	= { 0, 0, 0, 0,
+					0, 1, 1, 0,
+					0, 1, 1, 0,
+					0, 0, 0, 0 },
+	.cx = 0,
+	.cy = 0
+};
+
+const struct Shape shape_L =
+{
+	.blockmap	= { 0, 0, 0, 0,
+					0, 0, 1, 0,
+					1, 1, 1, 0,
+					0, 0, 0, 0 },
+	.cx = 0,
+	.cy = 1
+};
+
+const struct Shape shape_J =
+{
+	.blockmap	= { 0, 0, 0, 0,
+					1, 0, 0, 0,
+					1, 1, 1, 0,
+					0, 0, 0, 0 },
+	.cx = 0,
+	.cy = 1
+};
+
+const struct Shape shape_S =
+{
+	.blockmap	= { 0, 0, 0, 0,
+					0, 1, 1, 0,
+					1, 1, 0, 0,
+					0, 0, 0, 0 },
+	.cx = 0,
+	.cy = 1
+};
+
+const struct Shape shape_Z =
+{
+	.blockmap	= { 0, 0, 0, 0,
+					1, 1, 0, 0,
+					0, 1, 1, 0,
+					0, 0, 0, 0 },
+	.cx = 0,
+	.cy = 1
+};
+
+const struct Shape shape_I =
+{
+	.blockmap	= { 0, 0, 0, 0,
+					0, 0, 0, 0,
+					1, 1, 1, 1,
+					0, 0, 0, 0 },
+	.cx = 0,
+	.cy = 0
+};
+
+const struct Shape shape_T =
+{
+	.blockmap	= { 0, 0, 0, 0,
+					0, 1, 0, 0,
+					1, 1, 1, 0,
+					0, 0, 0, 0 },
+	.cx = 0,
+	.cy = 1
+};	
 
 void initialize(void);
 void finalize(void);
@@ -138,13 +185,14 @@ void initFigures(void);
 void drawFigure(void);
 void spawnFigure(void);
 struct Figure *getNextFigure(void);
-const int* getShape(enum FigureId id);
+const struct Shape* getShape(enum FigureId id);
 enum FigureId getNextId(void);
 enum FigureId getRandomId(void);
 SDL_Surface* getNextColor(enum FigureId id);
 SDL_Surface* getRandomColor(void);
 bool isFigureColliding(void);
-void rotateFigureClockwise(void);
+void rotateFigureCW(void);
+void rotateFigureCCW(void);
 
 bool screenFlagUpdate(bool v);
 void upscale2(uint32_t *to, uint32_t *from);
@@ -338,7 +386,6 @@ void fillAudio(void *userdata, Uint8 *stream, int len)
 	}
 }
 
-// TODO - take rotation into account
 void drawFigure(void)
 {
 	if (figures[0] != NULL)
@@ -347,8 +394,7 @@ void drawFigure(void)
 			SDL_Rect rect;
 			rect.x = (i % FIG_DIM + f_x) * BLOCK_SIZE + BOARD_X;
 			rect.y = (i / FIG_DIM + f_y) * BLOCK_SIZE + BOARD_Y;
-			const int *shape = getShape(figures[0]->id);
-			if (shape[i] == 1)
+			if (f_shape.blockmap[i] == 1)
 				SDL_BlitSurface(figures[0]->color, NULL, screen, &rect);
 		}
 }
@@ -455,7 +501,6 @@ void displayBoard(void)
 	SDL_Flip(screen_scaled);
 }
 
-// TODO - take rotation into account
 void dropSoft(void)
 {
 	if (figures[0] == NULL)
@@ -464,14 +509,12 @@ void dropSoft(void)
 	}
 	else
 	{
-		const int *shape = getShape(figures[0]->id);
-		
 		++f_y;
 		if (isFigureColliding())
 		{
 			--f_y;
 			for (int i = 0; i < (FIG_DIM*FIG_DIM); ++i)
-				if (shape[i] != 0)
+				if (f_shape.blockmap[i] != 0)
 				{
 					int x = i % FIG_DIM + f_x;
 					int y = i / FIG_DIM + f_y;
@@ -491,18 +534,15 @@ void dropSoft(void)
 	screenFlagUpdate(true);
 }
 
-// TODO - take rotation into account
 void dropHard(void)
 {
 	if (figures[0] != NULL)
 	{
-		const int *shape = getShape(figures[0]->id);
-		
 		while (!isFigureColliding())
 			++f_y;
 		--f_y;
 		for (int i = 0; i < (FIG_DIM*FIG_DIM); ++i)
-			if (shape[i] != 0)
+			if (f_shape.blockmap[i] != 0)
 			{
 				int x = i % FIG_DIM + f_x;
 				int y = i / FIG_DIM + f_y;
@@ -543,7 +583,8 @@ void checkFullLines(void)
 
 void handleInput(void)
 {
-	static bool rotate_key_state = false;
+	static bool rotatecw_key_state = false;
+	static bool rotateccw_key_state = false;
 	static bool pause_key_state = false;
 	static bool harddrop_key_state = false;
 	SDL_Event event;
@@ -554,8 +595,11 @@ void handleInput(void)
 			case SDL_KEYUP:
 				switch (event.key.keysym.sym)
 				{
-					case KEY_ROTATE:
-						rotate_key_state = false;
+					case KEY_ROTATE_CW:
+						rotatecw_key_state = false;
+						break;
+					case KEY_ROTATE_CCW:
+						rotateccw_key_state = false;
 						break;
 					case KEY_PAUSE:
 						pause_key_state = false;
@@ -568,13 +612,13 @@ void handleInput(void)
 			case SDL_KEYDOWN:
 				switch (event.key.keysym.sym)
 				{
-					case KEY_ROTATE:
-						if (!rotate_key_state)
+					case KEY_ROTATE_CW:
+						if (!rotatecw_key_state)
 						{
-							rotate_key_state = true;
+							rotatecw_key_state = true;
 							if(!pause && !gameover)
 							{
-								rotateFigureClockwise();
+								rotateFigureCW();
 								if(isFigureColliding())
 								{
 									++f_x;
@@ -583,9 +627,31 @@ void handleInput(void)
 										f_x -= 2;
 										if(isFigureColliding())
 										{
-											rotateFigureClockwise();
-											rotateFigureClockwise();
-											rotateFigureClockwise();
+											rotateFigureCCW();
+											++f_x;
+										}
+									}
+								}
+							}
+							screenFlagUpdate(true);
+						}
+						break;
+					case KEY_ROTATE_CCW:
+						if (!rotateccw_key_state)
+						{
+							rotateccw_key_state = true;
+							if(!pause && !gameover)
+							{
+								rotateFigureCCW();
+								if(isFigureColliding())
+								{
+									++f_x;
+									if(isFigureColliding())
+									{
+										f_x -= 2;
+										if(isFigureColliding())
+										{
+											rotateFigureCW();
 											++f_x;
 										}
 									}
@@ -662,7 +728,9 @@ void spawnFigure(void)
 	figures[FIG_NUM - 1] = getNextFigure();
 	f_y = -FIG_DIM + 1;						// ...to gain a 'slide' effect from the top of screen
 	f_x = (BOARD_WIDTH - FIG_DIM) / 2;		// ...to center a figure
-	rotation = 0;
+	
+	if (figures[0] != NULL)
+		memcpy(&f_shape, getShape(figures[0]->id), sizeof(f_shape));
 }
 
 struct Figure *getNextFigure(void)
@@ -675,24 +743,24 @@ struct Figure *getNextFigure(void)
 	return f;
 }
 
-const int* getShape(enum FigureId id)
+const struct Shape* getShape(enum FigureId id)
 {
 	switch (id)
 	{
 		case FIGID_O:
-			return shape_O;
+			return &shape_O;
 		case FIGID_L:
-			return shape_L;
+			return &shape_L;
 		case FIGID_J:
-			return shape_J;
+			return &shape_J;
 		case FIGID_S:
-			return shape_S;
+			return &shape_S;
 		case FIGID_Z:
-			return shape_Z;
+			return &shape_Z;
 		case FIGID_I:
-			return shape_I;
+			return &shape_I;
 		case FIGID_T:
-			return shape_T;
+			return &shape_T;
 	}
 }
 
@@ -749,9 +817,7 @@ bool isFigureColliding(void)
 {
 	int i, empty_columns_right, empty_columns_left, empty_rows_down;
 	if (figures[0] != NULL)
-	{
-		const int *shape = getShape(figures[0]->id);
-		
+	{	
 		// counting empty columns on the righthand side of figure
 		// 'x' and 'y' used as counters
 		empty_columns_right = 0;
@@ -759,7 +825,7 @@ bool isFigureColliding(void)
 		{
 			i = 1;		// empty by default
 			for (int y = 0; y < FIG_DIM; ++y)
-				if (shape[y*FIG_DIM + x] != 0)
+				if (f_shape.blockmap[y*FIG_DIM + x] != 0)
 				{
 					i = 0;
 					break;
@@ -776,7 +842,7 @@ bool isFigureColliding(void)
 		{
 			i = 1;		// empty by default
 			for (int y = 0; y < FIG_DIM; ++y )
-				if (shape[y*FIG_DIM + x] != 0)
+				if (f_shape.blockmap[y*FIG_DIM + x] != 0)
 				{
 					i = 0;
 					break;
@@ -793,7 +859,7 @@ bool isFigureColliding(void)
 		{
 			i = 1;		// empty by default
 			for (int x = 0; x < FIG_DIM; ++x)
-				if (shape[y*FIG_DIM + x] != 0)
+				if (f_shape.blockmap[y*FIG_DIM + x] != 0)
 				{
 					i = 0;
 					break;
@@ -810,35 +876,41 @@ bool isFigureColliding(void)
 		if (f_y > (BOARD_HEIGHT-FIG_DIM+empty_rows_down))
 			return true;
 		for (int i = 0; i < (FIG_DIM*FIG_DIM); ++i)
-			if (shape[i] != 0)
+			if (f_shape.blockmap[i] != 0)
 			{
 				int x = i % FIG_DIM + f_x;
 				int y = i / FIG_DIM + f_y;
 				if (((y*BOARD_WIDTH + x) < (BOARD_WIDTH*BOARD_HEIGHT)) && ((y*BOARD_WIDTH + x) >= 0))
-					if (board[y*BOARD_WIDTH + x] & shape[i])
+					if (board[y*BOARD_WIDTH + x] & f_shape.blockmap[i])
 						return true;
 			}
 	}
 	return false;
 }
 
-// TODO
-void rotateFigureClockwise(void)
+void rotateFigureCW(void)
 {
-	/*
-	int i, empty_rows, x, y;
 	int temp[FIG_DIM*FIG_DIM];
-
-	if(fig != NULL)
+	
+	memcpy(temp, f_shape.blockmap, sizeof(temp));
+	for(int i = 0; i < FIG_DIM*FIG_DIM; ++i)
 	{
-		for( i = 0; i < FIG_DIM*FIG_DIM; ++i )
-			temp[i] = fig[i];
-		for( i = 0; i < FIG_DIM*FIG_DIM; ++i )
-		{
-			fig[i] = temp[(FIG_DIM-1-(i % FIG_DIM))*FIG_DIM + (i / FIG_DIM)];	// check this out :)
-		}
+		f_shape.blockmap[i] = temp[(FIG_DIM-1-(i % FIG_DIM))*FIG_DIM + (i / FIG_DIM)];	// check this out :)
 	}
-	* */
+	
+	f_x += f_shape.cx;
+	f_y += f_shape.cy;
+	
+	int tcx = f_shape.cx;
+	f_shape.cx = -f_shape.cy;
+	f_shape.cy = tcx;
+}
+
+void rotateFigureCCW(void)
+{
+	rotateFigureCW();
+	rotateFigureCW();
+	rotateFigureCW();
 }
 
 void upscale2(uint32_t *to, uint32_t *from)
