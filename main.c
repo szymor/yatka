@@ -43,13 +43,13 @@ enum Error
 
 enum FigureId
 {
+	FIGID_I,
 	FIGID_O,
-	FIGID_L,
-	FIGID_J,
+	FIGID_T,
 	FIGID_S,
 	FIGID_Z,
-	FIGID_I,
-	FIGID_T,
+	FIGID_J,
+	FIGID_L,
 	FIGID_NUM
 };
 
@@ -95,6 +95,7 @@ struct Figure *figures[FIG_NUM];
 SDL_Surface *fixed_colors[FIGID_NUM];
 int f_x, f_y;			// coordinates of the active figure
 struct Shape f_shape;	// shape of the active figure
+int statistics[FIG_NUM];
 
 bool pause = false, gameover = false, hold_ready = true;
 bool nosound = false, randomcolor = false, holdoff = false;
@@ -171,7 +172,7 @@ const struct Shape shape_T =
 					0, 0, 0, 0 },
 	.cx = 0,
 	.cy = 1
-};	
+};
 
 void initialize(void);
 void finalize(void);
@@ -185,6 +186,7 @@ void holdFigure(void);
 void checkFullLines(void);
 void handleInput(void);
 bool checkGameEnd(void);
+void drawBar(int x, int y, int value);
 
 void initFigures(void);
 void drawFigure(const struct Figure *fig, int x, int y, bool screendim);
@@ -272,7 +274,7 @@ void initialize(void)
 		exit(ERROR_SDLVIDEO);
 	screen = screenscale > 1 ? SDL_CreateRGBSurface(SDL_SWSURFACE, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BPP, 0, 0, 0, 0) : screen_scaled;
 	SDL_WM_SetCaption("Y A T K A", NULL);
-	
+
 	bg = IMG_Load("gfx/bg.png");
 	if (bg == NULL)
 		exit(ERROR_NOIMGFILE);
@@ -286,39 +288,39 @@ void initialize(void)
 	SDL_BlitSurface(gray, NULL, cyan, NULL);
 	SDL_FillRect(mask, NULL, SDL_MapRGBA(cyan->format, 0, 255, 255, 128));
 	SDL_BlitSurface(mask, NULL, cyan, NULL);
-	
+
 	purple = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
 	SDL_BlitSurface(gray, NULL, purple, NULL);
 	SDL_FillRect(mask, NULL, SDL_MapRGBA(purple->format, 255, 0, 255, 128));
 	SDL_BlitSurface(mask, NULL, purple, NULL);
-	
+
 	yellow = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
 	SDL_BlitSurface(gray, NULL, yellow, NULL);
 	SDL_FillRect(mask, NULL, SDL_MapRGBA(yellow->format, 255, 255, 0, 128));
 	SDL_BlitSurface(mask, NULL, yellow, NULL);
-	
+
 	green = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
 	SDL_BlitSurface(gray, NULL, green, NULL);
 	SDL_FillRect(mask, NULL, SDL_MapRGBA(green->format, 0, 255, 0, 128));
 	SDL_BlitSurface(mask, NULL, green, NULL);
-	
+
 	red = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
 	SDL_BlitSurface(gray, NULL, red, NULL);
 	SDL_FillRect(mask, NULL, SDL_MapRGBA(red->format, 255, 0, 0, 128));
 	SDL_BlitSurface(mask, NULL, red, NULL);
-	
+
 	blue = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
 	SDL_BlitSurface(gray, NULL, blue, NULL);
 	SDL_FillRect(mask, NULL, SDL_MapRGBA(blue->format, 0, 0, 255, 128));
 	SDL_BlitSurface(mask, NULL, blue, NULL);
-	
+
 	orange = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
 	SDL_BlitSurface(gray, NULL, orange, NULL);
 	SDL_FillRect(mask, NULL, SDL_MapRGBA(orange->format, 255, 128, 0, 128));
 	SDL_BlitSurface(mask, NULL, orange, NULL);
-	
+
 	SDL_FreeSurface(mask);
-	
+
 	fixed_colors[FIGID_O] = yellow;
 	fixed_colors[FIGID_L] = orange;
 	fixed_colors[FIGID_J] = blue;
@@ -405,7 +407,7 @@ void drawFigure(const struct Figure *fig, int x, int y, bool screendim)
 	{
 		const struct Shape *shape = NULL;
 		int minx, maxx, miny, maxy, w, h, offset_x, offset_y;
-		
+
 		if (screendim)
 		{
 			shape = getShape(fig->id);
@@ -415,7 +417,7 @@ void drawFigure(const struct Figure *fig, int x, int y, bool screendim)
 			offset_x = (4 - w) * BLOCK_SIZE / 2;
 			offset_y = (2 - h) * BLOCK_SIZE / 2;
 		}
-		
+
 		for (int i = 0; i < (FIG_DIM*FIG_DIM); ++i)
 		{
 			SDL_Rect rect;
@@ -445,18 +447,24 @@ void displayBoard(void)
 	SDL_Rect rect;
 	SDL_Surface *mask;
 	SDL_Surface *digit;
-	
+
 	// display background
 	rect.x = 0;
 	rect.y = 0;
 	SDL_BlitSurface(bg, NULL, screen, &rect);
-	
+
 	// display next figures
 	for (int i = 1; i < FIG_NUM; ++i)
 	{
 		drawFigure(figures[i], 246, 22 + 30 * (i - 1), true);
 	}
-	
+
+	// display statistics
+	for (int i = 0; i < FIG_NUM; ++i)
+	{
+		drawBar(64, 38 + i * 30, statistics[i]);
+	}
+
 	/*
 	// display number of removed lines
 	switch(lines % 10)
@@ -509,7 +517,7 @@ void displayBoard(void)
 		SDL_BlitSurface(mask, NULL, screen, NULL);
 		SDL_FreeSurface(mask);
 	}
-	
+
 	if (SDL_MUSTLOCK(screen_scaled))
 		SDL_LockSurface(screen_scaled);
 	switch (screenscale)
@@ -530,6 +538,50 @@ void displayBoard(void)
 		SDL_UnlockSurface(screen_scaled);
 
 	SDL_Flip(screen_scaled);
+}
+
+void drawBar(int x, int y, int value)
+{
+	const int maxw = 26;
+	const int maxh = 8;
+	const int alpha_step = 64;
+
+	SDL_Surface *bar = SDL_CreateRGBSurface(SDL_SRCALPHA,
+											SCREEN_WIDTH,
+											SCREEN_HEIGHT,
+											SCREEN_BPP,
+											0x000000ff,
+											0x0000ff00,
+											0x00ff0000,
+											0xff000000);
+
+	Uint8 alpha_r;
+	Uint8 alpha_l;
+	Uint32 col;
+	SDL_Rect rect;
+	int ar = (value / (maxw + 1)) * alpha_step;
+	int al = ar + alpha_step;
+	ar = ar > 255 ? 255 : ar;
+	al = al > 255 ? 255 : al;
+	alpha_l = (Uint8)al;
+	alpha_r = (Uint8)ar;
+
+	rect.x = x;
+	rect.y = y;
+	rect.w = value % (maxw + 1);
+	rect.h = maxh;
+	col = SDL_MapRGBA(bar->format, 255, 255, 255, alpha_l);;
+	SDL_FillRect(bar, &rect, col);
+
+	rect.x = x + rect.w;
+	rect.y = y;
+	rect.w = maxw - rect.w;
+	rect.h = maxh;
+	col = SDL_MapRGBA(bar->format, 255, 255, 255, alpha_r);;
+	SDL_FillRect(bar, &rect, col);
+
+	SDL_BlitSurface(bar, NULL, screen, NULL);
+	SDL_FreeSurface(bar);
 }
 
 void dropSoft(void)
@@ -582,7 +634,7 @@ void dropHard(void)
 			}
 		free(figures[0]);
 		figures[0] = NULL;
-		
+
 		screenFlagUpdate(true);
 	}
 }
@@ -594,12 +646,12 @@ void holdFigure(void)
 		struct Figure temp = *figures[0];
 		*figures[0] = *figures[1];
 		*figures[1] = temp;
-		
+
 		f_y = -FIG_DIM + 1;						// ...to gain a 'slide' effect from the top of screen
 		f_x = (BOARD_WIDTH - FIG_DIM) / 2;		// ...to center a figure
-		
+
 		memcpy(&f_shape, getShape(figures[0]->id), sizeof(f_shape));
-		
+
 		hold_ready = false;
 	}
 }
@@ -798,20 +850,23 @@ void spawnFigure(void)
 	figures[FIG_NUM - 1] = getNextFigure();
 	f_y = -FIG_DIM + 1;						// ...to gain a 'slide' effect from the top of screen
 	f_x = (BOARD_WIDTH - FIG_DIM) / 2;		// ...to center a figure
-	
+
 	if (figures[0] != NULL)
+	{
 		memcpy(&f_shape, getShape(figures[0]->id), sizeof(f_shape));
-	
+		++statistics[figures[0]->id];
+	}
+
 	hold_ready = true;
 }
 
 struct Figure *getNextFigure(void)
 {
 	struct Figure *f = malloc(sizeof(struct Figure));
-	
+
 	f->id = getNextId();
 	f->color = getNextColor(f->id);
-	
+
 	return f;
 }
 
@@ -848,7 +903,7 @@ enum FigureId getRandomId(void)
 }
 
 SDL_Surface* getNextColor(enum FigureId id)
-{	
+{
 	if (randomcolor)
 		return getRandomColor();
 	else
@@ -889,7 +944,7 @@ void getShapeDimensions(const struct Shape *shape, int *minx, int *maxx, int *mi
 {
 	int min_x = FIG_DIM - 1, max_x = 0;
 	int min_y = FIG_DIM - 1, max_y = 0;
-	
+
 	for (int i = 0; i < FIG_DIM*FIG_DIM; ++i)
 	{
 		int x = i % FIG_DIM;
@@ -906,7 +961,7 @@ void getShapeDimensions(const struct Shape *shape, int *minx, int *maxx, int *mi
 				max_y = y;
 		}
 	}
-	
+
 	*minx = min_x;
 	*maxx = max_x;
 	*miny = min_y;
@@ -917,7 +972,7 @@ bool isFigureColliding(void)
 {
 	int i, empty_columns_right, empty_columns_left, empty_rows_down;
 	if (figures[0] != NULL)
-	{	
+	{
 		// counting empty columns on the righthand side of figure
 		// 'x' and 'y' used as counters
 		empty_columns_right = 0;
@@ -991,16 +1046,16 @@ bool isFigureColliding(void)
 void rotateFigureCW(void)
 {
 	int temp[FIG_DIM*FIG_DIM];
-	
+
 	memcpy(temp, f_shape.blockmap, sizeof(temp));
 	for(int i = 0; i < FIG_DIM*FIG_DIM; ++i)
 	{
 		f_shape.blockmap[i] = temp[(FIG_DIM-1-(i % FIG_DIM))*FIG_DIM + (i / FIG_DIM)];	// check this out :)
 	}
-	
+
 	f_x += f_shape.cx;
 	f_y += f_shape.cy;
-	
+
 	int tcx = f_shape.cx;
 	f_shape.cx = -f_shape.cy;
 	f_shape.cy = tcx;
