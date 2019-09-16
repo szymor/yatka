@@ -643,9 +643,11 @@ void holdFigure(void)
 {
 	if (hold_ready && !holdoff && figures[0])
 	{
+		--statistics[figures[0]->id];
 		struct Figure temp = *figures[0];
 		*figures[0] = *figures[1];
 		*figures[1] = temp;
+		++statistics[figures[0]->id];
 
 		f_y = -FIG_DIM + 1;						// ...to gain a 'slide' effect from the top of screen
 		f_x = (BOARD_WIDTH - FIG_DIM) / 2;		// ...to center a figure
