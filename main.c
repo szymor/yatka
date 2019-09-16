@@ -16,7 +16,9 @@
 #define KEY_HARDDROP		SDLK_SPACE
 #define KEY_ROTATE_CW		SDLK_UP
 #define KEY_ROTATE_CCW		SDLK_z
-#define KEY_PAUSE			SDLK_ESCAPE
+#define KEY_HOLD			SDLK_c
+#define KEY_PAUSE			SDLK_p
+#define KEY_QUIT			SDLK_ESCAPE
 
 #define BOARD_X				100
 #define BOARD_Y				0
@@ -94,8 +96,10 @@ SDL_Surface *fixed_colors[FIGID_NUM];
 int f_x, f_y;			// coordinates of the active figure
 struct Shape f_shape;	// shape of the active figure
 
-bool pause, gameover, nosound, randomcolor;
-int screenscale;
+bool pause = false, gameover = false, hold_ready = true;
+bool nosound = false, randomcolor = false, holdoff = false;
+int screenscale = 1;
+
 int lines;
 int next_time, delay = 500;
 
@@ -177,6 +181,7 @@ void fillAudio(void *userdata, Uint8 *stream, int len);
 void displayBoard(void);
 void dropSoft(void);
 void dropHard(void);
+void holdFigure(void);
 void checkFullLines(void);
 void handleInput(void);
 bool checkGameEnd(void);
@@ -202,7 +207,6 @@ void upscale4(uint32_t *to, uint32_t *from);
 
 int main(int argc, char *argv[])
 {
-	screenscale = 1;
 	for (int i = 1; i < argc; ++i)
 	{
 		if (!strcmp(argv[i],"--nosound"))
@@ -215,18 +219,20 @@ int main(int argc, char *argv[])
 			screenscale = 3;
 		else if (!strcmp(argv[i],"--scale4x"))
 			screenscale = 4;
+		else if (!strcmp(argv[i],"--holdoff"))
+			holdoff = true;
 	}
 
 	initialize();
 	next_time = SDL_GetTicks() + delay;
-	while(1)
+	while (1)
 	{
 		handleInput();
 		displayBoard();
 
-		if(SDL_GetTicks() > next_time)
+		if (SDL_GetTicks() > next_time)
 		{
-			if(!(pause || gameover))
+			if (!(pause || gameover))
 				dropSoft();
 		}
 
@@ -352,9 +358,11 @@ void finalize(void)
 {
 	if(!nosound)
 	{
+		SDL_PauseAudio(true);
 		if(bgmusic != NULL)
 			SDL_FreeWAV(bgmusic);
-		SDL_CloseAudio();
+		if(gosound != NULL)
+			SDL_FreeWAV(gosound);
 	}
 	SDL_Quit();
 	if(board != NULL)
@@ -444,8 +452,10 @@ void displayBoard(void)
 	SDL_BlitSurface(bg, NULL, screen, &rect);
 	
 	// display next figures
-	drawFigure(figures[1], 246, 24, true);
-	drawFigure(figures[2], 246, 72, true);
+	for (int i = 1; i < FIG_NUM; ++i)
+	{
+		drawFigure(figures[i], 246, 22 + 30 * (i - 1), true);
+	}
 	
 	/*
 	// display number of removed lines
@@ -577,6 +587,23 @@ void dropHard(void)
 	}
 }
 
+void holdFigure(void)
+{
+	if (hold_ready && !holdoff && figures[0])
+	{
+		struct Figure temp = *figures[0];
+		*figures[0] = *figures[1];
+		*figures[1] = temp;
+		
+		f_y = -FIG_DIM + 1;						// ...to gain a 'slide' effect from the top of screen
+		f_x = (BOARD_WIDTH - FIG_DIM) / 2;		// ...to center a figure
+		
+		memcpy(&f_shape, getShape(figures[0]->id), sizeof(f_shape));
+		
+		hold_ready = false;
+	}
+}
+
 void checkFullLines(void)
 {
 	// checking and removing full lines
@@ -608,6 +635,7 @@ void handleInput(void)
 	static bool rotateccw_key_state = false;
 	static bool pause_key_state = false;
 	static bool harddrop_key_state = false;
+	static bool hold_key_state = false;
 	SDL_Event event;
 
 	if(SDL_PollEvent(&event))
@@ -627,6 +655,9 @@ void handleInput(void)
 						break;
 					case KEY_HARDDROP:
 						harddrop_key_state = false;
+						break;
+					case KEY_HOLD:
+						hold_key_state = false;
 						break;
 				}
 				break;
@@ -661,16 +692,16 @@ void handleInput(void)
 						if (!rotateccw_key_state)
 						{
 							rotateccw_key_state = true;
-							if(!pause && !gameover)
+							if (!pause && !gameover)
 							{
 								rotateFigureCCW();
-								if(isFigureColliding())
+								if (isFigureColliding())
 								{
 									++f_x;
-									if(isFigureColliding())
+									if (isFigureColliding())
 									{
 										f_x -= 2;
-										if(isFigureColliding())
+										if (isFigureColliding())
 										{
 											rotateFigureCW();
 											++f_x;
@@ -682,7 +713,7 @@ void handleInput(void)
 						}
 						break;
 					case KEY_SOFTDROP:
-						if(!pause && !gameover)
+						if (!pause && !gameover)
 						{
 							dropSoft();
 						}
@@ -692,29 +723,40 @@ void handleInput(void)
 						if (!harddrop_key_state)
 						{
 							harddrop_key_state = true;
-							if(!pause && !gameover)
+							if (!pause && !gameover)
 							{
 								dropHard();
 							}
 						}
 						break;
+					case KEY_HOLD:
+						if (!hold_key_state)
+						{
+							hold_key_state = true;
+							if (!pause && !gameover)
+							{
+								holdFigure();
+							}
+							screenFlagUpdate(true);
+						}
+						break;
 					case KEY_LEFT:
-						if(!pause && !gameover)
+						if (!pause && !gameover)
 						{
 							--f_x;
-							if(isFigureColliding())
+							if (isFigureColliding())
 								++f_x;
+							screenFlagUpdate(true);
 						}
-						screenFlagUpdate(true);
 						break;
 					case KEY_RIGHT:
-						if(!pause && !gameover)
+						if (!pause && !gameover)
 						{
 							++f_x;
-							if(isFigureColliding())
+							if (isFigureColliding())
 								--f_x;
+							screenFlagUpdate(true);
 						}
-						screenFlagUpdate(true);
 						break;
 					case KEY_PAUSE:
 						if (!pause_key_state)
@@ -722,6 +764,13 @@ void handleInput(void)
 							pause_key_state = true;
 							pause = !pause;
 							screenFlagUpdate(true);
+						}
+						break;
+					case KEY_QUIT:
+						{
+							SDL_Event ev;
+							ev.type = SDL_QUIT;
+							SDL_PushEvent(&ev);
 						}
 						break;
 				}
@@ -752,6 +801,8 @@ void spawnFigure(void)
 	
 	if (figures[0] != NULL)
 		memcpy(&f_shape, getShape(figures[0]->id), sizeof(f_shape));
+	
+	hold_ready = true;
 }
 
 struct Figure *getNextFigure(void)
