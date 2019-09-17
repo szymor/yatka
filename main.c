@@ -11,8 +11,18 @@
 #define SCREEN_HEIGHT		240
 #define SCREEN_BPP			32
 #define FPS					60.0
-#define NO_FRAMELIMIT		0
 
+#ifdef _BITTBOY
+#define KEY_LEFT			SDLK_LEFT
+#define KEY_RIGHT			SDLK_RIGHT
+#define KEY_SOFTDROP		SDLK_DOWN
+#define KEY_HARDDROP		SDLK_LCTRL
+#define KEY_ROTATE_CW		SDLK_SPACE
+#define KEY_ROTATE_CCW		SDLK_LALT
+#define KEY_HOLD			SDLK_LSHIFT
+#define KEY_PAUSE			SDLK_RETURN
+#define KEY_QUIT			SDLK_ESCAPE
+#else
 #define KEY_LEFT			SDLK_LEFT
 #define KEY_RIGHT			SDLK_RIGHT
 #define KEY_SOFTDROP		SDLK_DOWN
@@ -22,6 +32,7 @@
 #define KEY_HOLD			SDLK_c
 #define KEY_PAUSE			SDLK_p
 #define KEY_QUIT			SDLK_ESCAPE
+#endif
 
 #define BOARD_X				100
 #define BOARD_Y				0
@@ -32,7 +43,7 @@
 #define FIG_NUM				7		// including the active figure
 
 #define KEY_REPEAT_RATE		80		// in ms
-#define FONT_SIZE			6
+#define FONT_SIZE			7
 
 enum Error
 {
@@ -286,6 +297,7 @@ void initialize(void)
 		exit(ERROR_SDLVIDEO);
 	screen = screenscale > 1 ? SDL_CreateRGBSurface(SDL_SWSURFACE, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BPP, 0, 0, 0, 0) : screen_scaled;
 	SDL_WM_SetCaption("Y A T K A", NULL);
+	SDL_ShowCursor(SDL_DISABLE);
 
 	arcade_font = TTF_OpenFont("arcade.ttf", FONT_SIZE);
 	if (arcade_font == NULL)
