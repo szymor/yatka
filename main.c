@@ -5,10 +5,13 @@
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_image.h>
+#include <SDL/SDL_ttf.h>
 
 #define SCREEN_WIDTH		320
 #define SCREEN_HEIGHT		240
 #define SCREEN_BPP			32
+#define FPS					60.0
+#define NO_FRAMELIMIT		0
 
 #define KEY_LEFT			SDLK_LEFT
 #define KEY_RIGHT			SDLK_RIGHT
@@ -29,6 +32,7 @@
 #define FIG_NUM				7		// including the active figure
 
 #define KEY_REPEAT_RATE		80		// in ms
+#define FONT_SIZE			6
 
 enum Error
 {
@@ -38,6 +42,8 @@ enum Error
 	ERROR_NOIMGFILE,
 	ERROR_NOSNDFILE,
 	ERROR_OPENAUDIO,
+	ERROR_TTFINIT,
+	ERROR_NOFONT,
 	ERROR_END
 };
 
@@ -90,6 +96,8 @@ Uint8 *gosound_sample = NULL;
 Uint32 gosound_length = 0;
 Uint32 gosound_tmplen = 0;
 
+TTF_Font *arcade_font = NULL;
+
 int *board = NULL;
 struct Figure *figures[FIG_NUM];
 SDL_Surface *fixed_colors[FIGID_NUM];
@@ -101,7 +109,7 @@ bool pause = false, gameover = false, hold_ready = true;
 bool nosound = false, randomcolor = false, holdoff = false;
 int screenscale = 1;
 
-int lines;
+int fps, lines, score;
 int next_time, delay = 500;
 
 const struct Shape shape_O =
@@ -182,11 +190,13 @@ void fillAudio(void *userdata, Uint8 *stream, int len);
 void displayBoard(void);
 void dropSoft(void);
 void dropHard(void);
+void lockFigure(void);
 void holdFigure(void);
 void checkFullLines(void);
 void handleInput(void);
 bool checkGameEnd(void);
 void drawBar(int x, int y, int value);
+void drawStatus(int x, int y);
 
 void initFigures(void);
 void drawFigure(const struct Figure *fig, int x, int y, bool screendim);
@@ -206,6 +216,8 @@ bool screenFlagUpdate(bool v);
 void upscale2(uint32_t *to, uint32_t *from);
 void upscale3(uint32_t *to, uint32_t *from);
 void upscale4(uint32_t *to, uint32_t *from);
+void frameCounter(void);
+int frameLimiter(void);
 
 int main(int argc, char *argv[])
 {
@@ -231,15 +243,13 @@ int main(int argc, char *argv[])
 	{
 		handleInput();
 		displayBoard();
+		frameLimiter();
 
 		if (SDL_GetTicks() > next_time)
 		{
 			if (!(pause || gameover))
 				dropSoft();
 		}
-
-		// workaround for high CPU usage
-		SDL_Delay(10);
 	}
 	return 0;
 }
@@ -268,12 +278,18 @@ void initialize(void)
 {
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) < 0)
 		exit(ERROR_SDLINIT);
+	if (TTF_Init() < 0)
+		exit(ERROR_TTFINIT);
 	atexit(finalize);
 	screen_scaled = SDL_SetVideoMode(SCREEN_WIDTH * screenscale, SCREEN_HEIGHT * screenscale, SCREEN_BPP, SDL_HWSURFACE | SDL_DOUBLEBUF);
 	if (screen_scaled == NULL)
 		exit(ERROR_SDLVIDEO);
 	screen = screenscale > 1 ? SDL_CreateRGBSurface(SDL_SWSURFACE, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BPP, 0, 0, 0, 0) : screen_scaled;
 	SDL_WM_SetCaption("Y A T K A", NULL);
+
+	arcade_font = TTF_OpenFont("arcade.ttf", FONT_SIZE);
+	if (arcade_font == NULL)
+		exit(ERROR_NOFONT);
 
 	bg = IMG_Load("gfx/bg.png");
 	if (bg == NULL)
@@ -358,6 +374,8 @@ void initialize(void)
 
 void finalize(void)
 {
+	TTF_CloseFont(arcade_font);
+	TTF_Quit();
 	if(!nosound)
 	{
 		SDL_PauseAudio(true);
@@ -464,6 +482,8 @@ void displayBoard(void)
 	{
 		drawBar(64, 38 + i * 30, statistics[i]);
 	}
+	
+	drawStatus(0, 0);
 
 	/*
 	// display number of removed lines
@@ -538,6 +558,7 @@ void displayBoard(void)
 		SDL_UnlockSurface(screen_scaled);
 
 	SDL_Flip(screen_scaled);
+	frameCounter();
 }
 
 void drawBar(int x, int y, int value)
@@ -570,18 +591,50 @@ void drawBar(int x, int y, int value)
 	rect.y = y;
 	rect.w = value % (maxw + 1);
 	rect.h = maxh;
-	col = SDL_MapRGBA(bar->format, 255, 255, 255, alpha_l);;
+	col = SDL_MapRGBA(bar->format, 255, 255, 255, alpha_l);
 	SDL_FillRect(bar, &rect, col);
 
 	rect.x = x + rect.w;
 	rect.y = y;
 	rect.w = maxw - rect.w;
 	rect.h = maxh;
-	col = SDL_MapRGBA(bar->format, 255, 255, 255, alpha_r);;
+	col = SDL_MapRGBA(bar->format, 255, 255, 255, alpha_r);
 	SDL_FillRect(bar, &rect, col);
 
 	SDL_BlitSurface(bar, NULL, screen, NULL);
 	SDL_FreeSurface(bar);
+}
+
+void drawFps(int x, int y)
+{
+	SDL_Color col = {.r = 255, .g = 255, .b = 255};
+	SDL_Surface *text = TTF_RenderUTF8_Blended(arcade_font, "fps", col);
+	SDL_BlitSurface(text, NULL, screen, NULL);
+	SDL_FreeSurface(text);
+}
+
+void drawStatus(int x, int y)
+{
+	SDL_Color col = {.r = 255, .g = 255, .b = 255};
+	SDL_Surface *text = NULL;
+	SDL_Rect rect = {.x = x, .y = y};
+	char buff[256];
+	
+	sprintf(buff, "Score: %d", score);
+	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
+	SDL_BlitSurface(text, NULL, screen, &rect);
+	
+	rect.y += FONT_SIZE;
+	sprintf(buff, "Lines: %d", lines);
+	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
+	SDL_BlitSurface(text, NULL, screen, &rect);
+	
+	rect.y += FONT_SIZE;
+	sprintf(buff, "FPS: %d", fps);
+	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
+	SDL_BlitSurface(text, NULL, screen, &rect);
+	
+	SDL_FreeSurface(text);
 }
 
 void dropSoft(void)
@@ -596,14 +649,7 @@ void dropSoft(void)
 		if (isFigureColliding())
 		{
 			--f_y;
-			for (int i = 0; i < (FIG_DIM*FIG_DIM); ++i)
-				if (f_shape.blockmap[i] != 0)
-				{
-					int x = i % FIG_DIM + f_x;
-					int y = i / FIG_DIM + f_y;
-					if ((x >= 0) && (x < BOARD_WIDTH) && (y >= 0) && (y < BOARD_HEIGHT))
-						board[y*BOARD_WIDTH + x] = 1;
-				}
+			lockFigure();
 			free(figures[0]);
 			figures[0] = NULL;
 		}
@@ -624,19 +670,24 @@ void dropHard(void)
 		while (!isFigureColliding())
 			++f_y;
 		--f_y;
-		for (int i = 0; i < (FIG_DIM*FIG_DIM); ++i)
-			if (f_shape.blockmap[i] != 0)
-			{
-				int x = i % FIG_DIM + f_x;
-				int y = i / FIG_DIM + f_y;
-				if ((x >= 0) && (x < BOARD_WIDTH) && (y >= 0) && (y < BOARD_HEIGHT))
-					board[y*BOARD_WIDTH + x] = 1;
-			}
+		lockFigure();
 		free(figures[0]);
 		figures[0] = NULL;
 
 		screenFlagUpdate(true);
 	}
+}
+
+void lockFigure(void)
+{
+	for (int i = 0; i < (FIG_DIM*FIG_DIM); ++i)
+		if (f_shape.blockmap[i] != 0)
+		{
+			int x = i % FIG_DIM + f_x;
+			int y = i / FIG_DIM + f_y;
+			if ((x >= 0) && (x < BOARD_WIDTH) && (y >= 0) && (y < BOARD_HEIGHT))
+				board[y*BOARD_WIDTH + x] = 1;
+		}
 }
 
 void holdFigure(void)
@@ -660,26 +711,45 @@ void holdFigure(void)
 
 void checkFullLines(void)
 {
+	int lines_once = 0;
+	
 	// checking and removing full lines
 	for (int y = 1; y < BOARD_HEIGHT; ++y)
 	{
-		int i = 1;
+		bool flag = true;
 		for (int x = 0; x < BOARD_WIDTH; ++x)
 		{
 			if (board[y*BOARD_WIDTH + x] == 0)
 			{
-				i = 0;
+				flag = false;
 				break;
 			}
 		}
 		// removing
-		if (i)
+		if (flag)
 		{
 			++lines;
+			++lines_once;
 			for (int ys = y-1; ys >= 0; --ys)
 				for (int x = 0; x < BOARD_WIDTH; ++x)
 					board[(ys+1)*BOARD_WIDTH + x] = board[ys*BOARD_WIDTH + x];
 		}
+	}
+	
+	switch (lines_once)
+	{
+		case 1:
+			score += 100;
+			break;
+		case 2:
+			score += 300;
+			break;
+		case 3:
+			score += 500;
+			break;
+		case 4:
+			score += 800;
+			break;
 	}
 }
 
@@ -1460,4 +1530,49 @@ void upscale4(uint32_t *to, uint32_t *from)
 		default:
 		break;
 	}
+}
+
+void frameCounter(void)
+{
+	static unsigned int frames;
+	static Uint32 curTicks;
+	static Uint32 lastTicks;
+	Uint32 t;
+
+	curTicks = SDL_GetTicks();
+	t = curTicks - lastTicks;
+
+	if (t >= 1000)
+	{
+		lastTicks = curTicks;
+		fps = frames;
+		frames = 0;
+	}
+
+	++frames;
+}
+
+int frameLimiter(void)
+{
+	static Uint32 curTicks;
+	static Uint32 lastTicks;
+	float t;
+
+#if NO_FRAMELIMIT
+	return 0;
+#endif
+
+	curTicks = SDL_GetTicks();
+	t = curTicks - lastTicks;
+
+	if (t >= 1000.0/FPS)
+	{
+		lastTicks = curTicks;
+		return 0;
+	}
+
+
+	SDL_Delay(1);
+
+	return 1;
 }
