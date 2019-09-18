@@ -70,10 +70,17 @@ enum FigureId
 	FIGID_NUM
 };
 
+enum RandomAlgo
+{
+	RA_NAIVE,
+	RA_7BAG,
+	RA_END
+};
+
 struct Figure
 {
 	enum FigureId id;
-	SDL_Surface *color;
+	enum FigureId colorid;
 };
 
 struct Shape
@@ -89,13 +96,7 @@ SDL_Surface *fg = NULL;
 
 // sprites for blocks
 SDL_Surface *gray = NULL;
-SDL_Surface *cyan = NULL;
-SDL_Surface *purple = NULL;
-SDL_Surface *yellow = NULL;
-SDL_Surface *green = NULL;
-SDL_Surface *red = NULL;
-SDL_Surface *blue = NULL;
-SDL_Surface *orange = NULL;
+SDL_Surface *colors[FIGID_NUM];
 
 SDL_AudioSpec audiospec;
 Uint8 *bgmusic = NULL;
@@ -109,19 +110,20 @@ Uint32 gosound_tmplen = 0;
 
 TTF_Font *arcade_font = NULL;
 
-int *board = NULL;
+enum FigureId *board = NULL;
 struct Figure *figures[FIG_NUM];
-SDL_Surface *fixed_colors[FIGID_NUM];
 int f_x, f_y;			// coordinates of the active figure
 struct Shape f_shape;	// shape of the active figure
 int statistics[FIG_NUM];
 
-bool pause = false, gameover = false, hold_ready = true;
-bool nosound = false, randomcolor = false, holdoff = false;
+bool nosound = false, randomcolors = false, holdoff = false, grayblocks = false;
 int screenscale = 1;
+enum RandomAlgo randomalgo = RA_7BAG;
+bool pause = false, gameover = false, hold_ready = true;
 
-int fps, lines, score;
-int next_time, delay = 500;
+int drop_delay_per_level[] = {500, 425, 360, 307, 261, 222, 189, 160, 136, 116};
+int fps, lines = 0, score = 0, level = 0;
+int next_time;
 
 const struct Shape shape_O =
 {
@@ -216,8 +218,9 @@ struct Figure *getNextFigure(void);
 const struct Shape* getShape(enum FigureId id);
 enum FigureId getNextId(void);
 enum FigureId getRandomId(void);
-SDL_Surface* getNextColor(enum FigureId id);
-SDL_Surface* getRandomColor(void);
+enum FigureId getRandom7BagId(void);
+enum FigureId getNextColor(enum FigureId id);
+enum FigureId getRandomColor(void);
 void getShapeDimensions(const struct Shape *shape, int *minx, int *maxx, int *miny, int *maxy);
 bool isFigureColliding(void);
 void rotateFigureCW(void);
@@ -236,8 +239,8 @@ int main(int argc, char *argv[])
 	{
 		if (!strcmp(argv[i],"--nosound"))
 			nosound = true;
-		else if (!strcmp(argv[i],"--randomcolor"))
-			randomcolor = true;
+		else if (!strcmp(argv[i],"--randomcolors"))
+			randomcolors = true;
 		else if (!strcmp(argv[i],"--scale2x"))
 			screenscale = 2;
 		else if (!strcmp(argv[i],"--scale3x"))
@@ -246,10 +249,16 @@ int main(int argc, char *argv[])
 			screenscale = 4;
 		else if (!strcmp(argv[i],"--holdoff"))
 			holdoff = true;
+		else if (!strcmp(argv[i],"--grayblocks"))
+			grayblocks = true;
+		else if (!strcmp(argv[i],"--naiverng"))
+			randomalgo = RA_NAIVE;
+		else
+			printf("Unrecognized parameter: %s\n", argv[i]);
 	}
 
 	initialize();
-	next_time = SDL_GetTicks() + delay;
+	next_time = SDL_GetTicks() + drop_delay_per_level[level];
 	while (1)
 	{
 		handleInput();
@@ -312,50 +321,42 @@ void initialize(void)
 
 	SDL_Surface *mask = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
 
-	cyan = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
-	SDL_BlitSurface(gray, NULL, cyan, NULL);
-	SDL_FillRect(mask, NULL, SDL_MapRGBA(cyan->format, 0, 255, 255, 128));
-	SDL_BlitSurface(mask, NULL, cyan, NULL);
+	colors[FIGID_I] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	SDL_BlitSurface(gray, NULL, colors[FIGID_I], NULL);
+	SDL_FillRect(mask, NULL, SDL_MapRGBA(colors[FIGID_I]->format, 215, 64, 0, 128));
+	SDL_BlitSurface(mask, NULL, colors[FIGID_I], NULL);
 
-	purple = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
-	SDL_BlitSurface(gray, NULL, purple, NULL);
-	SDL_FillRect(mask, NULL, SDL_MapRGBA(purple->format, 255, 0, 255, 128));
-	SDL_BlitSurface(mask, NULL, purple, NULL);
+	colors[FIGID_T] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	SDL_BlitSurface(gray, NULL, colors[FIGID_T], NULL);
+	SDL_FillRect(mask, NULL, SDL_MapRGBA(colors[FIGID_T]->format, 115, 121, 0, 128));
+	SDL_BlitSurface(mask, NULL, colors[FIGID_T], NULL);
 
-	yellow = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
-	SDL_BlitSurface(gray, NULL, yellow, NULL);
-	SDL_FillRect(mask, NULL, SDL_MapRGBA(yellow->format, 255, 255, 0, 128));
-	SDL_BlitSurface(mask, NULL, yellow, NULL);
+	colors[FIGID_O] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	SDL_BlitSurface(gray, NULL, colors[FIGID_O], NULL);
+	SDL_FillRect(mask, NULL, SDL_MapRGBA(colors[FIGID_O]->format, 59, 52, 255, 128));
+	SDL_BlitSurface(mask, NULL, colors[FIGID_O], NULL);
 
-	green = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
-	SDL_BlitSurface(gray, NULL, green, NULL);
-	SDL_FillRect(mask, NULL, SDL_MapRGBA(green->format, 0, 255, 0, 128));
-	SDL_BlitSurface(mask, NULL, green, NULL);
+	colors[FIGID_S] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	SDL_BlitSurface(gray, NULL, colors[FIGID_S], NULL);
+	SDL_FillRect(mask, NULL, SDL_MapRGBA(colors[FIGID_S]->format, 0, 132, 96, 128));
+	SDL_BlitSurface(mask, NULL, colors[FIGID_S], NULL);
 
-	red = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
-	SDL_BlitSurface(gray, NULL, red, NULL);
-	SDL_FillRect(mask, NULL, SDL_MapRGBA(red->format, 255, 0, 0, 128));
-	SDL_BlitSurface(mask, NULL, red, NULL);
+	colors[FIGID_Z] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	SDL_BlitSurface(gray, NULL, colors[FIGID_Z], NULL);
+	SDL_FillRect(mask, NULL, SDL_MapRGBA(colors[FIGID_Z]->format, 75, 160, 255, 128));
+	SDL_BlitSurface(mask, NULL, colors[FIGID_Z], NULL);
 
-	blue = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
-	SDL_BlitSurface(gray, NULL, blue, NULL);
-	SDL_FillRect(mask, NULL, SDL_MapRGBA(blue->format, 0, 0, 255, 128));
-	SDL_BlitSurface(mask, NULL, blue, NULL);
+	colors[FIGID_J] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	SDL_BlitSurface(gray, NULL, colors[FIGID_J], NULL);
+	SDL_FillRect(mask, NULL, SDL_MapRGBA(colors[FIGID_J]->format, 255, 174, 10, 128));
+	SDL_BlitSurface(mask, NULL, colors[FIGID_J], NULL);
 
-	orange = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
-	SDL_BlitSurface(gray, NULL, orange, NULL);
-	SDL_FillRect(mask, NULL, SDL_MapRGBA(orange->format, 255, 128, 0, 128));
-	SDL_BlitSurface(mask, NULL, orange, NULL);
+	colors[FIGID_L] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	SDL_BlitSurface(gray, NULL, colors[FIGID_L], NULL);
+	SDL_FillRect(mask, NULL, SDL_MapRGBA(colors[FIGID_L]->format, 255, 109, 247, 128));
+	SDL_BlitSurface(mask, NULL, colors[FIGID_L], NULL);
 
 	SDL_FreeSurface(mask);
-
-	fixed_colors[FIGID_O] = yellow;
-	fixed_colors[FIGID_L] = orange;
-	fixed_colors[FIGID_J] = blue;
-	fixed_colors[FIGID_S] = green;
-	fixed_colors[FIGID_Z] = red;
-	fixed_colors[FIGID_I] = cyan;
-	fixed_colors[FIGID_T] = purple;
 
 	if (!nosound)
 	{
@@ -376,7 +377,7 @@ void initialize(void)
 
 	board = malloc(sizeof(int)*BOARD_WIDTH*BOARD_HEIGHT);
 	for (int i = 0; i < (BOARD_WIDTH*BOARD_HEIGHT); ++i)
-		board[i] = 0;
+		board[i] = FIGID_NUM;
 	srand((unsigned)time(NULL));
 	pause = false;
 	gameover = false;
@@ -456,14 +457,14 @@ void drawFigure(const struct Figure *fig, int x, int y, bool screendim)
 				rect.x = (i % FIG_DIM - minx) * BLOCK_SIZE + x + offset_x;
 				rect.y = (i / FIG_DIM - miny) * BLOCK_SIZE + y + offset_y;
 				if (shape->blockmap[i] == 1)
-					SDL_BlitSurface(fig->color, NULL, screen, &rect);
+					SDL_BlitSurface(colors[fig->colorid], NULL, screen, &rect);
 			}
 			else
 			{
 				rect.x = (i % FIG_DIM + x) * BLOCK_SIZE + BOARD_X;
 				rect.y = (i / FIG_DIM + y) * BLOCK_SIZE + BOARD_Y;
 				if (f_shape.blockmap[i] == 1)
-					SDL_BlitSurface(figures[0]->color, NULL, screen, &rect);
+					SDL_BlitSurface(colors[figures[0]->colorid], NULL, screen, &rect);
 			}
 		}
 	}
@@ -537,8 +538,11 @@ void displayBoard(void)
 	{
 		rect.x = (i % BOARD_WIDTH) * BLOCK_SIZE + BOARD_X;
 		rect.y = (i / BOARD_WIDTH) * BLOCK_SIZE + BOARD_Y;
-		if (board[i] == 1)
-			SDL_BlitSurface(gray, NULL, screen, &rect);
+		if (board[i] < FIGID_NUM)
+			if (grayblocks)
+				SDL_BlitSurface(gray, NULL, screen, &rect);
+			else
+				SDL_BlitSurface(colors[board[i]], NULL, screen, &rect);
 	}
 	drawFigure(figures[0], f_x, f_y, false);
 
@@ -668,10 +672,9 @@ void dropSoft(void)
 	}
 
 	checkFullLines();
-	delay = (lines > 45) ? 50 : (500 - 10 * lines);
 	gameover = checkGameEnd();
 
-	next_time = SDL_GetTicks() + delay;
+	next_time = SDL_GetTicks() + drop_delay_per_level[level];
 	screenFlagUpdate(true);
 }
 
@@ -692,13 +695,16 @@ void dropHard(void)
 
 void lockFigure(void)
 {
+	if (figures[0] == NULL)
+		return;
+
 	for (int i = 0; i < (FIG_DIM*FIG_DIM); ++i)
 		if (f_shape.blockmap[i] != 0)
 		{
 			int x = i % FIG_DIM + f_x;
 			int y = i / FIG_DIM + f_y;
 			if ((x >= 0) && (x < BOARD_WIDTH) && (y >= 0) && (y < BOARD_HEIGHT))
-				board[y*BOARD_WIDTH + x] = 1;
+				board[y*BOARD_WIDTH + x] = figures[0]->colorid;
 		}
 }
 
@@ -731,7 +737,7 @@ void checkFullLines(void)
 		bool flag = true;
 		for (int x = 0; x < BOARD_WIDTH; ++x)
 		{
-			if (board[y*BOARD_WIDTH + x] == 0)
+			if (board[y*BOARD_WIDTH + x] == FIGID_NUM)
 			{
 				flag = false;
 				break;
@@ -763,6 +769,10 @@ void checkFullLines(void)
 			score += 800;
 			break;
 	}
+	
+	level = lines / 30;
+	if (level >= sizeof(drop_delay_per_level) / sizeof(int))
+		level = sizeof(drop_delay_per_level) / sizeof(int) - 1;
 }
 
 void handleInput(void)
@@ -920,7 +930,7 @@ void handleInput(void)
 bool checkGameEnd(void)
 {
 	for (int i = 0; i < BOARD_WIDTH; ++i)
-		if (board[i] != 0)
+		if (board[i] != FIGID_NUM)
 			return true;
 	return false;
 }
@@ -949,7 +959,7 @@ struct Figure *getNextFigure(void)
 	struct Figure *f = malloc(sizeof(struct Figure));
 
 	f->id = getNextId();
-	f->color = getNextColor(f->id);
+	f->colorid = getNextColor(f->id);
 
 	return f;
 }
@@ -977,8 +987,16 @@ const struct Shape* getShape(enum FigureId id)
 
 enum FigureId getNextId(void)
 {
-	// placeholder for different RNG implementations
-	return getRandomId();
+	switch (randomalgo)
+	{
+		case RA_NAIVE:
+			return getRandomId();
+		case RA_7BAG:
+			return getRandom7BagId();
+		default:
+			// should never happen
+			return FIGID_I;
+	}
 }
 
 enum FigureId getRandomId(void)
@@ -986,42 +1004,41 @@ enum FigureId getRandomId(void)
 	return rand() % FIGID_NUM;
 }
 
-SDL_Surface* getNextColor(enum FigureId id)
+enum FigureId getRandom7BagId(void)
 {
-	if (randomcolor)
-		return getRandomColor();
-	else
-		return fixed_colors[id];
+	static enum FigureId tab[FIGID_NUM];
+	static int pos = FIGID_NUM;
+	
+	if (pos >= FIGID_NUM)
+	{
+		pos = 0;
+		for (int i = 0; i < FIGID_NUM; ++i)
+			tab[i] = i;
+		
+		for (int i = 0; i < 1000; ++i)
+		{
+			int one = rand() % FIGID_NUM;
+			int two = rand() % FIGID_NUM;
+			int temp = tab[one];
+			tab[one] = tab[two];
+			tab[two] = temp;
+		}
+	}
+	
+	return tab[pos++];
 }
 
-SDL_Surface* getRandomColor(void)
+enum FigureId getNextColor(enum FigureId id)
 {
-	SDL_Surface* temp;
-	switch (rand() % 7)
-	{
-		case 0:
-			temp = blue;
-			break;
-		case 1:
-			temp = green;
-			break;
-		case 2:
-			temp = orange;
-			break;
-		case 3:
-			temp = red;
-			break;
-		case 4:
-			temp = yellow;
-			break;
-		case 5:
-			temp = purple;
-			break;
-		case 6:
-			temp = cyan;
-			break;
-	}
-	return temp;
+	if (randomcolors)
+		return getRandomColor();
+	else
+		return id;
+}
+
+enum FigureId getRandomColor(void)
+{
+	return rand() % FIGID_NUM;
 }
 
 void getShapeDimensions(const struct Shape *shape, int *minx, int *maxx, int *miny, int *maxy)
@@ -1120,7 +1137,7 @@ bool isFigureColliding(void)
 				int x = i % FIG_DIM + f_x;
 				int y = i / FIG_DIM + f_y;
 				if (((y*BOARD_WIDTH + x) < (BOARD_WIDTH*BOARD_HEIGHT)) && ((y*BOARD_WIDTH + x) >= 0))
-					if (board[y*BOARD_WIDTH + x] & f_shape.blockmap[i])
+					if ((board[y*BOARD_WIDTH + x] != FIGID_NUM) && (f_shape.blockmap[i] != FIGID_NUM))
 						return true;
 			}
 	}
