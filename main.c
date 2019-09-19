@@ -116,7 +116,7 @@ int statistics[FIG_NUM];
 bool nosound = false, randomcolors = false, holdoff = false, grayblocks = false;
 int screenscale = 1;
 int startlevel = 0;
-int nextblocks = FIG_NUM;
+int nextblocks = FIG_NUM - 1;
 enum RandomAlgo randomalgo = RA_7BAG;
 bool pause = false, gameover = false, hold_ready = true, fast_drop = false;
 
@@ -482,41 +482,6 @@ void displayBoard(void)
 	
 	drawStatus(0, 0);
 
-	/*
-	// display number of removed lines
-	switch(lines % 10)
-	{
-		case 0:	digit = digit0; break;
-		case 1:	digit = digit1; break;
-		case 2:	digit = digit2; break;
-		case 3:	digit = digit3; break;
-		case 4:	digit = digit4; break;
-		case 5:	digit = digit5; break;
-		case 6:	digit = digit6; break;
-		case 7:	digit = digit7; break;
-		case 8:	digit = digit8; break;
-		case 9:	digit = digit9; break;
-	}
-	rect.x = BOARD_WIDTH*BLOCK_SIZE + 115 + 16;
-	rect.y = 160;
-	SDL_BlitSurface(digit, NULL, screen, &rect);
-	switch( (lines / 10) % 10 )
-	{
-		case 0:	digit = digit0; break;
-		case 1:	digit = digit1; break;
-		case 2:	digit = digit2; break;
-		case 3:	digit = digit3; break;
-		case 4:	digit = digit4; break;
-		case 5:	digit = digit5; break;
-		case 6:	digit = digit6; break;
-		case 7:	digit = digit7; break;
-		case 8:	digit = digit8; break;
-		case 9:	digit = digit9; break;
-	}
-	rect.x = BOARD_WIDTH*BLOCK_SIZE + 115;
-	rect.y = 350;
-	SDL_BlitSurface(digit, NULL, screen, &rect);
-*/
 	// display board
 	for (int i = 0; i < (BOARD_WIDTH*BOARD_HEIGHT); ++i)
 	{
