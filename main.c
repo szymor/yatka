@@ -116,6 +116,7 @@ int statistics[FIG_NUM];
 bool nosound = false, randomcolors = false, holdoff = false, grayblocks = false;
 int screenscale = 1;
 int startlevel = 0;
+int nextblocks = FIG_NUM;
 enum RandomAlgo randomalgo = RA_7BAG;
 bool pause = false, gameover = false, hold_ready = true, fast_drop = false;
 
@@ -256,6 +257,11 @@ int main(int argc, char *argv[])
 		{
 			++i;
 			startlevel = atoi(argv[i]);
+		}
+		else if (!strcmp(argv[i],"--nextblocks"))
+		{
+			++i;
+			nextblocks = atoi(argv[i]);
 		}
 		else
 			printf("Unrecognized parameter: %s\n", argv[i]);
@@ -463,7 +469,7 @@ void displayBoard(void)
 	SDL_BlitSurface(bg, NULL, screen, &rect);
 
 	// display next figures
-	for (int i = 1; i < FIG_NUM; ++i)
+	for (int i = 1; i < nextblocks + 1; ++i)
 	{
 		drawFigure(figures[i], 246, 22 + 30 * (i - 1), true);
 	}
