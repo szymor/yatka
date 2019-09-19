@@ -6,6 +6,7 @@
 #include <SDL/SDL.h>
 #include <SDL/SDL_image.h>
 #include <SDL/SDL_ttf.h>
+#include <SDL/SDL_mixer.h>
 
 #define SCREEN_WIDTH		320
 #define SCREEN_HEIGHT		240
@@ -44,6 +45,8 @@
 
 #define KEY_REPEAT_RATE		80		// in ms
 #define FONT_SIZE			7
+#define MUSIC_TRACK_NUM		4
+#define MUSIC_FADE_TIME		3000
 
 enum Error
 {
@@ -55,6 +58,7 @@ enum Error
 	ERROR_OPENAUDIO,
 	ERROR_TTFINIT,
 	ERROR_NOFONT,
+	ERROR_MIXINIT,
 	ERROR_END
 };
 
@@ -98,17 +102,10 @@ SDL_Surface *fg = NULL;
 SDL_Surface *gray = NULL;
 SDL_Surface *colors[FIGID_NUM];
 
-SDL_AudioSpec audiospec;
-Uint8 *bgmusic = NULL;
-Uint8 *bgmusic_sample = NULL;
-Uint32 bgmusic_length = 0;
-Uint32 bgmusic_tmplen = 0;
-Uint8 *gosound = NULL;
-Uint8 *gosound_sample = NULL;
-Uint32 gosound_length = 0;
-Uint32 gosound_tmplen = 0;
-
 TTF_Font *arcade_font = NULL;
+
+Mix_Music *music[MUSIC_TRACK_NUM];
+int current_track = 0;
 
 enum FigureId *board = NULL;
 struct Figure *figures[FIG_NUM];
@@ -367,18 +364,25 @@ void initialize(void)
 
 	if (!nosound)
 	{
-		if (!SDL_LoadWAV("sfx/gameover.wav",&audiospec,&gosound,&gosound_length))
-			exit(ERROR_NOSNDFILE);
-		gosound_sample = gosound;
-		gosound_tmplen = gosound_length;
-		if (!SDL_LoadWAV("sfx/bgmusic.wav",&audiospec,&bgmusic,&bgmusic_length))
-			exit(ERROR_NOSNDFILE);
-		audiospec.samples = 1024;
-		audiospec.callback = fillAudio;
-		audiospec.userdata = NULL;
-		if (SDL_OpenAudio(&audiospec,NULL) == -1)
+		int mixflags = MIX_INIT_OGG;
+		if (Mix_Init(mixflags) != mixflags)
+			exit(ERROR_MIXINIT);
+		if (Mix_OpenAudio(11025, MIX_DEFAULT_FORMAT, 1, 1024) < 0)
 			exit(ERROR_OPENAUDIO);
-		SDL_PauseAudio(0);
+		music[0] = Mix_LoadMUS("sfx/korobeyniki.ogg");
+		if (!music[0])
+			exit(ERROR_NOSNDFILE);
+		music[1] = Mix_LoadMUS("sfx/bradinsky.ogg");
+		if (!music[1])
+			exit(ERROR_NOSNDFILE);
+		music[2] = Mix_LoadMUS("sfx/kalinka.ogg");
+		if (!music[2])
+			exit(ERROR_NOSNDFILE);
+		music[3] = Mix_LoadMUS("sfx/troika.ogg");
+		if (!music[3])
+			exit(ERROR_NOSNDFILE);
+		current_track = 0;
+		Mix_FadeInMusic(music[current_track], -1, MUSIC_FADE_TIME);
 	}
 	SDL_EnableKeyRepeat(1, KEY_REPEAT_RATE);
 
@@ -397,47 +401,13 @@ void finalize(void)
 {
 	TTF_CloseFont(arcade_font);
 	TTF_Quit();
-	if(!nosound)
-	{
-		SDL_PauseAudio(true);
-		if(bgmusic != NULL)
-			SDL_FreeWAV(bgmusic);
-		if(gosound != NULL)
-			SDL_FreeWAV(gosound);
-	}
+	if (!nosound)
+		Mix_Quit();
 	SDL_Quit();
 	if(board != NULL)
 		free(board);
 	for (int i = 0; i < FIG_NUM; ++i)
 		free(figures[i]);
-}
-
-void fillAudio(void *userdata, Uint8 *stream, int len)
-{
-	if(!gameover)
-	{
-		if(bgmusic_tmplen == 0)
-		{
-			bgmusic_tmplen = bgmusic_length;
-			bgmusic_sample = bgmusic;
-			return;
-		}
-		len = (len > bgmusic_tmplen) ? bgmusic_tmplen : len;
-		SDL_MixAudio(stream, bgmusic_sample, len, SDL_MIX_MAXVOLUME);
-		bgmusic_sample += len;
-		bgmusic_tmplen -= len;
-	}
-	else
-	{
-		if(gosound_tmplen == 0)
-		{
-			return;
-		}
-		len = (len > gosound_tmplen) ? gosound_tmplen : len;
-		SDL_MixAudio(stream, gosound_sample, len, SDL_MIX_MAXVOLUME);
-		gosound_sample += len;
-		gosound_tmplen -= len;
-	}
 }
 
 void drawFigure(const struct Figure *fig, int x, int y, bool screendim)
@@ -687,6 +657,8 @@ void dropSoft(void)
 
 	checkFullLines();
 	gameover = checkGameEnd();
+	if (gameover)
+		Mix_FadeOutMusic(MUSIC_FADE_TIME);
 
 	if (fast_drop)
 		next_time = SDL_GetTicks() + fast_drop_rate;
@@ -802,6 +774,8 @@ void handleInput(void)
 	static bool harddrop_key_state = false;
 	static bool softdrop_key_state = false;
 	static bool hold_key_state = false;
+	static bool left_key_state = false;
+	static bool right_key_state = false;
 	SDL_Event event;
 
 	if(SDL_PollEvent(&event))
@@ -829,6 +803,12 @@ void handleInput(void)
 					case KEY_HOLD:
 						hold_key_state = false;
 						break;
+					case KEY_LEFT:
+						left_key_state = false;
+						break;
+					case KEY_RIGHT:
+						right_key_state = false;
+						break;
 				}
 				break;
 			case SDL_KEYDOWN:
@@ -854,8 +834,14 @@ void handleInput(void)
 										}
 									}
 								}
+								screenFlagUpdate(true);
 							}
-							screenFlagUpdate(true);
+							if(pause && !gameover)
+							{
+								int vol = Mix_VolumeMusic(-1);
+								vol += 10;
+								Mix_VolumeMusic(vol);
+							}
 						}
 						break;
 					case KEY_ROTATE_CCW:
@@ -878,8 +864,16 @@ void handleInput(void)
 										}
 									}
 								}
+								screenFlagUpdate(true);
 							}
-							screenFlagUpdate(true);
+							if(pause && !gameover)
+							{
+								int vol = Mix_VolumeMusic(-1);
+								vol -= 10;
+								if (vol < 0)
+									vol = 0;
+								Mix_VolumeMusic(vol);
+							}
 						}
 						break;
 					case KEY_SOFTDROP:
@@ -921,6 +915,15 @@ void handleInput(void)
 								++f_x;
 							screenFlagUpdate(true);
 						}
+						if (pause && !gameover)
+						{
+							if (!left_key_state)
+							{
+								left_key_state = true;
+								current_track = (current_track + MUSIC_TRACK_NUM - 1) % MUSIC_TRACK_NUM;
+								Mix_PlayMusic(music[current_track], -1);
+							}
+						}
 						break;
 					case KEY_RIGHT:
 						if (!pause && !gameover)
@@ -930,13 +933,23 @@ void handleInput(void)
 								--f_x;
 							screenFlagUpdate(true);
 						}
+						if (pause && !gameover)
+						{
+							if (!right_key_state)
+							{
+								right_key_state = true;
+								current_track = (current_track + 1) % MUSIC_TRACK_NUM;
+								Mix_PlayMusic(music[current_track], -1);
+							}
+						}
 						break;
 					case KEY_PAUSE:
 						if (!pause_key_state)
 						{
 							pause_key_state = true;
 							pause = !pause;
-							screenFlagUpdate(true);
+							if (!gameover)
+								screenFlagUpdate(true);
 						}
 						break;
 					case KEY_QUIT:
