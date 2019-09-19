@@ -11,7 +11,6 @@ yet another tetris klone in action
 
 ### plans
 - ghost piece implementation
-- 7-bag random generator
 - better scoring (T-spins, combos, etc.)
 - using a proper library for sound playback
 - optional easy spin implementation

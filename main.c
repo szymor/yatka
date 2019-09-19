@@ -118,10 +118,12 @@ int statistics[FIG_NUM];
 
 bool nosound = false, randomcolors = false, holdoff = false, grayblocks = false;
 int screenscale = 1;
+int startlevel = 0;
 enum RandomAlgo randomalgo = RA_7BAG;
-bool pause = false, gameover = false, hold_ready = true;
+bool pause = false, gameover = false, hold_ready = true, fast_drop = false;
 
-int drop_delay_per_level[] = {500, 425, 360, 307, 261, 222, 189, 160, 136, 116};
+const int fast_drop_rate = KEY_REPEAT_RATE;
+const int drop_delay_per_level[] = {500, 425, 360, 307, 261, 222, 189, 160, 136, 116};
 int fps, lines = 0, score = 0, level = 0;
 int next_time;
 
@@ -253,6 +255,11 @@ int main(int argc, char *argv[])
 			grayblocks = true;
 		else if (!strcmp(argv[i],"--naiverng"))
 			randomalgo = RA_NAIVE;
+		else if (!strcmp(argv[i],"--startlevel"))
+		{
+			++i;
+			startlevel = atoi(argv[i]);
+		}
 		else
 			printf("Unrecognized parameter: %s\n", argv[i]);
 	}
@@ -382,6 +389,7 @@ void initialize(void)
 	pause = false;
 	gameover = false;
 	lines = 0;
+	level = startlevel;
 	initFigures();
 }
 
@@ -635,21 +643,26 @@ void drawStatus(int x, int y)
 	SDL_Surface *text = NULL;
 	SDL_Rect rect = {.x = x, .y = y};
 	char buff[256];
-	
+
 	sprintf(buff, "Score: %d", score);
 	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
 	SDL_BlitSurface(text, NULL, screen, &rect);
-	
+
+	rect.y += FONT_SIZE;
+	sprintf(buff, "Level: %d", level);
+	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
+	SDL_BlitSurface(text, NULL, screen, &rect);
+
 	rect.y += FONT_SIZE;
 	sprintf(buff, "Lines: %d", lines);
 	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
 	SDL_BlitSurface(text, NULL, screen, &rect);
-	
+
 	rect.y += FONT_SIZE;
 	sprintf(buff, "FPS: %d", fps);
 	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
 	SDL_BlitSurface(text, NULL, screen, &rect);
-	
+
 	SDL_FreeSurface(text);
 }
 
@@ -668,13 +681,17 @@ void dropSoft(void)
 			lockFigure();
 			free(figures[0]);
 			figures[0] = NULL;
+			fast_drop = false;
 		}
 	}
 
 	checkFullLines();
 	gameover = checkGameEnd();
 
-	next_time = SDL_GetTicks() + drop_delay_per_level[level];
+	if (fast_drop)
+		next_time = SDL_GetTicks() + fast_drop_rate;
+	else
+		next_time = SDL_GetTicks() + drop_delay_per_level[level];
 	screenFlagUpdate(true);
 }
 
@@ -688,7 +705,7 @@ void dropHard(void)
 		lockFigure();
 		free(figures[0]);
 		figures[0] = NULL;
-
+		
 		screenFlagUpdate(true);
 	}
 }
@@ -724,6 +741,8 @@ void holdFigure(void)
 		memcpy(&f_shape, getShape(figures[0]->id), sizeof(f_shape));
 
 		hold_ready = false;
+		
+		screenFlagUpdate(true);
 	}
 }
 
@@ -770,7 +789,7 @@ void checkFullLines(void)
 			break;
 	}
 	
-	level = lines / 30;
+	level = startlevel + lines / 30;
 	if (level >= sizeof(drop_delay_per_level) / sizeof(int))
 		level = sizeof(drop_delay_per_level) / sizeof(int) - 1;
 }
@@ -781,6 +800,7 @@ void handleInput(void)
 	static bool rotateccw_key_state = false;
 	static bool pause_key_state = false;
 	static bool harddrop_key_state = false;
+	static bool softdrop_key_state = false;
 	static bool hold_key_state = false;
 	SDL_Event event;
 
@@ -801,6 +821,10 @@ void handleInput(void)
 						break;
 					case KEY_HARDDROP:
 						harddrop_key_state = false;
+						break;
+					case KEY_SOFTDROP:
+						fast_drop = false;
+						softdrop_key_state = false;
 						break;
 					case KEY_HOLD:
 						hold_key_state = false;
@@ -859,11 +883,15 @@ void handleInput(void)
 						}
 						break;
 					case KEY_SOFTDROP:
-						if (!pause && !gameover)
+						if (!softdrop_key_state)
 						{
-							dropSoft();
+							softdrop_key_state = true;
+							if (!pause && !gameover)
+							{
+								fast_drop = true;
+								dropSoft();
+							}
 						}
-						screenFlagUpdate(true);
 						break;
 					case KEY_HARDDROP:
 						if (!harddrop_key_state)
@@ -883,7 +911,6 @@ void handleInput(void)
 							{
 								holdFigure();
 							}
-							screenFlagUpdate(true);
 						}
 						break;
 					case KEY_LEFT:
@@ -942,7 +969,7 @@ void spawnFigure(void)
 	for (int i = 0; i < FIG_NUM - 1; ++i)
 		figures[i] = figures[i+1];
 	figures[FIG_NUM - 1] = getNextFigure();
-	f_y = -FIG_DIM + 1;						// ...to gain a 'slide' effect from the top of screen
+	f_y = -FIG_DIM + 2;						// ...to gain a 'slide' effect from the top of screen
 	f_x = (BOARD_WIDTH - FIG_DIM) / 2;		// ...to center a figure
 
 	if (figures[0] != NULL)
