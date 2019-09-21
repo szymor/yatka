@@ -9,7 +9,6 @@ yet another tetris klone in action
 - in-game music by Vomitron
 
 ### plans
-- ghost piece implementation
 - better scoring (T-spins, combos, etc.)
 - optional easy spin implementation
 - lock delay

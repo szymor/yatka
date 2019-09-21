@@ -113,7 +113,7 @@ int f_x, f_y;			// coordinates of the active figure
 struct Shape f_shape;	// shape of the active figure
 int statistics[FIG_NUM];
 
-bool nosound = false, randomcolors = false, holdoff = false, grayblocks = false;
+bool nosound = false, randomcolors = false, holdoff = false, grayblocks = false, ghostoff = false;
 int screenscale = 1;
 int startlevel = 0;
 int nextblocks = FIG_NUM - 1;
@@ -212,7 +212,7 @@ void drawBar(int x, int y, int value);
 void drawStatus(int x, int y);
 
 void initFigures(void);
-void drawFigure(const struct Figure *fig, int x, int y, bool screendim);
+void drawFigure(const struct Figure *fig, int x, int y, bool screendim, bool ghost);
 void spawnFigure(void);
 struct Figure *getNextFigure(void);
 const struct Shape* getShape(enum FigureId id);
@@ -251,6 +251,8 @@ int main(int argc, char *argv[])
 			holdoff = true;
 		else if (!strcmp(argv[i],"--grayblocks"))
 			grayblocks = true;
+		else if (!strcmp(argv[i],"--ghostoff"))
+			ghostoff = true;
 		else if (!strcmp(argv[i],"--naiverng"))
 			randomalgo = RA_NAIVE;
 		else if (!strcmp(argv[i],"--startlevel"))
@@ -416,12 +418,24 @@ void finalize(void)
 		free(figures[i]);
 }
 
-void drawFigure(const struct Figure *fig, int x, int y, bool screendim)
+void drawFigure(const struct Figure *fig, int x, int y, bool screendim, bool ghost)
 {
 	if (fig != NULL)
 	{
 		const struct Shape *shape = NULL;
 		int minx, maxx, miny, maxy, w, h, offset_x, offset_y;
+		SDL_Surface *block = NULL;
+
+		if (ghost)
+		{
+			block = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+			SDL_FillRect(block, NULL, SDL_MapRGBA(block->format, 0, 0, 0, 64));
+			SDL_BlitSurface(colors[fig->colorid], NULL, block, NULL);
+		}
+		else
+		{
+			block = colors[fig->colorid];
+		}
 
 		if (screendim)
 		{
@@ -441,15 +455,20 @@ void drawFigure(const struct Figure *fig, int x, int y, bool screendim)
 				rect.x = (i % FIG_DIM - minx) * BLOCK_SIZE + x + offset_x;
 				rect.y = (i / FIG_DIM - miny) * BLOCK_SIZE + y + offset_y;
 				if (shape->blockmap[i] == 1)
-					SDL_BlitSurface(colors[fig->colorid], NULL, screen, &rect);
+					SDL_BlitSurface(block, NULL, screen, &rect);
 			}
 			else
 			{
 				rect.x = (i % FIG_DIM + x) * BLOCK_SIZE + BOARD_X;
 				rect.y = (i / FIG_DIM + y) * BLOCK_SIZE + BOARD_Y;
 				if (f_shape.blockmap[i] == 1)
-					SDL_BlitSurface(colors[figures[0]->colorid], NULL, screen, &rect);
+					SDL_BlitSurface(block, NULL, screen, &rect);
 			}
+		}
+
+		if (ghost)
+		{
+			SDL_FreeSurface(block);
 		}
 	}
 }
@@ -471,7 +490,7 @@ void displayBoard(void)
 	// display next figures
 	for (int i = 1; i < nextblocks + 1; ++i)
 	{
-		drawFigure(figures[i], 246, 22 + 30 * (i - 1), true);
+		drawFigure(figures[i], 246, 22 + 30 * (i - 1), true, false);
 	}
 
 	// display statistics
@@ -479,7 +498,7 @@ void displayBoard(void)
 	{
 		drawBar(64, 38 + i * 30, statistics[i]);
 	}
-	
+
 	drawStatus(0, 0);
 
 	// display board
@@ -493,7 +512,22 @@ void displayBoard(void)
 			else
 				SDL_BlitSurface(colors[board[i]], NULL, screen, &rect);
 	}
-	drawFigure(figures[0], f_x, f_y, false);
+
+	// display the active figure
+	drawFigure(figures[0], f_x, f_y, false, false);
+
+	// display the ghost figure
+	if (figures[0] != NULL && !ghostoff)
+	{
+		int tfy = f_y;
+		while (!isFigureColliding())
+			++f_y;
+		if (tfy != f_y)
+			--f_y;
+		if ((f_y - tfy) >= FIG_DIM)
+			drawFigure(figures[0], f_x, f_y, false, true);
+		f_y = tfy;
+	}
 
 	if(pause || gameover)
 	{
@@ -648,7 +682,7 @@ void dropHard(void)
 		lockFigure();
 		free(figures[0]);
 		figures[0] = NULL;
-		
+
 		screenFlagUpdate(true);
 	}
 }
@@ -684,7 +718,7 @@ void holdFigure(void)
 		memcpy(&f_shape, getShape(figures[0]->id), sizeof(f_shape));
 
 		hold_ready = false;
-		
+
 		screenFlagUpdate(true);
 	}
 }
@@ -692,7 +726,7 @@ void holdFigure(void)
 void checkFullLines(void)
 {
 	int lines_once = 0;
-	
+
 	// checking and removing full lines
 	for (int y = 1; y < BOARD_HEIGHT; ++y)
 	{
@@ -715,7 +749,7 @@ void checkFullLines(void)
 					board[(ys+1)*BOARD_WIDTH + x] = board[ys*BOARD_WIDTH + x];
 		}
 	}
-	
+
 	switch (lines_once)
 	{
 		case 1:
@@ -731,7 +765,7 @@ void checkFullLines(void)
 			score += 800;
 			break;
 	}
-	
+
 	level = startlevel + lines / 30;
 	if (level >= sizeof(drop_delay_per_level) / sizeof(int))
 		level = sizeof(drop_delay_per_level) / sizeof(int) - 1;
@@ -1019,13 +1053,13 @@ enum FigureId getRandom7BagId(void)
 {
 	static enum FigureId tab[FIGID_NUM];
 	static int pos = FIGID_NUM;
-	
+
 	if (pos >= FIGID_NUM)
 	{
 		pos = 0;
 		for (int i = 0; i < FIGID_NUM; ++i)
 			tab[i] = i;
-		
+
 		for (int i = 0; i < 1000; ++i)
 		{
 			int one = rand() % FIGID_NUM;
@@ -1035,7 +1069,7 @@ enum FigureId getRandom7BagId(void)
 			tab[two] = temp;
 		}
 	}
-	
+
 	return tab[pos++];
 }
 
