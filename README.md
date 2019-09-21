@@ -14,4 +14,3 @@ yet another tetris klone in action
 - lock delay
 - better wall kick
 - better Bittboy's key mapping
-- sfx on fall etc.

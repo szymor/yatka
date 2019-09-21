@@ -106,6 +106,7 @@ TTF_Font *arcade_font = NULL;
 
 Mix_Music *music[MUSIC_TRACK_NUM];
 int current_track = 0;
+Mix_Chunk *hit = NULL;
 
 enum FigureId *board = NULL;
 struct Figure *figures[FIG_NUM];
@@ -122,7 +123,7 @@ bool pause = false, gameover = false, hold_ready = true, fast_drop = false;
 
 const int fast_drop_rate = KEY_REPEAT_RATE;
 const int drop_delay_per_level[] = {500, 425, 360, 307, 261, 222, 189, 160, 136, 116};
-int fps, lines = 0, score = 0, level = 0;
+int fps, lines = 0, hiscore = 0, old_hiscore, score = 0, level = 0;
 int next_time;
 
 const struct Shape shape_O =
@@ -197,8 +198,8 @@ const struct Shape shape_T =
 
 void initialize(void);
 void finalize(void);
-
-void fillAudio(void *userdata, Uint8 *stream, int len);
+int loadHiscore(void);
+void saveHiscore(int hi);
 
 void displayBoard(void);
 void dropSoft(void);
@@ -308,6 +309,9 @@ void initFigures(void)
 
 void initialize(void)
 {
+	hiscore = loadHiscore();
+	old_hiscore = hiscore;
+
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) < 0)
 		exit(ERROR_SDLINIT);
 	if (TTF_Init() < 0)
@@ -389,6 +393,9 @@ void initialize(void)
 		music[3] = Mix_LoadMUS("sfx/troika.ogg");
 		if (!music[3])
 			exit(ERROR_NOSNDFILE);
+		hit = Mix_LoadWAV("sfx/hit.ogg");
+		if (!hit)
+			exit(ERROR_NOSNDFILE);
 		current_track = 0;
 		Mix_FadeInMusic(music[current_track], -1, MUSIC_FADE_TIME);
 	}
@@ -407,6 +414,9 @@ void initialize(void)
 
 void finalize(void)
 {
+	if (hiscore > old_hiscore)
+		saveHiscore(hiscore);
+
 	TTF_CloseFont(arcade_font);
 	TTF_Quit();
 	if (!nosound)
@@ -416,6 +426,30 @@ void finalize(void)
 		free(board);
 	for (int i = 0; i < FIG_NUM; ++i)
 		free(figures[i]);
+}
+
+int loadHiscore(void)
+{
+	FILE *hifile = fopen("hiscore.dat", "r");
+	if (hifile)
+	{
+		int hi = 0;
+		fscanf(hifile, "%d", &hi);
+		fclose(hifile);
+		return hi;
+	}
+	else
+		return 0;
+}
+
+void saveHiscore(int hi)
+{
+	FILE *hifile = fopen("hiscore.dat", "w");
+	if (hifile)
+	{
+		fprintf(hifile, "%d", hi);
+		fclose(hifile);
+	}
 }
 
 void drawFigure(const struct Figure *fig, int x, int y, bool screendim, bool ghost)
@@ -514,7 +548,8 @@ void displayBoard(void)
 	}
 
 	// display the active figure
-	drawFigure(figures[0], f_x, f_y, false, false);
+	if (!gameover)
+		drawFigure(figures[0], f_x, f_y, false, false);
 
 	// display the ghost figure
 	if (figures[0] != NULL && !ghostoff)
@@ -619,6 +654,11 @@ void drawStatus(int x, int y)
 	SDL_Rect rect = {.x = x, .y = y};
 	char buff[256];
 
+	sprintf(buff, "Hiscore: %d", hiscore);
+	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
+	SDL_BlitSurface(text, NULL, screen, &rect);
+
+	rect.y += FONT_SIZE;
 	sprintf(buff, "Score: %d", score);
 	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
 	SDL_BlitSurface(text, NULL, screen, &rect);
@@ -633,10 +673,12 @@ void drawStatus(int x, int y)
 	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
 	SDL_BlitSurface(text, NULL, screen, &rect);
 
+	/*
 	rect.y += FONT_SIZE;
 	sprintf(buff, "FPS: %d", fps);
 	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
 	SDL_BlitSurface(text, NULL, screen, &rect);
+	* */
 
 	SDL_FreeSurface(text);
 }
@@ -700,6 +742,8 @@ void lockFigure(void)
 			if ((x >= 0) && (x < BOARD_WIDTH) && (y >= 0) && (y < BOARD_HEIGHT))
 				board[y*BOARD_WIDTH + x] = figures[0]->colorid;
 		}
+
+	Mix_PlayChannel(-1, hit, 0);
 }
 
 void holdFigure(void)
@@ -765,6 +809,8 @@ void checkFullLines(void)
 			score += 800;
 			break;
 	}
+	if (score > hiscore)
+		hiscore = score;
 
 	level = startlevel + lines / 30;
 	if (level >= sizeof(drop_delay_per_level) / sizeof(int))
