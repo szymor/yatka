@@ -43,7 +43,7 @@
 #define BLOCK_SIZE			12
 #define FIG_NUM				7		// including the active figure
 
-#define KEY_REPEAT_RATE		80		// in ms
+#define KEY_REPEAT_RATE		100		// in ms
 #define FONT_SIZE			7
 #define MUSIC_TRACK_NUM		4
 #define MUSIC_FADE_TIME		3000
@@ -121,7 +121,6 @@ int nextblocks = FIG_NUM - 1;
 enum RandomAlgo randomalgo = RA_7BAG;
 bool pause = false, gameover = false, hold_ready = true, fast_drop = false;
 
-const int fast_drop_rate = KEY_REPEAT_RATE;
 const int drop_delay_per_level[] = {500, 425, 360, 307, 261, 222, 189, 160, 136, 116};
 int fps, lines = 0, hiscore = 0, old_hiscore, score = 0, level = 0;
 int next_time;
@@ -707,10 +706,8 @@ void dropSoft(void)
 	if (gameover)
 		Mix_FadeOutMusic(MUSIC_FADE_TIME);
 
-	if (fast_drop)
-		next_time = SDL_GetTicks() + fast_drop_rate;
-	else
-		next_time = SDL_GetTicks() + drop_delay_per_level[level];
+
+	next_time = SDL_GetTicks() + drop_delay_per_level[level];
 	screenFlagUpdate(true);
 }
 
@@ -823,7 +820,6 @@ void handleInput(void)
 	static bool rotateccw_key_state = false;
 	static bool pause_key_state = false;
 	static bool harddrop_key_state = false;
-	static bool softdrop_key_state = false;
 	static bool hold_key_state = false;
 	static bool left_key_state = false;
 	static bool right_key_state = false;
@@ -846,10 +842,6 @@ void handleInput(void)
 						break;
 					case KEY_HARDDROP:
 						harddrop_key_state = false;
-						break;
-					case KEY_SOFTDROP:
-						fast_drop = false;
-						softdrop_key_state = false;
 						break;
 					case KEY_HOLD:
 						hold_key_state = false;
@@ -928,14 +920,9 @@ void handleInput(void)
 						}
 						break;
 					case KEY_SOFTDROP:
-						if (!softdrop_key_state)
+						if (!pause && !gameover)
 						{
-							softdrop_key_state = true;
-							if (!pause && !gameover)
-							{
-								fast_drop = true;
-								dropSoft();
-							}
+							dropSoft();
 						}
 						break;
 					case KEY_HARDDROP:
