@@ -10,7 +10,8 @@
 
 #define SCREEN_WIDTH		320
 #define SCREEN_HEIGHT		240
-#define SCREEN_BPP			32
+#define SCREEN_BPP			16
+#define ALT_SCREEN_BPP		32
 #define FPS					60.0
 
 #ifdef _BITTBOY
@@ -112,9 +113,15 @@ enum FigureId *board = NULL;
 struct Figure *figures[FIG_NUM];
 int f_x, f_y;			// coordinates of the active figure
 struct Shape f_shape;	// shape of the active figure
-int statistics[FIG_NUM];
+int statistics[FIGID_NUM];
 
-bool nosound = false, randomcolors = false, holdoff = false, grayblocks = false, ghostoff = false;
+bool nosound = false;
+bool randomcolors = false;
+bool holdoff = false;
+bool grayblocks = false;
+bool ghostoff = false;
+bool debugfps = false;
+
 int screenscale = 1;
 int startlevel = 0;
 int nextblocks = FIG_NUM - 1;
@@ -208,6 +215,7 @@ void holdFigure(void);
 void checkFullLines(void);
 void handleInput(void);
 bool checkGameEnd(void);
+void drawBars(void);
 void drawBar(int x, int y, int value);
 void drawStatus(int x, int y);
 
@@ -241,6 +249,8 @@ int main(int argc, char *argv[])
 			nosound = true;
 		else if (!strcmp(argv[i],"--randomcolors"))
 			randomcolors = true;
+		else if (!strcmp(argv[i],"--debugfps"))
+			debugfps = true;
 		else if (!strcmp(argv[i],"--scale2x"))
 			screenscale = 2;
 		else if (!strcmp(argv[i],"--scale3x"))
@@ -275,7 +285,8 @@ int main(int argc, char *argv[])
 	{
 		handleInput();
 		displayBoard();
-		frameLimiter();
+		if (!debugfps)
+			frameLimiter();
 
 		if (SDL_GetTicks() > next_time)
 		{
@@ -308,6 +319,8 @@ void initFigures(void)
 
 void initialize(void)
 {
+	SDL_Surface *ts = NULL;
+
 	hiscore = loadHiscore();
 	old_hiscore = hiscore;
 
@@ -327,49 +340,75 @@ void initialize(void)
 	if (arcade_font == NULL)
 		exit(ERROR_NOFONT);
 
-	bg = IMG_Load("gfx/bg.png");
-	if (bg == NULL)
+	ts = IMG_Load("gfx/bg.png");
+	if (ts == NULL)
 		exit(ERROR_NOIMGFILE);
-	gray = IMG_Load("gfx/block.png");
-	if (gray == NULL)
+	bg = SDL_DisplayFormat(ts);
+	SDL_FreeSurface(ts);
+
+	ts = IMG_Load("gfx/block.png");
+	if (ts == NULL)
 		exit(ERROR_NOIMGFILE);
+	gray = SDL_DisplayFormat(ts);
+	SDL_FreeSurface(ts);
 
-	SDL_Surface *mask = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	SDL_Surface *mask = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
 
-	colors[FIGID_I] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	colors[FIGID_I] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
 	SDL_BlitSurface(gray, NULL, colors[FIGID_I], NULL);
 	SDL_FillRect(mask, NULL, SDL_MapRGBA(colors[FIGID_I]->format, 215, 64, 0, 128));
 	SDL_BlitSurface(mask, NULL, colors[FIGID_I], NULL);
+	ts = colors[FIGID_I];
+	colors[FIGID_I] = SDL_DisplayFormatAlpha(ts);
+	SDL_FreeSurface(ts);
 
-	colors[FIGID_T] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	colors[FIGID_T] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
 	SDL_BlitSurface(gray, NULL, colors[FIGID_T], NULL);
 	SDL_FillRect(mask, NULL, SDL_MapRGBA(colors[FIGID_T]->format, 115, 121, 0, 128));
 	SDL_BlitSurface(mask, NULL, colors[FIGID_T], NULL);
+	ts = colors[FIGID_T];
+	colors[FIGID_T] = SDL_DisplayFormatAlpha(ts);
+	SDL_FreeSurface(ts);
 
-	colors[FIGID_O] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	colors[FIGID_O] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
 	SDL_BlitSurface(gray, NULL, colors[FIGID_O], NULL);
 	SDL_FillRect(mask, NULL, SDL_MapRGBA(colors[FIGID_O]->format, 59, 52, 255, 128));
 	SDL_BlitSurface(mask, NULL, colors[FIGID_O], NULL);
+	ts = colors[FIGID_O];
+	colors[FIGID_O] = SDL_DisplayFormatAlpha(ts);
+	SDL_FreeSurface(ts);
 
-	colors[FIGID_S] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	colors[FIGID_S] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
 	SDL_BlitSurface(gray, NULL, colors[FIGID_S], NULL);
 	SDL_FillRect(mask, NULL, SDL_MapRGBA(colors[FIGID_S]->format, 0, 132, 96, 128));
 	SDL_BlitSurface(mask, NULL, colors[FIGID_S], NULL);
+	ts = colors[FIGID_S];
+	colors[FIGID_S] = SDL_DisplayFormatAlpha(ts);
+	SDL_FreeSurface(ts);
 
-	colors[FIGID_Z] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	colors[FIGID_Z] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
 	SDL_BlitSurface(gray, NULL, colors[FIGID_Z], NULL);
 	SDL_FillRect(mask, NULL, SDL_MapRGBA(colors[FIGID_Z]->format, 75, 160, 255, 128));
 	SDL_BlitSurface(mask, NULL, colors[FIGID_Z], NULL);
+	ts = colors[FIGID_Z];
+	colors[FIGID_Z] = SDL_DisplayFormatAlpha(ts);
+	SDL_FreeSurface(ts);
 
-	colors[FIGID_J] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	colors[FIGID_J] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
 	SDL_BlitSurface(gray, NULL, colors[FIGID_J], NULL);
 	SDL_FillRect(mask, NULL, SDL_MapRGBA(colors[FIGID_J]->format, 255, 174, 10, 128));
 	SDL_BlitSurface(mask, NULL, colors[FIGID_J], NULL);
+	ts = colors[FIGID_J];
+	colors[FIGID_J] = SDL_DisplayFormatAlpha(ts);
+	SDL_FreeSurface(ts);
 
-	colors[FIGID_L] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	colors[FIGID_L] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
 	SDL_BlitSurface(gray, NULL, colors[FIGID_L], NULL);
 	SDL_FillRect(mask, NULL, SDL_MapRGBA(colors[FIGID_L]->format, 255, 109, 247, 128));
 	SDL_BlitSurface(mask, NULL, colors[FIGID_L], NULL);
+	ts = colors[FIGID_L];
+	colors[FIGID_L] = SDL_DisplayFormatAlpha(ts);
+	SDL_FreeSurface(ts);
 
 	SDL_FreeSurface(mask);
 
@@ -461,7 +500,7 @@ void drawFigure(const struct Figure *fig, int x, int y, bool screendim, bool gho
 
 		if (ghost)
 		{
-			block = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+			block = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
 			SDL_FillRect(block, NULL, SDL_MapRGBA(block->format, 0, 0, 0, 64));
 			SDL_BlitSurface(colors[fig->colorid], NULL, block, NULL);
 		}
@@ -508,7 +547,7 @@ void drawFigure(const struct Figure *fig, int x, int y, bool screendim, bool gho
 
 void displayBoard(void)
 {
-	if (!screenFlagUpdate(false))
+	if (!screenFlagUpdate(false) && !debugfps)
 		return;
 
 	SDL_Rect rect;
@@ -527,11 +566,7 @@ void displayBoard(void)
 	}
 
 	// display statistics
-	for (int i = 0; i < FIG_NUM; ++i)
-	{
-		drawBar(64, 38 + i * 30, statistics[i]);
-	}
-
+	drawBars();
 	drawStatus(0, 0);
 
 	// display board
@@ -565,7 +600,7 @@ void displayBoard(void)
 
 	if(pause || gameover)
 	{
-		mask = SDL_CreateRGBSurface(SDL_SRCALPHA, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+		mask = SDL_CreateRGBSurface(SDL_SRCALPHA, SCREEN_WIDTH, SCREEN_HEIGHT, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
 		SDL_FillRect(mask, NULL, SDL_MapRGBA(mask->format,0,0,0,128));
 		SDL_BlitSurface(mask, NULL, screen, NULL);
 		SDL_FreeSurface(mask);
@@ -594,6 +629,14 @@ void displayBoard(void)
 	frameCounter();
 }
 
+void drawBars(void)
+{
+	for (int i = 0; i < FIGID_NUM; ++i)
+	{
+		drawBar(64, 38 + i * 30, statistics[i]);
+	}
+}
+
 void drawBar(int x, int y, int value)
 {
 	const int maxw = 26;
@@ -601,9 +644,9 @@ void drawBar(int x, int y, int value)
 	const int alpha_step = 64;
 
 	SDL_Surface *bar = SDL_CreateRGBSurface(SDL_SRCALPHA,
-											SCREEN_WIDTH,
-											SCREEN_HEIGHT,
-											SCREEN_BPP,
+											maxw,
+											maxh,
+											ALT_SCREEN_BPP,
 											0x000000ff,
 											0x0000ff00,
 											0x00ff0000,
@@ -620,30 +663,26 @@ void drawBar(int x, int y, int value)
 	alpha_l = (Uint8)al;
 	alpha_r = (Uint8)ar;
 
-	rect.x = x;
-	rect.y = y;
+	rect.x = 0;
+	rect.y = 0;
 	rect.w = value % (maxw + 1);
 	rect.h = maxh;
 	col = SDL_MapRGBA(bar->format, 255, 255, 255, alpha_l);
 	SDL_FillRect(bar, &rect, col);
 
-	rect.x = x + rect.w;
-	rect.y = y;
+	rect.x = rect.w;
+	rect.y = 0;
 	rect.w = maxw - rect.w;
 	rect.h = maxh;
 	col = SDL_MapRGBA(bar->format, 255, 255, 255, alpha_r);
 	SDL_FillRect(bar, &rect, col);
 
-	SDL_BlitSurface(bar, NULL, screen, NULL);
+	rect.x = x;
+	rect.y = y;
+	rect.w = maxw;
+	rect.h = maxh;
+	SDL_BlitSurface(bar, NULL, screen, &rect);
 	SDL_FreeSurface(bar);
-}
-
-void drawFps(int x, int y)
-{
-	SDL_Color col = {.r = 255, .g = 255, .b = 255};
-	SDL_Surface *text = TTF_RenderUTF8_Blended(arcade_font, "fps", col);
-	SDL_BlitSurface(text, NULL, screen, NULL);
-	SDL_FreeSurface(text);
 }
 
 void drawStatus(int x, int y)
@@ -656,30 +695,34 @@ void drawStatus(int x, int y)
 	sprintf(buff, "Hiscore: %d", hiscore);
 	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
 	SDL_BlitSurface(text, NULL, screen, &rect);
+	SDL_FreeSurface(text);
 
 	rect.y += FONT_SIZE;
 	sprintf(buff, "Score: %d", score);
 	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
 	SDL_BlitSurface(text, NULL, screen, &rect);
+	SDL_FreeSurface(text);
 
 	rect.y += FONT_SIZE;
 	sprintf(buff, "Level: %d", level);
 	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
 	SDL_BlitSurface(text, NULL, screen, &rect);
+	SDL_FreeSurface(text);
 
 	rect.y += FONT_SIZE;
 	sprintf(buff, "Lines: %d", lines);
 	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
 	SDL_BlitSurface(text, NULL, screen, &rect);
-
-	/*
-	rect.y += FONT_SIZE;
-	sprintf(buff, "FPS: %d", fps);
-	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
-	SDL_BlitSurface(text, NULL, screen, &rect);
-	* */
-
 	SDL_FreeSurface(text);
+
+	if (debugfps)
+	{
+		rect.y += FONT_SIZE;
+		sprintf(buff, "FPS: %d", fps);
+		text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
+		SDL_BlitSurface(text, NULL, screen, &rect);
+		SDL_FreeSurface(text);
+	}
 }
 
 void dropSoft(void)
@@ -825,8 +868,8 @@ void handleInput(void)
 	static bool right_key_state = false;
 	SDL_Event event;
 
-	if(SDL_PollEvent(&event))
-		switch(event.type)
+	if (SDL_PollEvent(&event))
+		switch (event.type)
 		{
 			case SDL_KEYUP:
 				switch (event.key.keysym.sym)
@@ -861,16 +904,16 @@ void handleInput(void)
 						if (!rotatecw_key_state)
 						{
 							rotatecw_key_state = true;
-							if(!pause && !gameover)
+							if (!pause && !gameover)
 							{
 								rotateFigureCW();
-								if(isFigureColliding())
+								if (isFigureColliding())
 								{
 									++f_x;
-									if(isFigureColliding())
+									if (isFigureColliding())
 									{
 										f_x -= 2;
-										if(isFigureColliding())
+										if (isFigureColliding())
 										{
 											rotateFigureCCW();
 											++f_x;
@@ -879,7 +922,7 @@ void handleInput(void)
 								}
 								screenFlagUpdate(true);
 							}
-							if(pause && !gameover)
+							if (pause && !gameover)
 							{
 								int vol = Mix_VolumeMusic(-1);
 								vol += 10;
