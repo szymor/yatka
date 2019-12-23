@@ -121,6 +121,7 @@ bool holdoff = false;
 bool grayblocks = false;
 bool ghostoff = false;
 bool debugfps = false;
+bool repeattrack = false;
 
 int screenscale = 1;
 int startlevel = 0;
@@ -207,6 +208,10 @@ void finalize(void);
 int loadHiscore(void);
 void saveHiscore(int hi);
 
+void selectNextTrack(void);
+void selectPreviousTrack(void);
+void trackFinished(void);
+
 void displayBoard(void);
 void dropSoft(void);
 void dropHard(void);
@@ -249,6 +254,8 @@ int main(int argc, char *argv[])
 			nosound = true;
 		else if (!strcmp(argv[i],"--randomcolors"))
 			randomcolors = true;
+		else if (!strcmp(argv[i],"--repeattrack"))
+			repeattrack = true;
 		else if (!strcmp(argv[i],"--debugfps"))
 			debugfps = true;
 		else if (!strcmp(argv[i],"--scale2x"))
@@ -434,8 +441,11 @@ void initialize(void)
 		hit = Mix_LoadWAV("sfx/hit.ogg");
 		if (!hit)
 			exit(ERROR_NOSNDFILE);
+
 		current_track = 0;
-		Mix_FadeInMusic(music[current_track], -1, MUSIC_FADE_TIME);
+		Mix_FadeInMusic(music[current_track], 1, MUSIC_FADE_TIME);
+		Mix_HookMusicFinished(trackFinished);
+		Mix_VolumeMusic(MIX_MAX_VOLUME / 2);
 	}
 	SDL_EnableKeyRepeat(1, KEY_REPEAT_RATE);
 
@@ -487,6 +497,28 @@ void saveHiscore(int hi)
 	{
 		fprintf(hifile, "%d", hi);
 		fclose(hifile);
+	}
+}
+
+void selectNextTrack(void)
+{
+	current_track = (current_track + 1) % MUSIC_TRACK_NUM;
+}
+
+void selectPreviousTrack(void)
+{
+	current_track = (current_track + MUSIC_TRACK_NUM - 1) % MUSIC_TRACK_NUM;
+}
+
+void trackFinished(void)
+{
+	if (!gameover)
+	{
+		if (!repeattrack)
+		{
+			selectNextTrack();
+		}
+		Mix_PlayMusic(music[current_track], 1);
 	}
 }
 
@@ -1001,8 +1033,8 @@ void handleInput(void)
 							if (!left_key_state)
 							{
 								left_key_state = true;
-								current_track = (current_track + MUSIC_TRACK_NUM - 1) % MUSIC_TRACK_NUM;
-								Mix_PlayMusic(music[current_track], -1);
+								selectPreviousTrack();
+								Mix_PlayMusic(music[current_track], 1);
 							}
 						}
 						break;
@@ -1019,8 +1051,8 @@ void handleInput(void)
 							if (!right_key_state)
 							{
 								right_key_state = true;
-								current_track = (current_track + 1) % MUSIC_TRACK_NUM;
-								Mix_PlayMusic(music[current_track], -1);
+								selectNextTrack();
+								Mix_PlayMusic(music[current_track], 1);
 							}
 						}
 						break;
