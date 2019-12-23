@@ -44,7 +44,8 @@
 #define BLOCK_SIZE			12
 #define FIG_NUM				7		// including the active figure
 
-#define KEY_REPEAT_RATE		100		// in ms
+#define MAX_SOFTDROP_PRESS	300
+#define KEY_REPEAT_RATE		130		// in ms
 #define FONT_SIZE			7
 #define MUSIC_TRACK_NUM		4
 #define MUSIC_FADE_TIME		3000
@@ -127,11 +128,15 @@ int screenscale = 1;
 int startlevel = 0;
 int nextblocks = FIG_NUM - 1;
 enum RandomAlgo randomalgo = RA_7BAG;
-bool pause = false, gameover = false, hold_ready = true, fast_drop = false;
+bool pause = false, gameover = false, hold_ready = true;
 
-const int drop_delay_per_level[] = {500, 425, 360, 307, 261, 222, 189, 160, 136, 116};
 int fps, lines = 0, hiscore = 0, old_hiscore, score = 0, level = 0;
-int next_time;
+
+double drop_rate = 2.00;
+const double drop_rate_ratio_per_level = 1.20;
+Uint32 last_drop_time;
+bool softdrop_pressed = false;
+Uint32 softdrop_press_time = 0;
 
 const struct Shape shape_O =
 {
@@ -212,6 +217,11 @@ void selectNextTrack(void);
 void selectPreviousTrack(void);
 void trackFinished(void);
 
+void markDrop(void);
+Uint32 getNextDropTime(void);
+void setDropRate(int level);
+void softDropTimeCounter(void);
+
 void displayBoard(void);
 void dropSoft(void);
 void dropHard(void);
@@ -287,18 +297,23 @@ int main(int argc, char *argv[])
 	}
 
 	initialize();
-	next_time = SDL_GetTicks() + drop_delay_per_level[level];
+	markDrop();
 	while (1)
 	{
-		handleInput();
-		displayBoard();
-		if (!debugfps)
-			frameLimiter();
-
-		if (SDL_GetTicks() > next_time)
+		if (!frameLimiter() || debugfps)
 		{
-			if (!(pause || gameover))
-				dropSoft();
+			handleInput();
+			displayBoard();
+			softDropTimeCounter();
+
+			if (SDL_GetTicks() > getNextDropTime())
+			{
+				if (!(pause || gameover))
+				{
+					markDrop();
+					dropSoft();
+				}
+			}
 		}
 	}
 	return 0;
@@ -457,6 +472,7 @@ void initialize(void)
 	gameover = false;
 	lines = 0;
 	level = startlevel;
+	setDropRate(level);
 	initFigures();
 }
 
@@ -519,6 +535,44 @@ void trackFinished(void)
 			selectNextTrack();
 		}
 		Mix_PlayMusic(music[current_track], 1);
+	}
+}
+
+void markDrop(void)
+{
+	last_drop_time = SDL_GetTicks();
+}
+
+Uint32 getNextDropTime(void)
+{
+	const double maxDropRate = FPS;
+	double coef = (double)(MAX_SOFTDROP_PRESS - softdrop_press_time) / MAX_SOFTDROP_PRESS;
+	coef = 1 - coef;
+	coef *= coef;
+	return last_drop_time + (Uint32)(1000 / (drop_rate * (1 - coef) + maxDropRate * coef));
+}
+
+void setDropRate(int level)
+{
+	while (level--)
+		drop_rate *= drop_rate_ratio_per_level;
+}
+
+void softDropTimeCounter(void)
+{
+	static Uint32 curTicks;
+	static Uint32 lastTicks;
+	Uint32 delta;
+
+	lastTicks = curTicks;
+	curTicks = SDL_GetTicks();
+	delta = curTicks - lastTicks;
+
+	if (softdrop_pressed)
+	{
+		softdrop_press_time += delta;
+		if (softdrop_press_time > MAX_SOFTDROP_PRESS)
+			softdrop_press_time = MAX_SOFTDROP_PRESS;
 	}
 }
 
@@ -673,7 +727,8 @@ void drawBar(int x, int y, int value)
 {
 	const int maxw = 26;
 	const int maxh = 8;
-	const int alpha_step = 64;
+	const int alpha_step = 48;
+	const int alpha_start = 32;
 
 	SDL_Surface *bar = SDL_CreateRGBSurface(SDL_SRCALPHA,
 											maxw,
@@ -688,8 +743,8 @@ void drawBar(int x, int y, int value)
 	Uint8 alpha_l;
 	Uint32 col;
 	SDL_Rect rect;
-	int ar = (value / (maxw + 1)) * alpha_step;
-	int al = ar + alpha_step;
+	int ar = (value / (maxw + 1)) * alpha_step + alpha_start;
+	int al = ar + alpha_step + alpha_start;
 	ar = ar > 255 ? 255 : ar;
 	al = al > 255 ? 255 : al;
 	alpha_l = (Uint8)al;
@@ -772,7 +827,6 @@ void dropSoft(void)
 			lockFigure();
 			free(figures[0]);
 			figures[0] = NULL;
-			fast_drop = false;
 		}
 	}
 
@@ -781,8 +835,6 @@ void dropSoft(void)
 	if (gameover)
 		Mix_FadeOutMusic(MUSIC_FADE_TIME);
 
-
-	next_time = SDL_GetTicks() + drop_delay_per_level[level];
 	screenFlagUpdate(true);
 }
 
@@ -815,6 +867,8 @@ void lockFigure(void)
 				board[y*BOARD_WIDTH + x] = figures[0]->colorid;
 		}
 
+	softdrop_pressed = false;
+	softdrop_press_time = 0;
 	Mix_PlayChannel(-1, hit, 0);
 }
 
@@ -884,9 +938,12 @@ void checkFullLines(void)
 	if (score > hiscore)
 		hiscore = score;
 
+	int oldlevel = level;
 	level = startlevel + lines / 30;
-	if (level >= sizeof(drop_delay_per_level) / sizeof(int))
-		level = sizeof(drop_delay_per_level) / sizeof(int) - 1;
+	if (level != oldlevel)
+	{
+		drop_rate *= drop_rate_ratio_per_level;
+	}
 }
 
 void handleInput(void)
@@ -894,6 +951,7 @@ void handleInput(void)
 	static bool rotatecw_key_state = false;
 	static bool rotateccw_key_state = false;
 	static bool pause_key_state = false;
+	static bool softdrop_key_state = false;
 	static bool harddrop_key_state = false;
 	static bool hold_key_state = false;
 	static bool left_key_state = false;
@@ -914,6 +972,11 @@ void handleInput(void)
 						break;
 					case KEY_PAUSE:
 						pause_key_state = false;
+						break;
+					case KEY_SOFTDROP:
+						softdrop_key_state = false;
+						softdrop_pressed = false;
+						softdrop_press_time = 0;
 						break;
 					case KEY_HARDDROP:
 						harddrop_key_state = false;
@@ -995,9 +1058,10 @@ void handleInput(void)
 						}
 						break;
 					case KEY_SOFTDROP:
-						if (!pause && !gameover)
+						if (!softdrop_key_state)
 						{
-							dropSoft();
+							softdrop_key_state = true;
+							softdrop_pressed = true;
 						}
 						break;
 					case KEY_HARDDROP:
