@@ -53,6 +53,8 @@
 #define MUSIC_TRACK_NUM		4
 #define MUSIC_FADE_TIME		3000
 
+#define MAX8BAGID			8
+
 enum Error
 {
 	ERROR_NONE,
@@ -76,13 +78,14 @@ enum FigureId
 	FIGID_Z,
 	FIGID_J,
 	FIGID_L,
-	FIGID_NUM
+	FIGID_END
 };
 
 enum RandomAlgo
 {
 	RA_NAIVE,
 	RA_7BAG,
+	RA_8BAG,
 	RA_END
 };
 
@@ -105,7 +108,7 @@ SDL_Surface *fg = NULL;
 
 // sprites for blocks
 SDL_Surface *gray = NULL;
-SDL_Surface *colors[FIGID_NUM];
+SDL_Surface *colors[FIGID_END];
 
 TTF_Font *arcade_font = NULL;
 
@@ -117,7 +120,7 @@ enum FigureId *board = NULL;
 struct Figure *figures[FIG_NUM];
 int f_x, f_y;			// coordinates of the active figure
 struct Shape f_shape;	// shape of the active figure
-int statistics[FIGID_NUM];
+int statistics[FIGID_END];
 
 bool nosound = false;
 bool randomcolors = false;
@@ -131,7 +134,7 @@ bool numericbars = false;
 int screenscale = 1;
 int startlevel = 0;
 int nextblocks = FIG_NUM - 1;
-enum RandomAlgo randomalgo = RA_7BAG;
+enum RandomAlgo randomalgo = RA_8BAG;
 bool pause = false, gameover = false, hold_ready = true;
 
 int fps, lines = 0, hiscore = 0, old_hiscore, score = 0, level = 0;
@@ -250,6 +253,7 @@ const struct Shape* getShape(enum FigureId id);
 enum FigureId getNextId(void);
 enum FigureId getRandomId(void);
 enum FigureId getRandom7BagId(void);
+enum FigureId getRandom8BagId(void);
 enum FigureId getNextColor(enum FigureId id);
 enum FigureId getRandomColor(void);
 void getShapeDimensions(const struct Shape *shape, int *minx, int *maxx, int *miny, int *maxy);
@@ -290,8 +294,6 @@ int main(int argc, char *argv[])
 			grayblocks = true;
 		else if (!strcmp(argv[i],"--ghostoff"))
 			ghostoff = true;
-		else if (!strcmp(argv[i],"--naiverng"))
-			randomalgo = RA_NAIVE;
 		else if (!strcmp(argv[i],"--startlevel"))
 		{
 			++i;
@@ -301,6 +303,15 @@ int main(int argc, char *argv[])
 		{
 			++i;
 			nextblocks = atoi(argv[i]);
+		}
+		else if (!strcmp(argv[i],"--rng"))
+		{
+			++i;
+			int rng = atoi(argv[i]);
+			if (rng < RA_END)
+				randomalgo = rng;
+			else
+				printf("Selected RNG ID (%d) is not valid\n", rng);
 		}
 		else
 			printf("Unrecognized parameter: %s\n", argv[i]);
@@ -475,7 +486,7 @@ void initialize(void)
 
 	board = malloc(sizeof(int)*BOARD_WIDTH*BOARD_HEIGHT);
 	for (int i = 0; i < (BOARD_WIDTH*BOARD_HEIGHT); ++i)
-		board[i] = FIGID_NUM;
+		board[i] = FIGID_END;
 	srand((unsigned)time(NULL));
 	pause = false;
 	gameover = false;
@@ -669,7 +680,7 @@ void displayBoard(void)
 	{
 		rect.x = (i % BOARD_WIDTH) * BLOCK_SIZE + BOARD_X;
 		rect.y = (i / BOARD_WIDTH) * BLOCK_SIZE + BOARD_Y;
-		if (board[i] < FIGID_NUM)
+		if (board[i] < FIGID_END)
 			if (grayblocks)
 				SDL_BlitSurface(gray, NULL, screen, &rect);
 			else
@@ -733,7 +744,7 @@ void drawBars(void)
 		SDL_Rect rect;
 		char buff[256];
 
-		for (int i = 0; i < FIGID_NUM; ++i)
+		for (int i = 0; i < FIGID_END; ++i)
 		{
 			sprintf(buff, "%d", statistics[i]);
 			text = TTF_RenderUTF8_Blended(arcade_font, buff, white);
@@ -745,7 +756,7 @@ void drawBars(void)
 	}
 	else
 	{
-		for (int i = 0; i < FIGID_NUM; ++i)
+		for (int i = 0; i < FIGID_END; ++i)
 		{
 			drawBar(64, 38 + i * 30, statistics[i]);
 		}
@@ -974,7 +985,7 @@ void removeFullLines(void)
 		bool flag = true;
 		for (int x = 0; x < BOARD_WIDTH; ++x)
 		{
-			if (board[y*BOARD_WIDTH + x] == FIGID_NUM)
+			if (board[y*BOARD_WIDTH + x] == FIGID_END)
 			{
 				flag = false;
 				break;
@@ -1196,7 +1207,7 @@ void handleInput(void)
 bool checkGameEnd(void)
 {
 	for (int i = 0; i < BOARD_WIDTH; ++i)
-		if (board[i] != FIGID_NUM)
+		if (board[i] != FIGID_END)
 			return true;
 	return false;
 }
@@ -1259,6 +1270,8 @@ enum FigureId getNextId(void)
 			return getRandomId();
 		case RA_7BAG:
 			return getRandom7BagId();
+		case RA_8BAG:
+			return getRandom8BagId();
 		default:
 			// should never happen
 			return FIGID_I;
@@ -1267,24 +1280,50 @@ enum FigureId getNextId(void)
 
 enum FigureId getRandomId(void)
 {
-	return rand() % FIGID_NUM;
+	return rand() % FIGID_END;
 }
 
 enum FigureId getRandom7BagId(void)
 {
-	static enum FigureId tab[FIGID_NUM];
-	static int pos = FIGID_NUM;
+	static enum FigureId tab[FIGID_END];
+	static int pos = FIGID_END;
 
-	if (pos >= FIGID_NUM)
+	if (pos >= FIGID_END)
 	{
 		pos = 0;
-		for (int i = 0; i < FIGID_NUM; ++i)
+		for (int i = 0; i < FIGID_END; ++i)
 			tab[i] = i;
 
 		for (int i = 0; i < 1000; ++i)
 		{
-			int one = rand() % FIGID_NUM;
-			int two = rand() % FIGID_NUM;
+			int one = rand() % FIGID_END;
+			int two = rand() % FIGID_END;
+			int temp = tab[one];
+			tab[one] = tab[two];
+			tab[two] = temp;
+		}
+	}
+
+	return tab[pos++];
+}
+
+enum FigureId getRandom8BagId(void)
+{
+	static enum FigureId tab[MAX8BAGID];
+	static int pos = MAX8BAGID;
+
+	if (pos >= MAX8BAGID)
+	{
+		pos = 0;
+		for (int i = 0; i < FIGID_END; ++i)
+			tab[i] = i;
+		for (int i = FIGID_END; i < MAX8BAGID; ++i)
+			tab[i] = rand() % FIGID_END;
+
+		for (int i = 0; i < 1000; ++i)
+		{
+			int one = rand() % MAX8BAGID;
+			int two = rand() % MAX8BAGID;
 			int temp = tab[one];
 			tab[one] = tab[two];
 			tab[two] = temp;
@@ -1304,7 +1343,7 @@ enum FigureId getNextColor(enum FigureId id)
 
 enum FigureId getRandomColor(void)
 {
-	return rand() % FIGID_NUM;
+	return rand() % FIGID_END;
 }
 
 void getShapeDimensions(const struct Shape *shape, int *minx, int *maxx, int *miny, int *maxy)
@@ -1403,7 +1442,7 @@ bool isFigureColliding(void)
 				int x = i % FIG_DIM + f_x;
 				int y = i / FIG_DIM + f_y;
 				if (((y*BOARD_WIDTH + x) < (BOARD_WIDTH*BOARD_HEIGHT)) && ((y*BOARD_WIDTH + x) >= 0))
-					if ((board[y*BOARD_WIDTH + x] != FIGID_NUM) && (f_shape.blockmap[i] != FIGID_NUM))
+					if ((board[y*BOARD_WIDTH + x] < FIGID_END) && (f_shape.blockmap[i] < FIGID_END))
 						return true;
 			}
 	}
