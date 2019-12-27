@@ -44,6 +44,9 @@
 #define BLOCK_SIZE			12
 #define FIG_NUM				7		// including the active figure
 
+#define BAR_WIDTH			26
+#define BAR_HEIGHT			8
+
 #define MAX_SOFTDROP_PRESS	300
 #define KEY_REPEAT_RATE		130		// in ms
 #define FONT_SIZE			7
@@ -123,6 +126,7 @@ bool grayblocks = false;
 bool ghostoff = false;
 bool debugfps = false;
 bool repeattrack = false;
+bool numericbars = false;
 
 int screenscale = 1;
 int startlevel = 0;
@@ -227,12 +231,16 @@ void dropSoft(void);
 void dropHard(void);
 void lockFigure(void);
 void holdFigure(void);
-void checkFullLines(void);
+void removeFullLines(void);
 void handleInput(void);
 bool checkGameEnd(void);
 void drawBars(void);
 void drawBar(int x, int y, int value);
 void drawStatus(int x, int y);
+void onDrop(void);
+void onCollide(void);
+void onLineClear(int removed);
+void onGameOver(void);
 
 void initFigures(void);
 void drawFigure(const struct Figure *fig, int x, int y, bool screendim, bool ghost);
@@ -264,6 +272,8 @@ int main(int argc, char *argv[])
 			nosound = true;
 		else if (!strcmp(argv[i],"--randomcolors"))
 			randomcolors = true;
+		else if (!strcmp(argv[i],"--numericbars"))
+			numericbars = true;
 		else if (!strcmp(argv[i],"--repeattrack"))
 			repeattrack = true;
 		else if (!strcmp(argv[i],"--debugfps"))
@@ -310,7 +320,6 @@ int main(int argc, char *argv[])
 			{
 				if (!(pause || gameover))
 				{
-					markDrop();
 					dropSoft();
 				}
 			}
@@ -717,22 +726,40 @@ void displayBoard(void)
 
 void drawBars(void)
 {
-	for (int i = 0; i < FIGID_NUM; ++i)
+	if (numericbars)
 	{
-		drawBar(64, 38 + i * 30, statistics[i]);
+		const SDL_Color white = {.r = 255, .g = 255, .b = 255};
+		SDL_Surface *text = NULL;
+		SDL_Rect rect;
+		char buff[256];
+
+		for (int i = 0; i < FIGID_NUM; ++i)
+		{
+			sprintf(buff, "%d", statistics[i]);
+			text = TTF_RenderUTF8_Blended(arcade_font, buff, white);
+			rect.x = 64 + BAR_WIDTH - text->w;
+			rect.y = 38 + i * 30;
+			SDL_BlitSurface(text, NULL, screen, &rect);
+			SDL_FreeSurface(text);
+		}
+	}
+	else
+	{
+		for (int i = 0; i < FIGID_NUM; ++i)
+		{
+			drawBar(64, 38 + i * 30, statistics[i]);
+		}
 	}
 }
 
 void drawBar(int x, int y, int value)
 {
-	const int maxw = 26;
-	const int maxh = 8;
 	const int alpha_step = 48;
 	const int alpha_start = 32;
 
 	SDL_Surface *bar = SDL_CreateRGBSurface(SDL_SRCALPHA,
-											maxw,
-											maxh,
+											BAR_WIDTH,
+											BAR_HEIGHT,
 											ALT_SCREEN_BPP,
 											0x000000ff,
 											0x0000ff00,
@@ -743,7 +770,7 @@ void drawBar(int x, int y, int value)
 	Uint8 alpha_l;
 	Uint32 col;
 	SDL_Rect rect;
-	int ar = (value / (maxw + 1)) * alpha_step + alpha_start;
+	int ar = (value / (BAR_WIDTH + 1)) * alpha_step + alpha_start;
 	int al = ar + alpha_step + alpha_start;
 	ar = ar > 255 ? 255 : ar;
 	al = al > 255 ? 255 : al;
@@ -752,22 +779,22 @@ void drawBar(int x, int y, int value)
 
 	rect.x = 0;
 	rect.y = 0;
-	rect.w = value % (maxw + 1);
-	rect.h = maxh;
+	rect.w = value % (BAR_WIDTH + 1);
+	rect.h = BAR_HEIGHT;
 	col = SDL_MapRGBA(bar->format, 255, 255, 255, alpha_l);
 	SDL_FillRect(bar, &rect, col);
 
 	rect.x = rect.w;
 	rect.y = 0;
-	rect.w = maxw - rect.w;
-	rect.h = maxh;
+	rect.w = BAR_WIDTH - rect.w;
+	rect.h = BAR_HEIGHT;
 	col = SDL_MapRGBA(bar->format, 255, 255, 255, alpha_r);
 	SDL_FillRect(bar, &rect, col);
 
 	rect.x = x;
 	rect.y = y;
-	rect.w = maxw;
-	rect.h = maxh;
+	rect.w = BAR_WIDTH;
+	rect.h = BAR_HEIGHT;
 	SDL_BlitSurface(bar, NULL, screen, &rect);
 	SDL_FreeSurface(bar);
 }
@@ -812,115 +839,33 @@ void drawStatus(int x, int y)
 	}
 }
 
-void dropSoft(void)
+void onDrop(void)
 {
-	if (figures[0] == NULL)
-	{
-		spawnFigure();
-	}
-	else
-	{
-		++f_y;
-		if (isFigureColliding())
-		{
-			--f_y;
-			lockFigure();
-			free(figures[0]);
-			figures[0] = NULL;
-		}
-	}
+	markDrop();
 
-	checkFullLines();
 	gameover = checkGameEnd();
 	if (gameover)
-		Mix_FadeOutMusic(MUSIC_FADE_TIME);
+		onGameOver();
 
 	screenFlagUpdate(true);
 }
 
-void dropHard(void)
+void onCollide(void)
 {
-	if (figures[0] != NULL)
-	{
-		while (!isFigureColliding())
-			++f_y;
-		--f_y;
-		lockFigure();
-		free(figures[0]);
-		figures[0] = NULL;
+	lockFigure();
+	free(figures[0]);
+	figures[0] = NULL;
 
-		screenFlagUpdate(true);
-	}
-}
-
-void lockFigure(void)
-{
-	if (figures[0] == NULL)
-		return;
-
-	for (int i = 0; i < (FIG_DIM*FIG_DIM); ++i)
-		if (f_shape.blockmap[i] != 0)
-		{
-			int x = i % FIG_DIM + f_x;
-			int y = i / FIG_DIM + f_y;
-			if ((x >= 0) && (x < BOARD_WIDTH) && (y >= 0) && (y < BOARD_HEIGHT))
-				board[y*BOARD_WIDTH + x] = figures[0]->colorid;
-		}
+	removeFullLines();
 
 	softdrop_pressed = false;
 	softdrop_press_time = 0;
 	Mix_PlayChannel(-1, hit, 0);
 }
 
-void holdFigure(void)
+void onLineClear(int removed)
 {
-	if (hold_ready && !holdoff && figures[0])
-	{
-		--statistics[figures[0]->id];
-		struct Figure temp = *figures[0];
-		*figures[0] = *figures[1];
-		*figures[1] = temp;
-		++statistics[figures[0]->id];
-
-		f_y = -FIG_DIM + 1;						// ...to gain a 'slide' effect from the top of screen
-		f_x = (BOARD_WIDTH - FIG_DIM) / 2;		// ...to center a figure
-
-		memcpy(&f_shape, getShape(figures[0]->id), sizeof(f_shape));
-
-		hold_ready = false;
-
-		screenFlagUpdate(true);
-	}
-}
-
-void checkFullLines(void)
-{
-	int lines_once = 0;
-
-	// checking and removing full lines
-	for (int y = 1; y < BOARD_HEIGHT; ++y)
-	{
-		bool flag = true;
-		for (int x = 0; x < BOARD_WIDTH; ++x)
-		{
-			if (board[y*BOARD_WIDTH + x] == FIGID_NUM)
-			{
-				flag = false;
-				break;
-			}
-		}
-		// removing
-		if (flag)
-		{
-			++lines;
-			++lines_once;
-			for (int ys = y-1; ys >= 0; --ys)
-				for (int x = 0; x < BOARD_WIDTH; ++x)
-					board[(ys+1)*BOARD_WIDTH + x] = board[ys*BOARD_WIDTH + x];
-		}
-	}
-
-	switch (lines_once)
+	switch (removed)
 	{
 		case 1:
 			score += 100;
@@ -944,6 +889,110 @@ void checkFullLines(void)
 	{
 		drop_rate *= drop_rate_ratio_per_level;
 	}
+}
+
+void onGameOver(void)
+{
+	Mix_FadeOutMusic(MUSIC_FADE_TIME);
+}
+
+void dropSoft(void)
+{
+	if (figures[0] == NULL)
+	{
+		spawnFigure();
+	}
+	else
+	{
+		++f_y;
+		if (isFigureColliding())
+		{
+			--f_y;
+			onCollide();
+		}
+	}
+
+	onDrop();
+}
+
+void dropHard(void)
+{
+	if (figures[0] != NULL)
+	{
+		while (!isFigureColliding())
+			++f_y;
+		--f_y;
+		onCollide();
+	}
+
+	onDrop();
+}
+
+void lockFigure(void)
+{
+	if (figures[0] == NULL)
+		return;
+
+	for (int i = 0; i < (FIG_DIM*FIG_DIM); ++i)
+		if (f_shape.blockmap[i] != 0)
+		{
+			int x = i % FIG_DIM + f_x;
+			int y = i / FIG_DIM + f_y;
+			if ((x >= 0) && (x < BOARD_WIDTH) && (y >= 0) && (y < BOARD_HEIGHT))
+				board[y*BOARD_WIDTH + x] = figures[0]->colorid;
+		}
+}
+
+void holdFigure(void)
+{
+	if (hold_ready && !holdoff && figures[0])
+	{
+		--statistics[figures[0]->id];
+		struct Figure temp = *figures[0];
+		*figures[0] = *figures[1];
+		*figures[1] = temp;
+		++statistics[figures[0]->id];
+
+		f_y = -FIG_DIM + 1;						// ...to gain a 'slide' effect from the top of screen
+		f_x = (BOARD_WIDTH - FIG_DIM) / 2;		// ...to center a figure
+
+		memcpy(&f_shape, getShape(figures[0]->id), sizeof(f_shape));
+
+		hold_ready = false;
+
+		screenFlagUpdate(true);
+	}
+}
+
+void removeFullLines(void)
+{
+	int removed_lines = 0;
+
+	// checking and removing full lines
+	for (int y = 1; y < BOARD_HEIGHT; ++y)
+	{
+		bool flag = true;
+		for (int x = 0; x < BOARD_WIDTH; ++x)
+		{
+			if (board[y*BOARD_WIDTH + x] == FIGID_NUM)
+			{
+				flag = false;
+				break;
+			}
+		}
+		// removing
+		if (flag)
+		{
+			++lines;
+			++removed_lines;
+			for (int ys = y-1; ys >= 0; --ys)
+				for (int x = 0; x < BOARD_WIDTH; ++x)
+					board[(ys+1)*BOARD_WIDTH + x] = board[ys*BOARD_WIDTH + x];
+		}
+	}
+
+	if (removed_lines > 0)
+		onLineClear(removed_lines);
 }
 
 void handleInput(void)
