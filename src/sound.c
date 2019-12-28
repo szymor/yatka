@@ -20,7 +20,7 @@ void selectPreviousTrack(void)
 
 void trackFinished(void)
 {
-	if (!gameover)
+	if (GS_GAMEOVER != gamestate)
 	{
 		if (!repeattrack)
 		{

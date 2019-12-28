@@ -92,7 +92,8 @@ int screenscale = 1;
 int startlevel = 0;
 int nextblocks = FIG_NUM - 1;
 enum RandomAlgo randomalgo = RA_8BAG;
-bool pause = false, gameover = false, hold_ready = true;
+enum GameState gamestate = GS_PLAYING;
+bool hold_ready = true;
 
 int lines = 0, hiscore = 0, old_hiscore, score = 0, level = 0;
 
@@ -281,7 +282,7 @@ int main(int argc, char *argv[])
 
 			if (SDL_GetTicks() > getNextDropTime())
 			{
-				if (!(pause || gameover))
+				if (GS_PLAYING == gamestate)
 				{
 					dropSoft();
 				}
@@ -432,8 +433,6 @@ void initialize(void)
 	for (int i = 0; i < (BOARD_WIDTH*BOARD_HEIGHT); ++i)
 		board[i] = FIGID_END;
 	srand((unsigned)time(NULL));
-	pause = false;
-	gameover = false;
 	lines = 0;
 	level = startlevel;
 	setDropRate(level);
@@ -586,7 +585,7 @@ void displayBoard(void)
 	}
 
 	// display the active figure
-	if (!gameover)
+	if (GS_GAMEOVER != gamestate)
 		drawFigure(figures[0], f_x, f_y, false, false);
 
 	// display the ghost figure
@@ -602,7 +601,7 @@ void displayBoard(void)
 		f_y = tfy;
 	}
 
-	if(pause || gameover)
+	if(GS_PLAYING != gamestate)
 	{
 		mask = SDL_CreateRGBSurface(SDL_SRCALPHA, SCREEN_WIDTH, SCREEN_HEIGHT, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
 		SDL_FillRect(mask, NULL, SDL_MapRGBA(mask->format,0,0,0,128));
@@ -751,11 +750,6 @@ void drawStatus(int x, int y)
 void onDrop(void)
 {
 	markDrop();
-
-	gameover = checkGameEnd();
-	if (gameover)
-		onGameOver();
-
 	screenFlagUpdate(true);
 }
 
@@ -766,6 +760,8 @@ void onCollide(void)
 	figures[0] = NULL;
 
 	removeFullLines();
+	if (checkGameEnd())
+		onGameOver();
 
 	softdrop_pressed = false;
 	softdrop_press_time = 0;
@@ -803,6 +799,7 @@ void onLineClear(int removed)
 void onGameOver(void)
 {
 	Mix_FadeOutMusic(MUSIC_FADE_TIME);
+	gamestate = GS_GAMEOVER;
 }
 
 void dropSoft(void)
@@ -819,9 +816,8 @@ void dropSoft(void)
 			--f_y;
 			onCollide();
 		}
+		onDrop();
 	}
-
-	onDrop();
 }
 
 void dropHard(void)
@@ -832,9 +828,8 @@ void dropHard(void)
 			++f_y;
 		--f_y;
 		onCollide();
+		onDrop();
 	}
-
-	onDrop();
 }
 
 void lockFigure(void)
@@ -957,7 +952,7 @@ void handleInput(void)
 						if (!rotatecw_key_state)
 						{
 							rotatecw_key_state = true;
-							if (!pause && !gameover)
+							if (GS_PLAYING == gamestate)
 							{
 								rotateFigureCW();
 								if (isFigureColliding())
@@ -975,7 +970,7 @@ void handleInput(void)
 								}
 								screenFlagUpdate(true);
 							}
-							if (pause && !gameover)
+							if (GS_MAINMENU == gamestate)
 							{
 								int vol = Mix_VolumeMusic(-1);
 								vol += 10;
@@ -987,7 +982,7 @@ void handleInput(void)
 						if (!rotateccw_key_state)
 						{
 							rotateccw_key_state = true;
-							if (!pause && !gameover)
+							if (GS_PLAYING == gamestate)
 							{
 								rotateFigureCCW();
 								if (isFigureColliding())
@@ -1005,7 +1000,7 @@ void handleInput(void)
 								}
 								screenFlagUpdate(true);
 							}
-							if(pause && !gameover)
+							if(GS_MAINMENU == gamestate)
 							{
 								int vol = Mix_VolumeMusic(-1);
 								vol -= 10;
@@ -1026,7 +1021,7 @@ void handleInput(void)
 						if (!harddrop_key_state)
 						{
 							harddrop_key_state = true;
-							if (!pause && !gameover)
+							if (GS_PLAYING == gamestate)
 							{
 								dropHard();
 							}
@@ -1036,21 +1031,21 @@ void handleInput(void)
 						if (!hold_key_state)
 						{
 							hold_key_state = true;
-							if (!pause && !gameover)
+							if (GS_PLAYING == gamestate)
 							{
 								holdFigure();
 							}
 						}
 						break;
 					case KEY_LEFT:
-						if (!pause && !gameover)
+						if (GS_PLAYING == gamestate)
 						{
 							--f_x;
 							if (isFigureColliding())
 								++f_x;
 							screenFlagUpdate(true);
 						}
-						if (pause && !gameover)
+						if (GS_MAINMENU == gamestate)
 						{
 							if (!left_key_state)
 							{
@@ -1061,14 +1056,14 @@ void handleInput(void)
 						}
 						break;
 					case KEY_RIGHT:
-						if (!pause && !gameover)
+						if (GS_PLAYING == gamestate)
 						{
 							++f_x;
 							if (isFigureColliding())
 								--f_x;
 							screenFlagUpdate(true);
 						}
-						if (pause && !gameover)
+						if (GS_MAINMENU == gamestate)
 						{
 							if (!right_key_state)
 							{
@@ -1082,9 +1077,11 @@ void handleInput(void)
 						if (!pause_key_state)
 						{
 							pause_key_state = true;
-							pause = !pause;
-							if (!gameover)
-								screenFlagUpdate(true);
+							if (GS_PLAYING == gamestate)
+								gamestate = GS_MAINMENU;
+							else if (GS_MAINMENU == gamestate)
+								gamestate = GS_PLAYING;
+							screenFlagUpdate(true);
 						}
 						break;
 					case KEY_QUIT:

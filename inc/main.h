@@ -39,7 +39,15 @@ enum Error
 	ERROR_END
 };
 
-extern bool gameover;
+enum GameState
+{
+	GS_PLAYING,
+	GS_MAINMENU,
+	GS_GAMEOVER,
+	GS_END
+};
+
+extern enum GameState gamestate;
 extern bool repeattrack;
 
 #endif
