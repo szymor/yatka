@@ -8,36 +8,13 @@
 #include <SDL/SDL_ttf.h>
 #include <SDL/SDL_mixer.h>
 
-#define SCREEN_WIDTH		320
-#define SCREEN_HEIGHT		240
-#define SCREEN_BPP			16
-#define ALT_SCREEN_BPP		32
-#define FPS					60.0
+#include "main.h"
+#include "hiscore.h"
+#include "video.h"
+#include "sound.h"
 
-#ifdef _BITTBOY
-#define KEY_LEFT			SDLK_LEFT
-#define KEY_RIGHT			SDLK_RIGHT
-#define KEY_SOFTDROP		SDLK_DOWN
-#define KEY_HARDDROP		SDLK_LALT
-#define KEY_ROTATE_CW		SDLK_LCTRL
-#define KEY_ROTATE_CCW		SDLK_SPACE
-#define KEY_HOLD			SDLK_LSHIFT
-#define KEY_PAUSE			SDLK_RETURN
-#define KEY_QUIT			SDLK_ESCAPE
-#else
-#define KEY_LEFT			SDLK_LEFT
-#define KEY_RIGHT			SDLK_RIGHT
-#define KEY_SOFTDROP		SDLK_DOWN
-#define KEY_HARDDROP		SDLK_SPACE
-#define KEY_ROTATE_CW		SDLK_UP
-#define KEY_ROTATE_CCW		SDLK_z
-#define KEY_HOLD			SDLK_c
-#define KEY_PAUSE			SDLK_p
-#define KEY_QUIT			SDLK_ESCAPE
-#endif
-
-#define BOARD_X				100
-#define BOARD_Y				0
+#define BOARD_X_OFFSET		100
+#define BOARD_Y_OFFSET		0
 #define BOARD_WIDTH			10
 #define BOARD_HEIGHT		20
 #define FIG_DIM				4
@@ -50,24 +27,8 @@
 #define MAX_SOFTDROP_PRESS	300
 #define KEY_REPEAT_RATE		130		// in ms
 #define FONT_SIZE			7
-#define MUSIC_TRACK_NUM		4
-#define MUSIC_FADE_TIME		3000
 
 #define MAX8BAGID			8
-
-enum Error
-{
-	ERROR_NONE,
-	ERROR_SDLINIT,
-	ERROR_SDLVIDEO,
-	ERROR_NOIMGFILE,
-	ERROR_NOSNDFILE,
-	ERROR_OPENAUDIO,
-	ERROR_TTFINIT,
-	ERROR_NOFONT,
-	ERROR_MIXINIT,
-	ERROR_END
-};
 
 enum FigureId
 {
@@ -112,10 +73,6 @@ SDL_Surface *colors[FIGID_END];
 
 TTF_Font *arcade_font = NULL;
 
-Mix_Music *music[MUSIC_TRACK_NUM];
-int current_track = 0;
-Mix_Chunk *hit = NULL;
-
 enum FigureId *board = NULL;
 struct Figure *figures[FIG_NUM];
 int f_x, f_y;			// coordinates of the active figure
@@ -137,7 +94,7 @@ int nextblocks = FIG_NUM - 1;
 enum RandomAlgo randomalgo = RA_8BAG;
 bool pause = false, gameover = false, hold_ready = true;
 
-int fps, lines = 0, hiscore = 0, old_hiscore, score = 0, level = 0;
+int lines = 0, hiscore = 0, old_hiscore, score = 0, level = 0;
 
 double drop_rate = 2.00;
 const double drop_rate_ratio_per_level = 1.20;
@@ -217,12 +174,6 @@ const struct Shape shape_T =
 
 void initialize(void);
 void finalize(void);
-int loadHiscore(void);
-void saveHiscore(int hi);
-
-void selectNextTrack(void);
-void selectPreviousTrack(void);
-void trackFinished(void);
 
 void markDrop(void);
 Uint32 getNextDropTime(void);
@@ -260,13 +211,6 @@ void getShapeDimensions(const struct Shape *shape, int *minx, int *maxx, int *mi
 bool isFigureColliding(void);
 void rotateFigureCW(void);
 void rotateFigureCCW(void);
-
-bool screenFlagUpdate(bool v);
-void upscale2(uint32_t *to, uint32_t *from);
-void upscale3(uint32_t *to, uint32_t *from);
-void upscale4(uint32_t *to, uint32_t *from);
-void frameCounter(void);
-int frameLimiter(void);
 
 int main(int argc, char *argv[])
 {
@@ -307,8 +251,16 @@ int main(int argc, char *argv[])
 		else if (!strcmp(argv[i],"--rng"))
 		{
 			++i;
-			int rng = atoi(argv[i]);
-			if (rng < RA_END)
+			int rng;
+			if (!strcmp(argv[i], "naive"))
+				rng = RA_NAIVE;
+			else if (!strcmp(argv[i], "7bag"))
+				rng = RA_7BAG;
+			else if (!strcmp(argv[i], "8bag"))
+				rng = RA_8BAG;
+			else
+				rng = atoi(argv[i]);
+			if (rng >= 0 && rng < RA_END)
 				randomalgo = rng;
 			else
 				printf("Selected RNG ID (%d) is not valid\n", rng);
@@ -337,14 +289,6 @@ int main(int argc, char *argv[])
 		}
 	}
 	return 0;
-}
-
-bool screenFlagUpdate(bool v)
-{
-	static bool value = true;
-	bool old = value;
-	value = v;
-	return old;
 }
 
 void initFigures(void)
@@ -512,52 +456,6 @@ void finalize(void)
 		free(figures[i]);
 }
 
-int loadHiscore(void)
-{
-	FILE *hifile = fopen("hiscore.dat", "r");
-	if (hifile)
-	{
-		int hi = 0;
-		fscanf(hifile, "%d", &hi);
-		fclose(hifile);
-		return hi;
-	}
-	else
-		return 0;
-}
-
-void saveHiscore(int hi)
-{
-	FILE *hifile = fopen("hiscore.dat", "w");
-	if (hifile)
-	{
-		fprintf(hifile, "%d", hi);
-		fclose(hifile);
-	}
-}
-
-void selectNextTrack(void)
-{
-	current_track = (current_track + 1) % MUSIC_TRACK_NUM;
-}
-
-void selectPreviousTrack(void)
-{
-	current_track = (current_track + MUSIC_TRACK_NUM - 1) % MUSIC_TRACK_NUM;
-}
-
-void trackFinished(void)
-{
-	if (!gameover)
-	{
-		if (!repeattrack)
-		{
-			selectNextTrack();
-		}
-		Mix_PlayMusic(music[current_track], 1);
-	}
-}
-
 void markDrop(void)
 {
 	last_drop_time = SDL_GetTicks();
@@ -637,8 +535,8 @@ void drawFigure(const struct Figure *fig, int x, int y, bool screendim, bool gho
 			}
 			else
 			{
-				rect.x = (i % FIG_DIM + x) * BLOCK_SIZE + BOARD_X;
-				rect.y = (i / FIG_DIM + y) * BLOCK_SIZE + BOARD_Y;
+				rect.x = (i % FIG_DIM + x) * BLOCK_SIZE + BOARD_X_OFFSET;
+				rect.y = (i / FIG_DIM + y) * BLOCK_SIZE + BOARD_Y_OFFSET;
 				if (f_shape.blockmap[i] == 1)
 					SDL_BlitSurface(block, NULL, screen, &rect);
 			}
@@ -678,8 +576,8 @@ void displayBoard(void)
 	// display board
 	for (int i = 0; i < (BOARD_WIDTH*BOARD_HEIGHT); ++i)
 	{
-		rect.x = (i % BOARD_WIDTH) * BLOCK_SIZE + BOARD_X;
-		rect.y = (i / BOARD_WIDTH) * BLOCK_SIZE + BOARD_Y;
+		rect.x = (i % BOARD_WIDTH) * BLOCK_SIZE + BOARD_X_OFFSET;
+		rect.y = (i / BOARD_WIDTH) * BLOCK_SIZE + BOARD_Y_OFFSET;
 		if (board[i] < FIGID_END)
 			if (grayblocks)
 				SDL_BlitSurface(gray, NULL, screen, &rect);
@@ -1472,441 +1370,4 @@ void rotateFigureCCW(void)
 	rotateFigureCW();
 	rotateFigureCW();
 	rotateFigureCW();
-}
-
-void upscale2(uint32_t *to, uint32_t *from)
-{
-	switch (SCREEN_BPP)
-	{
-		case 16:
-		{
-			uint16_t *from16 = (uint16_t *)from;
-			int j;
-
-			for (j = 0; j < SCREEN_HEIGHT; ++j)
-			{
-				int i;
-				int fromWidth = SCREEN_WIDTH/4;
-
-				for (i = 0; i < fromWidth; ++i)
-				{
-					/* Unroll the loop for instruction pipelining. */
-					uint32_t tmp = *from16++;
-					uint32_t tmp2 = *from16++;
-					uint32_t tmp3 = *from16++;
-					uint32_t tmp4 = *from16++;
-
-					tmp = (tmp << 16) | tmp;
-					*(to + SCREEN_WIDTH) = tmp;
-					*to++ = tmp;
-
-					tmp2 = (tmp2 << 16) | tmp2;
-					*(to + SCREEN_WIDTH) = tmp2;
-					*to++ = tmp2;
-
-					tmp3 = (tmp3 << 16) | tmp3;
-					*(to + SCREEN_WIDTH) = tmp3;
-					*to++ = tmp3;
-
-					tmp4 = (tmp4 << 16) | tmp4;
-					*(to + SCREEN_WIDTH) = tmp4;
-					*to++ = tmp4;
-				}
-
-				to += SCREEN_WIDTH;
-			}
-		}
-		break;
-		case 32:
-		{
-			int j;
-			int fromWidth = SCREEN_WIDTH/4;
-			int toWidth = SCREEN_WIDTH*2;
-
-			for (j = 0; j < SCREEN_HEIGHT; ++j)
-			{
-				int i;
-
-				for (i = 0; i < fromWidth; ++i)
-				{
-					/* Unroll the loop for instruction pipelining. */
-					uint32_t tmp = *from++;
-					uint32_t tmp2 = *from++;
-					uint32_t tmp3 = *from++;
-					uint32_t tmp4 = *from++;
-
-					*to = tmp;
-					*(to++ + toWidth) = tmp;
-					*to = tmp;
-					*(to++ + toWidth) = tmp;
-
-					*to = tmp2;
-					*(to++ + toWidth) = tmp2;
-					*to = tmp2;
-					*(to++ + toWidth) = tmp2;
-
-					*to = tmp3;
-					*(to++ + toWidth) = tmp3;
-					*to = tmp3;
-					*(to++ + toWidth) = tmp3;
-
-					*to = tmp4;
-					*(to++ + toWidth) = tmp4;
-					*to = tmp4;
-					*(to++ + toWidth) = tmp4;
-				}
-
-				to += toWidth;
-			}
-		}
-		break;
-
-		default:
-		break;
-	}
-}
-
-void upscale3(uint32_t *to, uint32_t *from)
-{
-	switch (SCREEN_BPP)
-	{
-		case 16:
-		{
-			uint16_t *from16 = (uint16_t *)from;
-			int j;
-
-			for (j = 0; j < SCREEN_HEIGHT; ++j)
-			{
-				int i;
-				int fromWidth = SCREEN_WIDTH/4;
-				int toWidth = SCREEN_WIDTH + SCREEN_WIDTH/2;
-
-				for (i = 0; i < fromWidth; ++i)
-				{
-					/* Unroll the loop for instruction pipelining. */
-					uint32_t tmp = *from16++;
-					uint32_t tmp2 = *from16++;
-					uint32_t tmp3 = *from16++;
-					uint32_t tmp4 = *from16++;
-
-					tmp = (tmp << 16) | tmp;
-					*(to + toWidth + toWidth) = tmp;
-					*(to + toWidth) = tmp;
-					*to++ = tmp;
-
-#if defined(PLATFORM_BIG_ENDIAN)
-					tmp = tmp2 | (tmp & 0xffff0000);
-#else
-					tmp = (tmp2 << 16) | (tmp & 0xffff);
-#endif
-					*(to + toWidth + toWidth) = tmp;
-					*(to + toWidth) = tmp;
-					*to++ = tmp;
-
-					tmp2 = (tmp2 << 16) | tmp2;
-					*(to + toWidth + toWidth) = tmp2;
-					*(to + toWidth) = tmp2;
-					*to++ = tmp2;
-
-					tmp3 = (tmp3 << 16) | tmp3;
-					*(to + toWidth + toWidth) = tmp3;
-					*(to + toWidth) = tmp3;
-					*to++ = tmp3;
-
-#if defined(PLATFORM_BIG_ENDIAN)
-					tmp3 = tmp4 | (tmp3 & 0xffff0000);
-#else
-					tmp3 = (tmp4 << 16) | (tmp3 & 0xffff);
-#endif
-					*(to + toWidth + toWidth) = tmp3;
-					*(to + toWidth) = tmp3;
-					*to++ = tmp3;
-
-					tmp4 = (tmp4 << 16) | tmp4;
-					*(to + toWidth + toWidth) = tmp4;
-					*(to + toWidth) = tmp4;
-					*to++ = tmp4;
-				}
-
-				to += toWidth * 2;
-			}
-		}
-		break;
-		case 32:
-		{
-			int j;
-
-			for (j = 0; j < SCREEN_HEIGHT; ++j)
-			{
-				int i;
-				int fromWidth = SCREEN_WIDTH/4;
-				int toWidth = SCREEN_WIDTH*3;
-
-				for (i = 0; i < fromWidth; ++i)
-				{
-					/* Unroll the loop for instruction pipelining. */
-					uint32_t tmp = *from++;
-					uint32_t tmp2 = *from++;
-					uint32_t tmp3 = *from++;
-					uint32_t tmp4 = *from++;
-
-					*(to + toWidth + toWidth) = tmp;
-					*(to + toWidth) = tmp;
-					*to++ = tmp;
-					*(to + toWidth + toWidth) = tmp;
-					*(to + toWidth) = tmp;
-					*to++ = tmp;
-					*(to + toWidth + toWidth) = tmp;
-					*(to + toWidth) = tmp;
-					*to++ = tmp;
-
-					*(to + toWidth + toWidth) = tmp2;
-					*(to + toWidth) = tmp2;
-					*to++ = tmp2;
-					*(to + toWidth + toWidth) = tmp2;
-					*(to + toWidth) = tmp2;
-					*to++ = tmp2;
-					*(to + toWidth + toWidth) = tmp2;
-					*(to + toWidth) = tmp2;
-					*to++ = tmp2;
-
-					*(to + toWidth + toWidth) = tmp3;
-					*(to + toWidth) = tmp3;
-					*to++ = tmp3;
-					*(to + toWidth + toWidth) = tmp3;
-					*(to + toWidth) = tmp3;
-					*to++ = tmp3;
-					*(to + toWidth + toWidth) = tmp3;
-					*(to + toWidth) = tmp3;
-					*to++ = tmp3;
-
-					*(to + toWidth + toWidth) = tmp4;
-					*(to + toWidth) = tmp4;
-					*to++ = tmp4;
-					*(to + toWidth + toWidth) = tmp4;
-					*(to + toWidth) = tmp4;
-					*to++ = tmp4;
-					*(to + toWidth + toWidth) = tmp4;
-					*(to + toWidth) = tmp4;
-					*to++ = tmp4;
-				}
-
-				to += toWidth * 2;
-			}
-		}
-		break;
-
-		default:
-		break;
-	}
-}
-
-void upscale4(uint32_t *to, uint32_t *from)
-{
-	switch (SCREEN_BPP)
-	{
-		case 16:
-		{
-			uint16_t *from16 = (uint16_t *)from;
-			int j;
-
-			for (j = 0; j < SCREEN_HEIGHT; ++j)
-			{
-				int i;
-				int fromWidth = SCREEN_WIDTH/4;
-				int toWidth = SCREEN_WIDTH*2;
-
-				for (i = 0; i < fromWidth; ++i)
-				{
-					/* Unroll the loop for instruction pipelining. */
-					uint32_t tmp = *from16++;
-					uint32_t tmp2 = *from16++;
-					uint32_t tmp3 = *from16++;
-					uint32_t tmp4 = *from16++;
-
-					tmp = (tmp << 16) | tmp;
-					*(to + toWidth + toWidth + toWidth) = tmp;
-					*(to + toWidth + toWidth) = tmp;
-					*(to + toWidth) = tmp;
-					*to++ = tmp;
-					*(to + toWidth + toWidth + toWidth) = tmp;
-					*(to + toWidth + toWidth) = tmp;
-					*(to + toWidth) = tmp;
-					*to++ = tmp;
-
-					tmp2 = (tmp2 << 16) | tmp2;
-					*(to + toWidth + toWidth + toWidth) = tmp2;
-					*(to + toWidth + toWidth) = tmp2;
-					*(to + toWidth) = tmp2;
-					*to++ = tmp2;
-					*(to + toWidth + toWidth + toWidth) = tmp2;
-					*(to + toWidth + toWidth) = tmp2;
-					*(to + toWidth) = tmp2;
-					*to++ = tmp2;
-
-					tmp3 = (tmp3 << 16) | tmp3;
-					*(to + toWidth + toWidth + toWidth) = tmp3;
-					*(to + toWidth + toWidth) = tmp3;
-					*(to + toWidth) = tmp3;
-					*to++ = tmp3;
-					*(to + toWidth + toWidth + toWidth) = tmp3;
-					*(to + toWidth + toWidth) = tmp3;
-					*(to + toWidth) = tmp3;
-					*to++ = tmp3;
-
-					tmp4 = (tmp4 << 16) | tmp4;
-					*(to + toWidth + toWidth + toWidth) = tmp4;
-					*(to + toWidth + toWidth) = tmp4;
-					*(to + toWidth) = tmp4;
-					*to++ = tmp4;
-					*(to + toWidth + toWidth + toWidth) = tmp4;
-					*(to + toWidth + toWidth) = tmp4;
-					*(to + toWidth) = tmp4;
-					*to++ = tmp4;
-				}
-
-				to += toWidth * 3;
-			}
-		}
-		break;
-		case 32:
-		{
-			int j;
-
-			for (j = 0; j < SCREEN_HEIGHT; ++j)
-			{
-				int i;
-				int fromWidth = SCREEN_WIDTH/4;
-				int toWidth = SCREEN_WIDTH*4;
-
-				for (i = 0; i < fromWidth; ++i)
-				{
-					/* Unroll the loop for instruction pipelining. */
-					uint32_t tmp = *from++;
-					uint32_t tmp2 = *from++;
-					uint32_t tmp3 = *from++;
-					uint32_t tmp4 = *from++;
-
-					*(to + toWidth + toWidth + toWidth) = tmp;
-					*(to + toWidth + toWidth) = tmp;
-					*(to + toWidth) = tmp;
-					*to++ = tmp;
-					*(to + toWidth + toWidth + toWidth) = tmp;
-					*(to + toWidth + toWidth) = tmp;
-					*(to + toWidth) = tmp;
-					*to++ = tmp;
-					*(to + toWidth + toWidth + toWidth) = tmp;
-					*(to + toWidth + toWidth) = tmp;
-					*(to + toWidth) = tmp;
-					*to++ = tmp;
-					*(to + toWidth + toWidth + toWidth) = tmp;
-					*(to + toWidth + toWidth) = tmp;
-					*(to + toWidth) = tmp;
-					*to++ = tmp;
-
-					*(to + toWidth + toWidth + toWidth) = tmp2;
-					*(to + toWidth + toWidth) = tmp2;
-					*(to + toWidth) = tmp2;
-					*to++ = tmp2;
-					*(to + toWidth + toWidth + toWidth) = tmp2;
-					*(to + toWidth + toWidth) = tmp2;
-					*(to + toWidth) = tmp2;
-					*to++ = tmp2;
-					*(to + toWidth + toWidth + toWidth) = tmp2;
-					*(to + toWidth + toWidth) = tmp2;
-					*(to + toWidth) = tmp2;
-					*to++ = tmp2;
-					*(to + toWidth + toWidth + toWidth) = tmp2;
-					*(to + toWidth + toWidth) = tmp2;
-					*(to + toWidth) = tmp2;
-					*to++ = tmp2;
-
-					*(to + toWidth + toWidth + toWidth) = tmp3;
-					*(to + toWidth + toWidth) = tmp3;
-					*(to + toWidth) = tmp3;
-					*to++ = tmp3;
-					*(to + toWidth + toWidth + toWidth) = tmp3;
-					*(to + toWidth + toWidth) = tmp3;
-					*(to + toWidth) = tmp3;
-					*to++ = tmp3;
-					*(to + toWidth + toWidth + toWidth) = tmp3;
-					*(to + toWidth + toWidth) = tmp3;
-					*(to + toWidth) = tmp3;
-					*to++ = tmp3;
-					*(to + toWidth + toWidth + toWidth) = tmp3;
-					*(to + toWidth + toWidth) = tmp3;
-					*(to + toWidth) = tmp3;
-					*to++ = tmp3;
-
-					*(to + toWidth + toWidth + toWidth) = tmp4;
-					*(to + toWidth + toWidth) = tmp4;
-					*(to + toWidth) = tmp4;
-					*to++ = tmp4;
-					*(to + toWidth + toWidth + toWidth) = tmp4;
-					*(to + toWidth + toWidth) = tmp4;
-					*(to + toWidth) = tmp4;
-					*to++ = tmp4;
-					*(to + toWidth + toWidth + toWidth) = tmp4;
-					*(to + toWidth + toWidth) = tmp4;
-					*(to + toWidth) = tmp4;
-					*to++ = tmp4;
-					*(to + toWidth + toWidth + toWidth) = tmp4;
-					*(to + toWidth + toWidth) = tmp4;
-					*(to + toWidth) = tmp4;
-					*to++ = tmp4;
-				}
-
-				to += toWidth * 3;
-			}
-		}
-		break;
-
-		default:
-		break;
-	}
-}
-
-void frameCounter(void)
-{
-	static unsigned int frames;
-	static Uint32 curTicks;
-	static Uint32 lastTicks;
-	Uint32 t;
-
-	curTicks = SDL_GetTicks();
-	t = curTicks - lastTicks;
-
-	if (t >= 1000)
-	{
-		lastTicks = curTicks;
-		fps = frames;
-		frames = 0;
-	}
-
-	++frames;
-}
-
-int frameLimiter(void)
-{
-	static Uint32 curTicks;
-	static Uint32 lastTicks;
-	float t;
-
-#if NO_FRAMELIMIT
-	return 0;
-#endif
-
-	curTicks = SDL_GetTicks();
-	t = curTicks - lastTicks;
-
-	if (t >= 1000.0/FPS)
-	{
-		lastTicks = curTicks;
-		return 0;
-	}
-
-
-	SDL_Delay(1);
-
-	return 1;
 }

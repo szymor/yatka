@@ -9,3 +9,5 @@ libpng15-15.dll
 libtiff-5.dll
 libwebp-2.dll
 zlib1.dll
+*.o
+*.d
