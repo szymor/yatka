@@ -1,4 +1,5 @@
 
+#include <SDL/SDL.h>
 #include <SDL/SDL_mixer.h>
 
 #include "sound.h"
@@ -27,5 +28,14 @@ void trackFinished(void)
 			selectNextTrack();
 		}
 		Mix_PlayMusic(music[current_track], 1);
+
+		// informing event
+		SDL_Event event;
+
+		event.type = SDL_USEREVENT;
+		event.user.code = current_track;
+		event.user.data1 = 0;
+		event.user.data2 = 0;
+		SDL_PushEvent(&event);
 	}
 }

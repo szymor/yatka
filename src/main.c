@@ -170,8 +170,37 @@ const struct Shape shape_T =
 	.cy = 1
 };
 
+enum SettingsLine
+{
+	SL_TRACK_SELECT,
+	SL_MUSIC_VOL,
+	SL_MUSIC_REPEAT,
+	SL_TETROMINO_COLOR,
+	SL_DEBRIS_COLOR,
+	SL_GHOST,
+	SL_STATISTICS,
+	SL_DEBUG,
+	SL_END
+};
+
+int settings_pos = 0;
+const char settings_text[][32] = {
+	"  track selection     %d",
+	"  music volume        %d",
+	"  repeat mode         %s",
+	"  tetromino color     %s",
+	"  debris color        %s",
+	"  ghost               %s",
+	"  statistics mode     %s",
+	"  debug mode          %s"
+};
+
 void initialize(void);
 void finalize(void);
+
+char *generateSettingLine(char *buff, int pos);
+void selectNextSetting(void);
+void selectPreviousSetting(void);
 
 void markDrop(void);
 Uint32 getNextDropTime(void);
@@ -298,9 +327,9 @@ int main(int argc, char *argv[])
 					break;
 				case GS_SETTINGS:
 					SDL_EnableKeyRepeat(1, SETTINGS_KEY_REPEAT_RATE);
-					settings_updateScreen();
 					while (GS_SETTINGS == gamestate)
 					{
+						settings_updateScreen();
 						settings_processInputEvents();
 					}
 					break;
@@ -1379,13 +1408,24 @@ void settings_updateScreen(void)
 	SDL_Surface *text = NULL;
 	SDL_Rect rect;
 	char buff[256];
+	int spacing = 2;
 
 	sprintf(buff, "SETTINGS");
 	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
 	rect.x = (screen->w - text->w) / 2;
-	rect.y = (screen->h - text->h) / 2;
+	rect.y = (screen->h) / 4;
 	SDL_BlitSurface(text, NULL, screen, &rect);
 	SDL_FreeSurface(text);
+
+	rect.y += text->h + spacing;
+	rect.x = (screen->w) / 6;
+	for (int i = 0; i < SL_END; ++i)
+	{
+		rect.y += text->h + spacing;
+		text = TTF_RenderUTF8_Blended(arcade_font, generateSettingLine(buff, i), col);
+		SDL_BlitSurface(text, NULL, screen, &rect);
+		SDL_FreeSurface(text);
+	}
 
 	flipScreenScaled();
 }
@@ -1402,27 +1442,99 @@ void settings_processInputEvents(void)
 				{
 					case SDLK_UP:
 					{
-						int vol = Mix_VolumeMusic(-1);
-						vol += 10;
-						Mix_VolumeMusic(vol);
+						selectPreviousSetting();
 					} break;
 					case SDLK_DOWN:
 					{
-						int vol = Mix_VolumeMusic(-1);
-						vol -= 10;
-						if (vol < 0)
-							vol = 0;
-						Mix_VolumeMusic(vol);
+						selectNextSetting();
 					} break;
 					case SDLK_LEFT:
 					{
-						selectPreviousTrack();
-						Mix_PlayMusic(music[current_track], 1);
+						switch (settings_pos)
+						{
+							case SL_TRACK_SELECT:
+							{
+								selectPreviousTrack();
+								Mix_PlayMusic(music[current_track], 1);
+							} break;
+							case SL_MUSIC_VOL:
+							{
+								int vol = Mix_VolumeMusic(-1);
+								vol -= 10;
+								if (vol < 0)
+									vol = 0;
+								Mix_VolumeMusic(vol);
+							} break;
+							case SL_MUSIC_REPEAT:
+							{
+								repeattrack = !repeattrack;
+							} break;
+							case SL_TETROMINO_COLOR:
+							{
+								randomcolors = !randomcolors;
+							} break;
+							case SL_DEBRIS_COLOR:
+							{
+								grayblocks = !grayblocks;
+							} break;
+							case SL_GHOST:
+							{
+								ghostoff = !ghostoff;
+							} break;
+							case SL_STATISTICS:
+							{
+								numericbars = !numericbars;
+							} break;
+							case SL_DEBUG:
+							{
+								debug = !debug;
+							} break;
+							default:
+								break;
+						}
 					} break;
 					case SDLK_RIGHT:
 					{
-						selectNextTrack();
-						Mix_PlayMusic(music[current_track], 1);
+						switch (settings_pos)
+						{
+							case SL_TRACK_SELECT:
+							{
+								selectNextTrack();
+								Mix_PlayMusic(music[current_track], 1);
+							} break;
+							case SL_MUSIC_VOL:
+							{
+								int vol = Mix_VolumeMusic(-1);
+								vol += 10;
+								Mix_VolumeMusic(vol);
+							} break;
+							case SL_MUSIC_REPEAT:
+							{
+								repeattrack = !repeattrack;
+							} break;
+							case SL_TETROMINO_COLOR:
+							{
+								randomcolors = !randomcolors;
+							} break;
+							case SL_DEBRIS_COLOR:
+							{
+								grayblocks = !grayblocks;
+							} break;
+							case SL_GHOST:
+							{
+								ghostoff = !ghostoff;
+							} break;
+							case SL_STATISTICS:
+							{
+								numericbars = !numericbars;
+							} break;
+							case SL_DEBUG:
+							{
+								debug = !debug;
+							} break;
+							default:
+								break;
+						}
 					} break;
 					case KEY_QUIT:
 					{
@@ -1439,4 +1551,62 @@ void settings_processInputEvents(void)
 				exit(0);
 				break;
 		}
+}
+
+char *generateSettingLine(char *buff, int pos)
+{
+	if (pos >= SL_END)
+		return NULL;
+	switch (pos)
+	{
+		case SL_TRACK_SELECT:
+		{
+			sprintf(buff, settings_text[pos], current_track + 1);
+		} break;
+		case SL_MUSIC_VOL:
+		{
+			sprintf(buff, settings_text[pos], Mix_VolumeMusic(-1));
+		} break;
+		case SL_MUSIC_REPEAT:
+		{
+			sprintf(buff, settings_text[pos], repeattrack ? "track once" : "all");
+		} break;
+		case SL_TETROMINO_COLOR:
+		{
+			sprintf(buff, settings_text[pos], randomcolors ? "random" : "piecewise");
+		} break;
+		case SL_DEBRIS_COLOR:
+		{
+			sprintf(buff, settings_text[pos], grayblocks ? "gray" : "original");
+		} break;
+		case SL_GHOST:
+		{
+			sprintf(buff, settings_text[pos], ghostoff ? "off" : "on");
+		} break;
+		case SL_STATISTICS:
+		{
+			sprintf(buff, settings_text[pos], numericbars ? "numbers" : "bars");
+		} break;
+		case SL_DEBUG:
+		{
+			sprintf(buff, settings_text[pos], debug ? "on" : "off");
+		} break;
+		default:
+			break;
+	}
+
+	if (pos == settings_pos)
+		buff[0] = '>';
+
+	return buff;
+}
+
+void selectNextSetting(void)
+{
+	settings_pos = (settings_pos + 1) % SL_END;
+}
+
+void selectPreviousSetting(void)
+{
+	settings_pos = (settings_pos + SL_END - 1) % SL_END;
 }
