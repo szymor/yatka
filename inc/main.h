@@ -41,8 +41,8 @@ enum Error
 
 enum GameState
 {
-	GS_PLAYING,
-	GS_MAINMENU,
+	GS_INGAME,
+	GS_SETTINGS,
 	GS_GAMEOVER,
 	GS_END
 };

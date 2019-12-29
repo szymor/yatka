@@ -4,7 +4,44 @@
 #include "main.h"
 #include "video.h"
 
+SDL_Surface *screen = NULL;
+SDL_Surface *screen_scaled = NULL;
+SDL_Surface *last_game_screen = NULL;
+int screenscale = 1;
 int fps;
+
+void saveLastGameScreen(void)
+{
+	if (last_game_screen)
+		SDL_FreeSurface(last_game_screen);
+
+	last_game_screen = SDL_CreateRGBSurface(SDL_SRCALPHA, SCREEN_WIDTH, SCREEN_HEIGHT, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	SDL_BlitSurface(screen, NULL, last_game_screen, NULL);
+}
+
+void flipScreenScaled(void)
+{
+	if (SDL_MUSTLOCK(screen_scaled))
+		SDL_LockSurface(screen_scaled);
+	switch (screenscale)
+	{
+		case 2:
+			upscale2(screen_scaled->pixels, screen->pixels);
+			break;
+		case 3:
+			upscale3(screen_scaled->pixels, screen->pixels);
+			break;
+		case 4:
+			upscale4(screen_scaled->pixels, screen->pixels);
+			break;
+		default:
+			break;
+	}
+	if (SDL_MUSTLOCK(screen_scaled))
+		SDL_UnlockSurface(screen_scaled);
+
+	SDL_Flip(screen_scaled);
+}
 
 bool screenFlagUpdate(bool v)
 {

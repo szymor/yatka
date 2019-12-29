@@ -13,22 +13,23 @@
 #include "video.h"
 #include "sound.h"
 
-#define BOARD_X_OFFSET		100
-#define BOARD_Y_OFFSET		0
-#define BOARD_WIDTH			10
-#define BOARD_HEIGHT		20
-#define FIG_DIM				4
-#define BLOCK_SIZE			12
-#define FIG_NUM				7		// including the active figure
+#define BOARD_X_OFFSET				100
+#define BOARD_Y_OFFSET				0
+#define BOARD_WIDTH					10
+#define BOARD_HEIGHT				20
+#define FIG_DIM						4
+#define BLOCK_SIZE					12
+#define FIG_NUM						7		// including the active figure
 
-#define BAR_WIDTH			26
-#define BAR_HEIGHT			8
+#define BAR_WIDTH					26
+#define BAR_HEIGHT					8
 
-#define MAX_SOFTDROP_PRESS	300
-#define KEY_REPEAT_RATE		130		// in ms
-#define FONT_SIZE			7
+#define MAX_SOFTDROP_PRESS			300
+#define INGAME_KEY_REPEAT_RATE		130
+#define SETTINGS_KEY_REPEAT_RATE	500
+#define FONT_SIZE					7
 
-#define MAX8BAGID			8
+#define MAX8BAGID					8
 
 enum FigureId
 {
@@ -62,10 +63,7 @@ struct Shape
 	int cx, cy;		// correction of position after CW rotation
 };
 
-SDL_Surface *screen = NULL;
-SDL_Surface *screen_scaled = NULL;
 SDL_Surface *bg = NULL;
-SDL_Surface *fg = NULL;
 
 // sprites for blocks
 SDL_Surface *gray = NULL;
@@ -84,15 +82,14 @@ bool randomcolors = false;
 bool holdoff = false;
 bool grayblocks = false;
 bool ghostoff = false;
-bool debugfps = false;
+bool debug = false;
 bool repeattrack = false;
 bool numericbars = false;
 
-int screenscale = 1;
 int startlevel = 0;
 int nextblocks = FIG_NUM - 1;
 enum RandomAlgo randomalgo = RA_8BAG;
-enum GameState gamestate = GS_PLAYING;
+enum GameState gamestate = GS_INGAME;
 bool hold_ready = true;
 
 int lines = 0, hiscore = 0, old_hiscore, score = 0, level = 0;
@@ -181,13 +178,18 @@ Uint32 getNextDropTime(void);
 void setDropRate(int level);
 void softDropTimeCounter(void);
 
-void displayBoard(void);
+void ingame_processInputEvents(void);
+void ingame_updateScreen(void);
+void settings_processInputEvents(void);
+void settings_updateScreen(void);
+void gameover_processInputEvents(void);
+void gameover_updateScreen(void);
+
 void dropSoft(void);
 void dropHard(void);
 void lockFigure(void);
 void holdFigure(void);
 void removeFullLines(void);
-void handleInput(void);
 bool checkGameEnd(void);
 void drawBars(void);
 void drawBar(int x, int y, int value);
@@ -225,8 +227,8 @@ int main(int argc, char *argv[])
 			numericbars = true;
 		else if (!strcmp(argv[i],"--repeattrack"))
 			repeattrack = true;
-		else if (!strcmp(argv[i],"--debugfps"))
-			debugfps = true;
+		else if (!strcmp(argv[i],"--debug"))
+			debug = true;
 		else if (!strcmp(argv[i],"--scale2x"))
 			screenscale = 2;
 		else if (!strcmp(argv[i],"--scale3x"))
@@ -274,20 +276,43 @@ int main(int argc, char *argv[])
 	markDrop();
 	while (1)
 	{
-		if (!frameLimiter() || debugfps)
-		{
-			handleInput();
-			displayBoard();
-			softDropTimeCounter();
-
-			if (SDL_GetTicks() > getNextDropTime())
+			switch (gamestate)
 			{
-				if (GS_PLAYING == gamestate)
-				{
-					dropSoft();
-				}
+				case GS_INGAME:
+					SDL_EnableKeyRepeat(1, INGAME_KEY_REPEAT_RATE);
+					while (GS_INGAME == gamestate)
+					{
+						if (!frameLimiter() || debug)
+						{
+							ingame_processInputEvents();
+							ingame_updateScreen();
+							softDropTimeCounter();
+
+							if (SDL_GetTicks() > getNextDropTime())
+							{
+									dropSoft();
+							}
+						}
+					}
+					saveLastGameScreen();
+					break;
+				case GS_SETTINGS:
+					SDL_EnableKeyRepeat(1, SETTINGS_KEY_REPEAT_RATE);
+					settings_updateScreen();
+					while (GS_SETTINGS == gamestate)
+					{
+						settings_processInputEvents();
+					}
+					break;
+				case GS_GAMEOVER:
+					SDL_EnableKeyRepeat(1, SETTINGS_KEY_REPEAT_RATE);
+					gameover_updateScreen();
+					while (GS_GAMEOVER == gamestate)
+					{
+						gameover_processInputEvents();
+					}
+					break;
 			}
-		}
 	}
 	return 0;
 }
@@ -427,7 +452,6 @@ void initialize(void)
 		Mix_HookMusicFinished(trackFinished);
 		Mix_VolumeMusic(MIX_MAX_VOLUME / 2);
 	}
-	SDL_EnableKeyRepeat(1, KEY_REPEAT_RATE);
 
 	board = malloc(sizeof(int)*BOARD_WIDTH*BOARD_HEIGHT);
 	for (int i = 0; i < (BOARD_WIDTH*BOARD_HEIGHT); ++i)
@@ -548,9 +572,9 @@ void drawFigure(const struct Figure *fig, int x, int y, bool screendim, bool gho
 	}
 }
 
-void displayBoard(void)
+void ingame_updateScreen(void)
 {
-	if (!screenFlagUpdate(false) && !debugfps)
+	if (!screenFlagUpdate(false) && !debug)
 		return;
 
 	SDL_Rect rect;
@@ -585,8 +609,7 @@ void displayBoard(void)
 	}
 
 	// display the active figure
-	if (GS_GAMEOVER != gamestate)
-		drawFigure(figures[0], f_x, f_y, false, false);
+	drawFigure(figures[0], f_x, f_y, false, false);
 
 	// display the ghost figure
 	if (figures[0] != NULL && !ghostoff)
@@ -601,34 +624,7 @@ void displayBoard(void)
 		f_y = tfy;
 	}
 
-	if(GS_PLAYING != gamestate)
-	{
-		mask = SDL_CreateRGBSurface(SDL_SRCALPHA, SCREEN_WIDTH, SCREEN_HEIGHT, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
-		SDL_FillRect(mask, NULL, SDL_MapRGBA(mask->format,0,0,0,128));
-		SDL_BlitSurface(mask, NULL, screen, NULL);
-		SDL_FreeSurface(mask);
-	}
-
-	if (SDL_MUSTLOCK(screen_scaled))
-		SDL_LockSurface(screen_scaled);
-	switch (screenscale)
-	{
-		case 2:
-			upscale2(screen_scaled->pixels, screen->pixels);
-			break;
-		case 3:
-			upscale3(screen_scaled->pixels, screen->pixels);
-			break;
-		case 4:
-			upscale4(screen_scaled->pixels, screen->pixels);
-			break;
-		default:
-			break;
-	}
-	if (SDL_MUSTLOCK(screen_scaled))
-		SDL_UnlockSurface(screen_scaled);
-
-	SDL_Flip(screen_scaled);
+	flipScreenScaled();
 	frameCounter();
 }
 
@@ -737,7 +733,7 @@ void drawStatus(int x, int y)
 	SDL_BlitSurface(text, NULL, screen, &rect);
 	SDL_FreeSurface(text);
 
-	if (debugfps)
+	if (debug)
 	{
 		rect.y += FONT_SIZE;
 		sprintf(buff, "FPS: %d", fps);
@@ -899,11 +895,10 @@ void removeFullLines(void)
 		onLineClear(removed_lines);
 }
 
-void handleInput(void)
+void ingame_processInputEvents(void)
 {
 	static bool rotatecw_key_state = false;
 	static bool rotateccw_key_state = false;
-	static bool pause_key_state = false;
 	static bool softdrop_key_state = false;
 	static bool harddrop_key_state = false;
 	static bool hold_key_state = false;
@@ -922,9 +917,6 @@ void handleInput(void)
 						break;
 					case KEY_ROTATE_CCW:
 						rotateccw_key_state = false;
-						break;
-					case KEY_PAUSE:
-						pause_key_state = false;
 						break;
 					case KEY_SOFTDROP:
 						softdrop_key_state = false;
@@ -952,62 +944,42 @@ void handleInput(void)
 						if (!rotatecw_key_state)
 						{
 							rotatecw_key_state = true;
-							if (GS_PLAYING == gamestate)
+							rotateFigureCW();
+							if (isFigureColliding())
 							{
-								rotateFigureCW();
+								++f_x;
 								if (isFigureColliding())
 								{
-									++f_x;
+									f_x -= 2;
 									if (isFigureColliding())
 									{
-										f_x -= 2;
-										if (isFigureColliding())
-										{
-											rotateFigureCCW();
-											++f_x;
-										}
+										rotateFigureCCW();
+										++f_x;
 									}
 								}
-								screenFlagUpdate(true);
 							}
-							if (GS_MAINMENU == gamestate)
-							{
-								int vol = Mix_VolumeMusic(-1);
-								vol += 10;
-								Mix_VolumeMusic(vol);
-							}
+							screenFlagUpdate(true);
 						}
 						break;
 					case KEY_ROTATE_CCW:
 						if (!rotateccw_key_state)
 						{
 							rotateccw_key_state = true;
-							if (GS_PLAYING == gamestate)
+							rotateFigureCCW();
+							if (isFigureColliding())
 							{
-								rotateFigureCCW();
+								++f_x;
 								if (isFigureColliding())
 								{
-									++f_x;
+									f_x -= 2;
 									if (isFigureColliding())
 									{
-										f_x -= 2;
-										if (isFigureColliding())
-										{
-											rotateFigureCW();
-											++f_x;
-										}
+										rotateFigureCW();
+										++f_x;
 									}
 								}
-								screenFlagUpdate(true);
 							}
-							if(GS_MAINMENU == gamestate)
-							{
-								int vol = Mix_VolumeMusic(-1);
-								vol -= 10;
-								if (vol < 0)
-									vol = 0;
-								Mix_VolumeMusic(vol);
-							}
+							screenFlagUpdate(true);
 						}
 						break;
 					case KEY_SOFTDROP:
@@ -1021,7 +993,7 @@ void handleInput(void)
 						if (!harddrop_key_state)
 						{
 							harddrop_key_state = true;
-							if (GS_PLAYING == gamestate)
+							if (GS_INGAME == gamestate)
 							{
 								dropHard();
 							}
@@ -1031,58 +1003,32 @@ void handleInput(void)
 						if (!hold_key_state)
 						{
 							hold_key_state = true;
-							if (GS_PLAYING == gamestate)
+							if (GS_INGAME == gamestate)
 							{
 								holdFigure();
 							}
 						}
 						break;
 					case KEY_LEFT:
-						if (GS_PLAYING == gamestate)
+						if (GS_INGAME == gamestate)
 						{
 							--f_x;
 							if (isFigureColliding())
 								++f_x;
 							screenFlagUpdate(true);
 						}
-						if (GS_MAINMENU == gamestate)
-						{
-							if (!left_key_state)
-							{
-								left_key_state = true;
-								selectPreviousTrack();
-								Mix_PlayMusic(music[current_track], 1);
-							}
-						}
 						break;
 					case KEY_RIGHT:
-						if (GS_PLAYING == gamestate)
+						if (GS_INGAME == gamestate)
 						{
 							++f_x;
 							if (isFigureColliding())
 								--f_x;
 							screenFlagUpdate(true);
 						}
-						if (GS_MAINMENU == gamestate)
-						{
-							if (!right_key_state)
-							{
-								right_key_state = true;
-								selectNextTrack();
-								Mix_PlayMusic(music[current_track], 1);
-							}
-						}
 						break;
 					case KEY_PAUSE:
-						if (!pause_key_state)
-						{
-							pause_key_state = true;
-							if (GS_PLAYING == gamestate)
-								gamestate = GS_MAINMENU;
-							else if (GS_MAINMENU == gamestate)
-								gamestate = GS_PLAYING;
-							screenFlagUpdate(true);
-						}
+						gamestate = GS_SETTINGS;
 						break;
 					case KEY_QUIT:
 						{
@@ -1367,4 +1313,130 @@ void rotateFigureCCW(void)
 	rotateFigureCW();
 	rotateFigureCW();
 	rotateFigureCW();
+}
+
+void gameover_updateScreen(void)
+{
+	SDL_Surface *mask = NULL;
+
+	SDL_BlitSurface(last_game_screen, NULL, screen, NULL);
+	mask = SDL_CreateRGBSurface(SDL_SRCALPHA, SCREEN_WIDTH, SCREEN_HEIGHT, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	SDL_FillRect(mask, NULL, SDL_MapRGBA(mask->format,0,0,0,128));
+	SDL_BlitSurface(mask, NULL, screen, NULL);
+	SDL_FreeSurface(mask);
+
+	SDL_Color col = {.r = 255, .g = 255, .b = 255};
+	SDL_Surface *text = NULL;
+	SDL_Rect rect;
+	char buff[256];
+
+	sprintf(buff, "GAME OVER");
+	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
+	rect.x = (screen->w - text->w) / 2;
+	rect.y = (screen->h - text->h) / 2;
+	SDL_BlitSurface(text, NULL, screen, &rect);
+	SDL_FreeSurface(text);
+
+	flipScreenScaled();
+}
+
+void gameover_processInputEvents(void)
+{
+	SDL_Event event;
+
+	if (SDL_WaitEvent(&event))
+		switch (event.type)
+		{
+			case SDL_KEYDOWN:
+				switch (event.key.keysym.sym)
+				{
+					case KEY_QUIT:
+						{
+							SDL_Event ev;
+							ev.type = SDL_QUIT;
+							SDL_PushEvent(&ev);
+						}
+						break;
+				}
+				break;
+			case SDL_QUIT:
+				exit(0);
+				break;
+		}
+}
+
+void settings_updateScreen(void)
+{
+	SDL_Surface *mask = NULL;
+
+	SDL_BlitSurface(last_game_screen, NULL, screen, NULL);
+	mask = SDL_CreateRGBSurface(SDL_SRCALPHA, SCREEN_WIDTH, SCREEN_HEIGHT, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	SDL_FillRect(mask, NULL, SDL_MapRGBA(mask->format,0,0,0,128));
+	SDL_BlitSurface(mask, NULL, screen, NULL);
+	SDL_FreeSurface(mask);
+
+	SDL_Color col = {.r = 255, .g = 255, .b = 255};
+	SDL_Surface *text = NULL;
+	SDL_Rect rect;
+	char buff[256];
+
+	sprintf(buff, "SETTINGS");
+	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
+	rect.x = (screen->w - text->w) / 2;
+	rect.y = (screen->h - text->h) / 2;
+	SDL_BlitSurface(text, NULL, screen, &rect);
+	SDL_FreeSurface(text);
+
+	flipScreenScaled();
+}
+
+void settings_processInputEvents(void)
+{
+	SDL_Event event;
+
+	if (SDL_WaitEvent(&event))
+		switch (event.type)
+		{
+			case SDL_KEYDOWN:
+				switch (event.key.keysym.sym)
+				{
+					case SDLK_UP:
+					{
+						int vol = Mix_VolumeMusic(-1);
+						vol += 10;
+						Mix_VolumeMusic(vol);
+					} break;
+					case SDLK_DOWN:
+					{
+						int vol = Mix_VolumeMusic(-1);
+						vol -= 10;
+						if (vol < 0)
+							vol = 0;
+						Mix_VolumeMusic(vol);
+					} break;
+					case SDLK_LEFT:
+					{
+						selectPreviousTrack();
+						Mix_PlayMusic(music[current_track], 1);
+					} break;
+					case SDLK_RIGHT:
+					{
+						selectNextTrack();
+						Mix_PlayMusic(music[current_track], 1);
+					} break;
+					case KEY_QUIT:
+					{
+						SDL_Event ev;
+						ev.type = SDL_QUIT;
+						SDL_PushEvent(&ev);
+					} break;
+					case KEY_PAUSE:
+						gamestate = GS_INGAME;
+						break;
+				}
+				break;
+			case SDL_QUIT:
+				exit(0);
+				break;
+		}
 }
