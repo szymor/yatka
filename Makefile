@@ -6,13 +6,13 @@ SRC = src/main.c src/hiscore.c src/video.c src/sound.c \
 OBJ = $(SRC:.c=.o)
 DEP = $(SRC:.c=.d)
 CFLAGS = -Iinc
-LFLAGS = -s
+LDFLAGS = -s $(shell pkg-config --libs sdl SDL_image SDL_ttf SDL_mixer)
 CC = gcc
 
 all: $(PROJECT)
 
 $(PROJECT): $(OBJ)
-	$(CC) $(LFLAGS) -o $(PROJECT) $(OBJ) -lSDL -lSDL_image -lSDL_ttf -lSDL_mixer
+	$(CC) -o $(PROJECT) $(OBJ) $(LDFLAGS)
 
 src/%.o: src/%.c
 	$(CC) $(CFLAGS) -c -o $@ $<
