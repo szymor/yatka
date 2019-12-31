@@ -1,5 +1,6 @@
 
 #include <SDL/SDL.h>
+#include <SDL/SDL_ttf.h>
 
 #include "main.h"
 #include "video.h"
@@ -7,6 +8,7 @@
 SDL_Surface *screen = NULL;
 SDL_Surface *screen_scaled = NULL;
 SDL_Surface *last_game_screen = NULL;
+TTF_Font *arcade_font = NULL;
 int screenscale = 1;
 int fps;
 

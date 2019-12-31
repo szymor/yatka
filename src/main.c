@@ -12,6 +12,9 @@
 #include "hiscore.h"
 #include "video.h"
 #include "sound.h"
+#include "state_gameover.h"
+#include "state_settings.h"
+#include "randomizer.h"
 
 #define BOARD_X_OFFSET				100
 #define BOARD_Y_OFFSET				0
@@ -28,28 +31,6 @@
 #define INGAME_KEY_REPEAT_RATE		130
 #define SETTINGS_KEY_REPEAT_RATE	500
 #define FONT_SIZE					7
-
-#define MAX8BAGID					8
-
-enum FigureId
-{
-	FIGID_I,
-	FIGID_O,
-	FIGID_T,
-	FIGID_S,
-	FIGID_Z,
-	FIGID_J,
-	FIGID_L,
-	FIGID_END
-};
-
-enum RandomAlgo
-{
-	RA_NAIVE,
-	RA_7BAG,
-	RA_8BAG,
-	RA_END
-};
 
 struct Figure
 {
@@ -69,8 +50,6 @@ SDL_Surface *bg = NULL;
 SDL_Surface *gray = NULL;
 SDL_Surface *colors[FIGID_END];
 
-TTF_Font *arcade_font = NULL;
-
 enum FigureId *board = NULL;
 struct Figure *figures[FIG_NUM];
 int f_x, f_y;			// coordinates of the active figure
@@ -88,7 +67,6 @@ bool numericbars = false;
 
 int startlevel = 0;
 int nextblocks = FIG_NUM - 1;
-enum RandomAlgo randomalgo = RA_8BAG;
 enum GameState gamestate = GS_INGAME;
 bool hold_ready = true;
 
@@ -170,37 +148,8 @@ const struct Shape shape_T =
 	.cy = 1
 };
 
-enum SettingsLine
-{
-	SL_TRACK_SELECT,
-	SL_MUSIC_VOL,
-	SL_MUSIC_REPEAT,
-	SL_TETROMINO_COLOR,
-	SL_DEBRIS_COLOR,
-	SL_GHOST,
-	SL_STATISTICS,
-	SL_DEBUG,
-	SL_END
-};
-
-int settings_pos = 0;
-const char settings_text[][32] = {
-	"  track selection     %d",
-	"  music volume        %d",
-	"  repeat mode         %s",
-	"  tetromino color     %s",
-	"  debris color        %s",
-	"  ghost               %s",
-	"  statistics mode     %s",
-	"  debug mode          %s"
-};
-
 void initialize(void);
 void finalize(void);
-
-char *generateSettingLine(char *buff, int pos);
-void selectNextSetting(void);
-void selectPreviousSetting(void);
 
 void markDrop(void);
 Uint32 getNextDropTime(void);
@@ -209,10 +158,6 @@ void softDropTimeCounter(void);
 
 void ingame_processInputEvents(void);
 void ingame_updateScreen(void);
-void settings_processInputEvents(void);
-void settings_updateScreen(void);
-void gameover_processInputEvents(void);
-void gameover_updateScreen(void);
 
 void dropSoft(void);
 void dropHard(void);
@@ -233,10 +178,6 @@ void drawFigure(const struct Figure *fig, int x, int y, bool screendim, bool gho
 void spawnFigure(void);
 struct Figure *getNextFigure(void);
 const struct Shape* getShape(enum FigureId id);
-enum FigureId getNextId(void);
-enum FigureId getRandomId(void);
-enum FigureId getRandom7BagId(void);
-enum FigureId getRandom8BagId(void);
 enum FigureId getNextColor(enum FigureId id);
 enum FigureId getRandomColor(void);
 void getShapeDimensions(const struct Shape *shape, int *minx, int *maxx, int *miny, int *maxy);
@@ -1132,77 +1073,6 @@ const struct Shape* getShape(enum FigureId id)
 	}
 }
 
-enum FigureId getNextId(void)
-{
-	switch (randomalgo)
-	{
-		case RA_NAIVE:
-			return getRandomId();
-		case RA_7BAG:
-			return getRandom7BagId();
-		case RA_8BAG:
-			return getRandom8BagId();
-		default:
-			// should never happen
-			return FIGID_I;
-	}
-}
-
-enum FigureId getRandomId(void)
-{
-	return rand() % FIGID_END;
-}
-
-enum FigureId getRandom7BagId(void)
-{
-	static enum FigureId tab[FIGID_END];
-	static int pos = FIGID_END;
-
-	if (pos >= FIGID_END)
-	{
-		pos = 0;
-		for (int i = 0; i < FIGID_END; ++i)
-			tab[i] = i;
-
-		for (int i = 0; i < 1000; ++i)
-		{
-			int one = rand() % FIGID_END;
-			int two = rand() % FIGID_END;
-			int temp = tab[one];
-			tab[one] = tab[two];
-			tab[two] = temp;
-		}
-	}
-
-	return tab[pos++];
-}
-
-enum FigureId getRandom8BagId(void)
-{
-	static enum FigureId tab[MAX8BAGID];
-	static int pos = MAX8BAGID;
-
-	if (pos >= MAX8BAGID)
-	{
-		pos = 0;
-		for (int i = 0; i < FIGID_END; ++i)
-			tab[i] = i;
-		for (int i = FIGID_END; i < MAX8BAGID; ++i)
-			tab[i] = rand() % FIGID_END;
-
-		for (int i = 0; i < 1000; ++i)
-		{
-			int one = rand() % MAX8BAGID;
-			int two = rand() % MAX8BAGID;
-			int temp = tab[one];
-			tab[one] = tab[two];
-			tab[two] = temp;
-		}
-	}
-
-	return tab[pos++];
-}
-
 enum FigureId getNextColor(enum FigureId id)
 {
 	if (randomcolors)
@@ -1342,271 +1212,4 @@ void rotateFigureCCW(void)
 	rotateFigureCW();
 	rotateFigureCW();
 	rotateFigureCW();
-}
-
-void gameover_updateScreen(void)
-{
-	SDL_Surface *mask = NULL;
-
-	SDL_BlitSurface(last_game_screen, NULL, screen, NULL);
-	mask = SDL_CreateRGBSurface(SDL_SRCALPHA, SCREEN_WIDTH, SCREEN_HEIGHT, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
-	SDL_FillRect(mask, NULL, SDL_MapRGBA(mask->format,0,0,0,128));
-	SDL_BlitSurface(mask, NULL, screen, NULL);
-	SDL_FreeSurface(mask);
-
-	SDL_Color col = {.r = 255, .g = 255, .b = 255};
-	SDL_Surface *text = NULL;
-	SDL_Rect rect;
-	char buff[256];
-
-	sprintf(buff, "GAME OVER");
-	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
-	rect.x = (screen->w - text->w) / 2;
-	rect.y = (screen->h - text->h) / 2;
-	SDL_BlitSurface(text, NULL, screen, &rect);
-	SDL_FreeSurface(text);
-
-	flipScreenScaled();
-}
-
-void gameover_processInputEvents(void)
-{
-	SDL_Event event;
-
-	if (SDL_WaitEvent(&event))
-		switch (event.type)
-		{
-			case SDL_KEYDOWN:
-				switch (event.key.keysym.sym)
-				{
-					case KEY_QUIT:
-						{
-							SDL_Event ev;
-							ev.type = SDL_QUIT;
-							SDL_PushEvent(&ev);
-						}
-						break;
-				}
-				break;
-			case SDL_QUIT:
-				exit(0);
-				break;
-		}
-}
-
-void settings_updateScreen(void)
-{
-	SDL_Surface *mask = NULL;
-
-	SDL_BlitSurface(last_game_screen, NULL, screen, NULL);
-	mask = SDL_CreateRGBSurface(SDL_SRCALPHA, SCREEN_WIDTH, SCREEN_HEIGHT, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
-	SDL_FillRect(mask, NULL, SDL_MapRGBA(mask->format,0,0,0,128));
-	SDL_BlitSurface(mask, NULL, screen, NULL);
-	SDL_FreeSurface(mask);
-
-	SDL_Color col = {.r = 255, .g = 255, .b = 255};
-	SDL_Surface *text = NULL;
-	SDL_Rect rect;
-	char buff[256];
-	int spacing = 2;
-
-	sprintf(buff, "SETTINGS");
-	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
-	rect.x = (screen->w - text->w) / 2;
-	rect.y = (screen->h) / 4;
-	SDL_BlitSurface(text, NULL, screen, &rect);
-	SDL_FreeSurface(text);
-
-	rect.y += text->h + spacing;
-	rect.x = (screen->w) / 6;
-	for (int i = 0; i < SL_END; ++i)
-	{
-		rect.y += text->h + spacing;
-		text = TTF_RenderUTF8_Blended(arcade_font, generateSettingLine(buff, i), col);
-		SDL_BlitSurface(text, NULL, screen, &rect);
-		SDL_FreeSurface(text);
-	}
-
-	flipScreenScaled();
-}
-
-void settings_processInputEvents(void)
-{
-	SDL_Event event;
-
-	if (SDL_WaitEvent(&event))
-		switch (event.type)
-		{
-			case SDL_KEYDOWN:
-				switch (event.key.keysym.sym)
-				{
-					case SDLK_UP:
-					{
-						selectPreviousSetting();
-					} break;
-					case SDLK_DOWN:
-					{
-						selectNextSetting();
-					} break;
-					case SDLK_LEFT:
-					{
-						switch (settings_pos)
-						{
-							case SL_TRACK_SELECT:
-							{
-								selectPreviousTrack();
-								Mix_PlayMusic(music[current_track], 1);
-							} break;
-							case SL_MUSIC_VOL:
-							{
-								int vol = Mix_VolumeMusic(-1);
-								vol -= 10;
-								if (vol < 0)
-									vol = 0;
-								Mix_VolumeMusic(vol);
-							} break;
-							case SL_MUSIC_REPEAT:
-							{
-								repeattrack = !repeattrack;
-							} break;
-							case SL_TETROMINO_COLOR:
-							{
-								randomcolors = !randomcolors;
-							} break;
-							case SL_DEBRIS_COLOR:
-							{
-								grayblocks = !grayblocks;
-							} break;
-							case SL_GHOST:
-							{
-								ghostoff = !ghostoff;
-							} break;
-							case SL_STATISTICS:
-							{
-								numericbars = !numericbars;
-							} break;
-							case SL_DEBUG:
-							{
-								debug = !debug;
-							} break;
-							default:
-								break;
-						}
-					} break;
-					case SDLK_RIGHT:
-					{
-						switch (settings_pos)
-						{
-							case SL_TRACK_SELECT:
-							{
-								selectNextTrack();
-								Mix_PlayMusic(music[current_track], 1);
-							} break;
-							case SL_MUSIC_VOL:
-							{
-								int vol = Mix_VolumeMusic(-1);
-								vol += 10;
-								Mix_VolumeMusic(vol);
-							} break;
-							case SL_MUSIC_REPEAT:
-							{
-								repeattrack = !repeattrack;
-							} break;
-							case SL_TETROMINO_COLOR:
-							{
-								randomcolors = !randomcolors;
-							} break;
-							case SL_DEBRIS_COLOR:
-							{
-								grayblocks = !grayblocks;
-							} break;
-							case SL_GHOST:
-							{
-								ghostoff = !ghostoff;
-							} break;
-							case SL_STATISTICS:
-							{
-								numericbars = !numericbars;
-							} break;
-							case SL_DEBUG:
-							{
-								debug = !debug;
-							} break;
-							default:
-								break;
-						}
-					} break;
-					case KEY_QUIT:
-					{
-						SDL_Event ev;
-						ev.type = SDL_QUIT;
-						SDL_PushEvent(&ev);
-					} break;
-					case KEY_PAUSE:
-						gamestate = GS_INGAME;
-						break;
-				}
-				break;
-			case SDL_QUIT:
-				exit(0);
-				break;
-		}
-}
-
-char *generateSettingLine(char *buff, int pos)
-{
-	if (pos >= SL_END)
-		return NULL;
-	switch (pos)
-	{
-		case SL_TRACK_SELECT:
-		{
-			sprintf(buff, settings_text[pos], current_track + 1);
-		} break;
-		case SL_MUSIC_VOL:
-		{
-			sprintf(buff, settings_text[pos], Mix_VolumeMusic(-1));
-		} break;
-		case SL_MUSIC_REPEAT:
-		{
-			sprintf(buff, settings_text[pos], repeattrack ? "track once" : "all");
-		} break;
-		case SL_TETROMINO_COLOR:
-		{
-			sprintf(buff, settings_text[pos], randomcolors ? "random" : "piecewise");
-		} break;
-		case SL_DEBRIS_COLOR:
-		{
-			sprintf(buff, settings_text[pos], grayblocks ? "gray" : "original");
-		} break;
-		case SL_GHOST:
-		{
-			sprintf(buff, settings_text[pos], ghostoff ? "off" : "on");
-		} break;
-		case SL_STATISTICS:
-		{
-			sprintf(buff, settings_text[pos], numericbars ? "numbers" : "bars");
-		} break;
-		case SL_DEBUG:
-		{
-			sprintf(buff, settings_text[pos], debug ? "on" : "off");
-		} break;
-		default:
-			break;
-	}
-
-	if (pos == settings_pos)
-		buff[0] = '>';
-
-	return buff;
-}
-
-void selectNextSetting(void)
-{
-	settings_pos = (settings_pos + 1) % SL_END;
-}
-
-void selectPreviousSetting(void)
-{
-	settings_pos = (settings_pos + SL_END - 1) % SL_END;
 }

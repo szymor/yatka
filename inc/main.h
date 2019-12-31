@@ -2,6 +2,7 @@
 #define _H_MAIN
 
 #include <stdbool.h>
+#include <SDL/SDL.h>
 
 #ifdef _BITTBOY
 #define KEY_LEFT			SDLK_LEFT
@@ -47,7 +48,27 @@ enum GameState
 	GS_END
 };
 
+enum FigureId
+{
+	FIGID_I,
+	FIGID_O,
+	FIGID_T,
+	FIGID_S,
+	FIGID_Z,
+	FIGID_J,
+	FIGID_L,
+	FIGID_END
+};
+
 extern enum GameState gamestate;
+
+extern bool nosound;
+extern bool randomcolors;
+extern bool holdoff;
+extern bool grayblocks;
+extern bool ghostoff;
+extern bool debug;
 extern bool repeattrack;
+extern bool numericbars;
 
 #endif
