@@ -11,3 +11,4 @@ libwebp-2.dll
 zlib1.dll
 *.o
 *.d
+*.d.*
