@@ -22,7 +22,6 @@
 #define BOARD_HEIGHT				20
 #define FIG_DIM						4
 #define BLOCK_SIZE					12
-#define FIG_NUM						7		// including the active figure
 
 #define BAR_WIDTH					26
 #define BAR_HEIGHT					8
@@ -66,7 +65,7 @@ bool repeattrack = false;
 bool numericbars = false;
 
 int startlevel = 0;
-int nextblocks = FIG_NUM - 1;
+int nextblocks = MAX_NEXTBLOCKS;
 enum GameState gamestate = GS_INGAME;
 bool hold_ready = true;
 
@@ -557,7 +556,7 @@ void ingame_updateScreen(void)
 	SDL_BlitSurface(bg, NULL, screen, &rect);
 
 	// display next figures
-	for (int i = 1; i < nextblocks + 1; ++i)
+	for (int i = 1; i <= nextblocks; ++i)
 	{
 		drawFigure(figures[i], 246, 22 + 30 * (i - 1), true, false);
 	}

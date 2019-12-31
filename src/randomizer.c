@@ -7,6 +7,16 @@ static enum FigureId getRandomId(void);
 static enum FigureId getRandom7BagId(void);
 static enum FigureId getRandom8BagId(void);
 
+void selectNextRandomizer(void)
+{
+	randomalgo = (randomalgo + 1) % RA_END;
+}
+
+void selectPreviousRandomizer(void)
+{
+	randomalgo = (randomalgo + RA_END - 1) % RA_END;
+}
+
 enum FigureId getNextId(void)
 {
 	switch (randomalgo)

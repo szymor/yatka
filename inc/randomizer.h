@@ -14,6 +14,8 @@ enum RandomAlgo
 };
 
 enum FigureId getNextId(void);
+void selectNextRandomizer(void);
+void selectPreviousRandomizer(void);
 
 extern enum RandomAlgo randomalgo;
 

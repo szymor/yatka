@@ -8,6 +8,7 @@
 #include "main.h"
 #include "video.h"
 #include "sound.h"
+#include "randomizer.h"
 
 enum SettingsLine
 {
@@ -18,25 +19,31 @@ enum SettingsLine
 	SL_DEBRIS_COLOR,
 	SL_GHOST,
 	SL_STATISTICS,
+	SL_NEXT_NUMBER,
+	SL_RANDOMIZER,
 	SL_DEBUG,
 	SL_END
 };
 
 static int settings_pos = 0;
 static const char settings_text[][32] = {
-	"  track selection     %d",
-	"  music volume        %d",
-	"  repeat mode         %s",
-	"  tetromino color     %s",
-	"  debris color        %s",
-	"  ghost               %s",
-	"  statistics mode     %s",
-	"  debug mode          %s"
+	"  track selection           %d",
+	"  music volume              %d",
+	"  repeat mode               %s",
+	"  tetromino color           %s",
+	"  debris color              %s",
+	"  ghost                     %s",
+	"  statistics mode           %s",
+	"  no of next tetrominoes    %d",
+	"  tetromino randomizer      %s",
+	"  debug mode                %s"
 };
 
 static char *generateSettingLine(char *buff, int pos);
 static void selectNextSetting(void);
 static void selectPreviousSetting(void);
+static void increaseNextBlocks(void);
+static void decreaseNextBlocks(void);
 
 void settings_updateScreen(void)
 {
@@ -62,7 +69,7 @@ void settings_updateScreen(void)
 	SDL_FreeSurface(text);
 
 	rect.y += text->h + spacing;
-	rect.x = (screen->w) / 6;
+	rect.x = (screen->w) / 10;
 	for (int i = 0; i < SL_END; ++i)
 	{
 		rect.y += text->h + spacing;
@@ -129,6 +136,14 @@ void settings_processInputEvents(void)
 							{
 								numericbars = !numericbars;
 							} break;
+							case SL_NEXT_NUMBER:
+							{
+								decreaseNextBlocks();
+							} break;
+							case SL_RANDOMIZER:
+							{
+								selectPreviousRandomizer();
+							} break;
 							case SL_DEBUG:
 							{
 								debug = !debug;
@@ -171,6 +186,14 @@ void settings_processInputEvents(void)
 							case SL_STATISTICS:
 							{
 								numericbars = !numericbars;
+							} break;
+							case SL_NEXT_NUMBER:
+							{
+								increaseNextBlocks();
+							} break;
+							case SL_RANDOMIZER:
+							{
+								selectNextRandomizer();
 							} break;
 							case SL_DEBUG:
 							{
@@ -231,6 +254,14 @@ static char *generateSettingLine(char *buff, int pos)
 		{
 			sprintf(buff, settings_text[pos], numericbars ? "numbers" : "bars");
 		} break;
+		case SL_NEXT_NUMBER:
+		{
+			sprintf(buff, settings_text[pos], nextblocks);
+		} break;
+		case SL_RANDOMIZER:
+		{
+			sprintf(buff, settings_text[pos], RA_NAIVE == randomalgo ? "naive" : (RA_7BAG == randomalgo ? "7bag" : "8bag"));
+		} break;
 		case SL_DEBUG:
 		{
 			sprintf(buff, settings_text[pos], debug ? "on" : "off");
@@ -255,3 +286,16 @@ static void selectPreviousSetting(void)
 	settings_pos = (settings_pos + SL_END - 1) % SL_END;
 }
 
+static void increaseNextBlocks(void)
+{
+	++nextblocks;
+	if (nextblocks > MAX_NEXTBLOCKS)
+		nextblocks = MAX_NEXTBLOCKS;
+}
+
+static void decreaseNextBlocks(void)
+{
+	--nextblocks;
+	if (nextblocks < 0)
+		nextblocks = 0;
+}
