@@ -70,6 +70,8 @@ enum GameState gamestate = GS_INGAME;
 bool hold_ready = true;
 
 int lines = 0, hiscore = 0, old_hiscore, score = 0, level = 0;
+int cleared_count = 0;
+int tetris_count = 0;
 
 double drop_rate = 2.00;
 const double drop_rate_ratio_per_level = 1.20;
@@ -684,6 +686,17 @@ void drawStatus(int x, int y)
 	SDL_BlitSurface(text, NULL, screen, &rect);
 	SDL_FreeSurface(text);
 
+	rect.y += FONT_SIZE;
+	int ttr;
+	if (cleared_count)
+		ttr = 4 * tetris_count * 100 / cleared_count;
+	else
+		ttr = 0;
+	sprintf(buff, "Tetris: %d%%", ttr);
+	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
+	SDL_BlitSurface(text, NULL, screen, &rect);
+	SDL_FreeSurface(text);
+
 	if (debug)
 	{
 		rect.y += FONT_SIZE;
@@ -717,6 +730,8 @@ void onCollide(void)
 
 void onLineClear(int removed)
 {
+	cleared_count += removed;
+
 	switch (removed)
 	{
 		case 1:
@@ -730,6 +745,7 @@ void onLineClear(int removed)
 			break;
 		case 4:
 			score += 800;
+			++tetris_count;
 			break;
 	}
 	if (score > hiscore)
