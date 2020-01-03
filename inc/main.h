@@ -74,6 +74,7 @@ extern bool debug;
 extern bool repeattrack;
 extern bool numericbars;
 
+extern int startlevel;
 extern int nextblocks;
 
 #endif

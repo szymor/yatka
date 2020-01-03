@@ -1,7 +1,7 @@
 .PHONY: all clean
 
 PROJECT = yatka
-SRC = src/main.c src/hiscore.c src/video.c src/sound.c \
+SRC = src/main.c src/data_persistence.c src/video.c src/sound.c \
 	src/state_gameover.c src/state_settings.c src/randomizer.c
 OBJ = $(SRC:.c=.o)
 DEP = $(SRC:.c=.d)

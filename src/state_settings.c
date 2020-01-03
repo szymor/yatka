@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <stdbool.h>
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_mixer.h>
@@ -25,6 +26,7 @@ enum SettingsLine
 	SL_END
 };
 
+bool settings_changed = false;
 static int settings_pos = 0;
 static const char settings_text[][32] = {
 	"  track selection           %d",
@@ -119,34 +121,42 @@ void settings_processInputEvents(void)
 							case SL_MUSIC_REPEAT:
 							{
 								repeattrack = !repeattrack;
+								settings_changed = true;
 							} break;
 							case SL_TETROMINO_COLOR:
 							{
 								randomcolors = !randomcolors;
+								settings_changed = true;
 							} break;
 							case SL_DEBRIS_COLOR:
 							{
 								grayblocks = !grayblocks;
+								settings_changed = true;
 							} break;
 							case SL_GHOST:
 							{
 								ghostoff = !ghostoff;
+								settings_changed = true;
 							} break;
 							case SL_STATISTICS:
 							{
 								numericbars = !numericbars;
+								settings_changed = true;
 							} break;
 							case SL_NEXT_NUMBER:
 							{
 								decreaseNextBlocks();
+								settings_changed = true;
 							} break;
 							case SL_RANDOMIZER:
 							{
 								selectPreviousRandomizer();
+								settings_changed = true;
 							} break;
 							case SL_DEBUG:
 							{
 								debug = !debug;
+								settings_changed = true;
 							} break;
 							default:
 								break;
@@ -170,34 +180,42 @@ void settings_processInputEvents(void)
 							case SL_MUSIC_REPEAT:
 							{
 								repeattrack = !repeattrack;
+								settings_changed = true;
 							} break;
 							case SL_TETROMINO_COLOR:
 							{
 								randomcolors = !randomcolors;
+								settings_changed = true;
 							} break;
 							case SL_DEBRIS_COLOR:
 							{
 								grayblocks = !grayblocks;
+								settings_changed = true;
 							} break;
 							case SL_GHOST:
 							{
 								ghostoff = !ghostoff;
+								settings_changed = true;
 							} break;
 							case SL_STATISTICS:
 							{
 								numericbars = !numericbars;
+								settings_changed = true;
 							} break;
 							case SL_NEXT_NUMBER:
 							{
 								increaseNextBlocks();
+								settings_changed = true;
 							} break;
 							case SL_RANDOMIZER:
 							{
 								selectNextRandomizer();
+								settings_changed = true;
 							} break;
 							case SL_DEBUG:
 							{
 								debug = !debug;
+								settings_changed = true;
 							} break;
 							default:
 								break;
@@ -260,7 +278,7 @@ static char *generateSettingLine(char *buff, int pos)
 		} break;
 		case SL_RANDOMIZER:
 		{
-			sprintf(buff, settings_text[pos], RA_NAIVE == randomalgo ? "naive" : (RA_7BAG == randomalgo ? "7bag" : "8bag"));
+			sprintf(buff, settings_text[pos], getRandomizerString());
 		} break;
 		case SL_DEBUG:
 		{

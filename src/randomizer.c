@@ -7,6 +7,12 @@ static enum FigureId getRandomId(void);
 static enum FigureId getRandom7BagId(void);
 static enum FigureId getRandom8BagId(void);
 
+static char *rng_strings[] = {
+	"naive",
+	"7bag",
+	"8bag"
+};
+
 void selectNextRandomizer(void)
 {
 	randomalgo = (randomalgo + 1) % RA_END;
@@ -86,4 +92,9 @@ static enum FigureId getRandom8BagId(void)
 	}
 
 	return tab[pos++];
+}
+
+char *getRandomizerString(void)
+{
+	return rng_strings[randomalgo];
 }

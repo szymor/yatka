@@ -2,6 +2,7 @@ bak/
 yatka
 yatka.exe
 hiscore.dat
+settings.txt
 SDL.dll
 SDL_image.dll
 libjpeg-8.dll

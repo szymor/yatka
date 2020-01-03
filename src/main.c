@@ -9,7 +9,7 @@
 #include <SDL/SDL_mixer.h>
 
 #include "main.h"
-#include "hiscore.h"
+#include "data_persistence.h"
 #include "video.h"
 #include "sound.h"
 #include "state_gameover.h"
@@ -186,6 +186,8 @@ void rotateFigureCCW(void);
 
 int main(int argc, char *argv[])
 {
+	loadSettings();
+
 	for (int i = 1; i < argc; ++i)
 	{
 		if (!strcmp(argv[i],"--nosound"))
@@ -395,31 +397,7 @@ void initialize(void)
 
 	if (!nosound)
 	{
-		int mixflags = MIX_INIT_OGG;
-		if (Mix_Init(mixflags) != mixflags)
-			exit(ERROR_MIXINIT);
-		if (Mix_OpenAudio(11025, MIX_DEFAULT_FORMAT, 1, 1024) < 0)
-			exit(ERROR_OPENAUDIO);
-		music[0] = Mix_LoadMUS("sfx/korobeyniki.ogg");
-		if (!music[0])
-			exit(ERROR_NOSNDFILE);
-		music[1] = Mix_LoadMUS("sfx/bradinsky.ogg");
-		if (!music[1])
-			exit(ERROR_NOSNDFILE);
-		music[2] = Mix_LoadMUS("sfx/kalinka.ogg");
-		if (!music[2])
-			exit(ERROR_NOSNDFILE);
-		music[3] = Mix_LoadMUS("sfx/troika.ogg");
-		if (!music[3])
-			exit(ERROR_NOSNDFILE);
-		hit = Mix_LoadWAV("sfx/hit.ogg");
-		if (!hit)
-			exit(ERROR_NOSNDFILE);
-
-		current_track = 0;
-		Mix_FadeInMusic(music[current_track], 1, MUSIC_FADE_TIME);
-		Mix_HookMusicFinished(trackFinished);
-		Mix_VolumeMusic(MIX_MAX_VOLUME / 2);
+		initSound();
 	}
 
 	board = malloc(sizeof(int)*BOARD_WIDTH*BOARD_HEIGHT);
@@ -436,11 +414,13 @@ void finalize(void)
 {
 	if (hiscore > old_hiscore)
 		saveHiscore(hiscore);
+	if (settings_changed)
+		saveSettings();
 
 	TTF_CloseFont(arcade_font);
 	TTF_Quit();
 	if (!nosound)
-		Mix_Quit();
+		deinitSound();
 	SDL_Quit();
 	if(board != NULL)
 		free(board);
@@ -464,6 +444,8 @@ Uint32 getNextDropTime(void)
 
 void setDropRate(int level)
 {
+	if (level < 0)
+		return;
 	while (level--)
 		drop_rate *= drop_rate_ratio_per_level;
 }
@@ -979,22 +961,16 @@ void ingame_processInputEvents(void)
 						}
 						break;
 					case KEY_LEFT:
-						if (GS_INGAME == gamestate)
-						{
 							--f_x;
 							if (isFigureColliding())
 								++f_x;
 							screenFlagUpdate(true);
-						}
 						break;
 					case KEY_RIGHT:
-						if (GS_INGAME == gamestate)
-						{
 							++f_x;
 							if (isFigureColliding())
 								--f_x;
 							screenFlagUpdate(true);
-						}
 						break;
 					case KEY_PAUSE:
 						gamestate = GS_SETTINGS;
