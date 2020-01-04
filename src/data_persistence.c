@@ -47,6 +47,8 @@ void loadSettings(void)
 			nosound = true;
 		else if (!strcmp(buff, "randomcolors"))
 			randomcolors = true;
+		else if (!strcmp(buff, "easyspin"))
+			easyspin = true;
 		else if (!strcmp(buff, "numericbars"))
 			numericbars = true;
 		else if (!strcmp(buff, "repeattrack"))
@@ -95,25 +97,27 @@ void saveSettings(void)
 	if (nosound)
 		fprintf(settingsFile, "nosound\n");
 	if (randomcolors)
-		fprintf(settingsFile, "randomcolors\n");;
+		fprintf(settingsFile, "randomcolors\n");
+	if (easyspin)
+		fprintf(settingsFile, "easyspin\n");
 	if (numericbars)
-		fprintf(settingsFile, "numericbars\n");;
+		fprintf(settingsFile, "numericbars\n");
 	if (repeattrack)
-		fprintf(settingsFile, "repeattrack\n");;
+		fprintf(settingsFile, "repeattrack\n");
 	if (2 == screenscale)
-		fprintf(settingsFile, "scale2x\n");;
+		fprintf(settingsFile, "scale2x\n");
 	if (3 == screenscale)
-		fprintf(settingsFile, "scale3x\n");;
+		fprintf(settingsFile, "scale3x\n");
 	if (4 == screenscale)
-		fprintf(settingsFile, "scale4x\n");;
+		fprintf(settingsFile, "scale4x\n");
 	if (holdoff)
-		fprintf(settingsFile, "holdoff\n");;
+		fprintf(settingsFile, "holdoff\n");
 	if (grayblocks)
-		fprintf(settingsFile, "grayblocks\n");;
+		fprintf(settingsFile, "grayblocks\n");
 	if (ghostoff)
-		fprintf(settingsFile, "ghostoff\n");;
+		fprintf(settingsFile, "ghostoff\n");
 	if (debug)
-		fprintf(settingsFile, "debug\n");;
+		fprintf(settingsFile, "debug\n");
 	fprintf(settingsFile, "startlevel %d\n", startlevel);
 	fprintf(settingsFile, "nextblocks %d\n", nextblocks);
 	fprintf(settingsFile, "rng %s\n", getRandomizerString());

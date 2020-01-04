@@ -18,6 +18,7 @@ enum SettingsLine
 	SL_MUSIC_REPEAT,
 	SL_TETROMINO_COLOR,
 	SL_DEBRIS_COLOR,
+	SL_EASYSPIN,
 	SL_GHOST,
 	SL_STATISTICS,
 	SL_NEXT_NUMBER,
@@ -34,6 +35,7 @@ static const char settings_text[][32] = {
 	"  repeat mode               %s",
 	"  tetromino color           %s",
 	"  debris color              %s",
+	"  easy spin                 %s",
 	"  ghost                     %s",
 	"  statistics mode           %s",
 	"  no of next tetrominoes    %d",
@@ -133,6 +135,11 @@ void settings_processInputEvents(void)
 								grayblocks = !grayblocks;
 								settings_changed = true;
 							} break;
+							case SL_EASYSPIN:
+							{
+								easyspin = !easyspin;
+								settings_changed = true;
+							} break;
 							case SL_GHOST:
 							{
 								ghostoff = !ghostoff;
@@ -190,6 +197,11 @@ void settings_processInputEvents(void)
 							case SL_DEBRIS_COLOR:
 							{
 								grayblocks = !grayblocks;
+								settings_changed = true;
+							} break;
+							case SL_EASYSPIN:
+							{
+								easyspin = !easyspin;
 								settings_changed = true;
 							} break;
 							case SL_GHOST:
@@ -263,6 +275,10 @@ static char *generateSettingLine(char *buff, int pos)
 		case SL_DEBRIS_COLOR:
 		{
 			sprintf(buff, settings_text[pos], grayblocks ? "gray" : "original");
+		} break;
+		case SL_EASYSPIN:
+		{
+			sprintf(buff, settings_text[pos], easyspin ? "on" : "off");
 		} break;
 		case SL_GHOST:
 		{

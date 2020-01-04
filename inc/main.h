@@ -73,6 +73,7 @@ extern bool ghostoff;
 extern bool debug;
 extern bool repeattrack;
 extern bool numericbars;
+extern bool easyspin;
 
 extern int startlevel;
 extern int nextblocks;

@@ -63,6 +63,7 @@ bool ghostoff = false;
 bool debug = false;
 bool repeattrack = false;
 bool numericbars = false;
+bool easyspin = false;
 
 int startlevel = 0;
 int nextblocks = MAX_NEXTBLOCKS;
@@ -203,6 +204,8 @@ int main(int argc, char *argv[])
 			nosound = true;
 		else if (!strcmp(argv[i],"--randomcolors"))
 			randomcolors = true;
+		else if (!strcmp(argv[i],"--easyspin"))
+			easyspin = true;
 		else if (!strcmp(argv[i],"--numericbars"))
 			numericbars = true;
 		else if (!strcmp(argv[i],"--repeattrack"))
@@ -899,13 +902,6 @@ void removeFullLines(void)
 
 void ingame_processInputEvents(void)
 {
-	static bool rotatecw_key_state = false;
-	static bool rotateccw_key_state = false;
-	static bool softdrop_key_state = false;
-	static bool harddrop_key_state = false;
-	static bool hold_key_state = false;
-	static bool left_key_state = false;
-	static bool right_key_state = false;
 	SDL_Event event;
 
 	if (SDL_PollEvent(&event))
@@ -914,29 +910,14 @@ void ingame_processInputEvents(void)
 			case SDL_KEYUP:
 				switch (event.key.keysym.sym)
 				{
-					case KEY_ROTATE_CW:
-						rotatecw_key_state = false;
-						break;
-					case KEY_ROTATE_CCW:
-						rotateccw_key_state = false;
-						break;
 					case KEY_SOFTDROP:
-						softdrop_key_state = false;
 						softdrop_pressed = false;
 						softdrop_press_time = 0;
 						break;
-					case KEY_HARDDROP:
-						harddrop_key_state = false;
-						break;
-					case KEY_HOLD:
-						hold_key_state = false;
-						break;
 					case KEY_LEFT:
-						left_key_state = false;
 						left_move = false;
 						break;
 					case KEY_RIGHT:
-						right_key_state = false;
 						right_move = false;
 						break;
 				}
@@ -945,89 +926,59 @@ void ingame_processInputEvents(void)
 				switch (event.key.keysym.sym)
 				{
 					case KEY_ROTATE_CW:
-						if (!rotatecw_key_state)
+						rotateFigureCW();
+						if (isFigureColliding())
 						{
-							rotatecw_key_state = true;
-							rotateFigureCW();
+							++f_x;
 							if (isFigureColliding())
 							{
-								++f_x;
+								f_x -= 2;
 								if (isFigureColliding())
 								{
-									f_x -= 2;
-									if (isFigureColliding())
-									{
-										rotateFigureCCW();
-										++f_x;
-									}
+									rotateFigureCCW();
+									++f_x;
 								}
 							}
-							screenFlagUpdate(true);
 						}
+						if (easyspin && figures[0] && figures[0]->id != FIGID_O)
+							markDrop();
+						screenFlagUpdate(true);
 						break;
 					case KEY_ROTATE_CCW:
-						if (!rotateccw_key_state)
+						rotateFigureCCW();
+						if (isFigureColliding())
 						{
-							rotateccw_key_state = true;
-							rotateFigureCCW();
+							++f_x;
 							if (isFigureColliding())
 							{
-								++f_x;
+								f_x -= 2;
 								if (isFigureColliding())
 								{
-									f_x -= 2;
-									if (isFigureColliding())
-									{
-										rotateFigureCW();
-										++f_x;
-									}
+									rotateFigureCW();
+									++f_x;
 								}
 							}
-							screenFlagUpdate(true);
 						}
+						if (easyspin && figures[0] && figures[0]->id != FIGID_O)
+							markDrop();
+						screenFlagUpdate(true);
 						break;
 					case KEY_SOFTDROP:
-						if (!softdrop_key_state)
-						{
-							softdrop_key_state = true;
-							softdrop_pressed = true;
-						}
+						softdrop_pressed = true;
 						break;
 					case KEY_HARDDROP:
-						if (!harddrop_key_state)
-						{
-							harddrop_key_state = true;
-							if (GS_INGAME == gamestate)
-							{
-								dropHard();
-							}
-						}
+						dropHard();
 						break;
 					case KEY_HOLD:
-						if (!hold_key_state)
-						{
-							hold_key_state = true;
-							if (GS_INGAME == gamestate)
-							{
-								holdFigure();
-							}
-						}
+						holdFigure();
 						break;
 					case KEY_LEFT:
-						if (!left_key_state)
-						{
-							left_key_state = true;
-							left_move = true;
-							moveLeft();
-						}
+						left_move = true;
+						moveLeft();
 						break;
 					case KEY_RIGHT:
-						if (!right_key_state)
-						{
-							right_key_state = true;
-							right_move = true;
-							moveRight();
-						}
+						right_move = true;
+						moveRight();
 						break;
 					case KEY_PAUSE:
 						gamestate = GS_SETTINGS;
@@ -1228,7 +1179,9 @@ void rotateFigureCW(void)
 	memcpy(temp, f_shape.blockmap, sizeof(temp));
 	for(int i = 0; i < FIG_DIM*FIG_DIM; ++i)
 	{
-		f_shape.blockmap[i] = temp[(FIG_DIM-1-(i % FIG_DIM))*FIG_DIM + (i / FIG_DIM)];	// check this out :)
+		int x = i % FIG_DIM;
+		int y = i / FIG_DIM;
+		f_shape.blockmap[i] = temp[(FIG_DIM-1-x)*FIG_DIM + y];
 	}
 
 	f_x += f_shape.cx;
