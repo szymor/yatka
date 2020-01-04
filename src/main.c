@@ -27,9 +27,9 @@
 #define BAR_HEIGHT					8
 
 #define MAX_SOFTDROP_PRESS			300
-#define INGAME_KEY_REPEAT_RATE		130
-#define SETTINGS_KEY_REPEAT_RATE	500
 #define FONT_SIZE					7
+
+#define SIDE_MOVE_DELAY				130
 
 struct Figure
 {
@@ -78,6 +78,10 @@ const double drop_rate_ratio_per_level = 1.20;
 Uint32 last_drop_time;
 bool softdrop_pressed = false;
 Uint32 softdrop_press_time = 0;
+
+bool left_move = false;
+bool right_move = false;
+Uint32 next_side_move_time;
 
 const struct Shape shape_O =
 {
@@ -156,6 +160,9 @@ void markDrop(void);
 Uint32 getNextDropTime(void);
 void setDropRate(int level);
 void softDropTimeCounter(void);
+
+void moveLeft(void);
+void moveRight(void);
 
 void ingame_processInputEvents(void);
 void ingame_updateScreen(void);
@@ -252,7 +259,6 @@ int main(int argc, char *argv[])
 			switch (gamestate)
 			{
 				case GS_INGAME:
-					SDL_EnableKeyRepeat(1, INGAME_KEY_REPEAT_RATE);
 					while (GS_INGAME == gamestate)
 					{
 						if (!frameLimiter() || debug)
@@ -261,16 +267,27 @@ int main(int argc, char *argv[])
 							ingame_updateScreen();
 							softDropTimeCounter();
 
-							if (SDL_GetTicks() > getNextDropTime())
+							Uint32 ct = SDL_GetTicks();
+							if (ct > getNextDropTime())
 							{
 									dropSoft();
+							}
+							if (ct > next_side_move_time)
+							{
+								if (left_move && !right_move)
+								{
+									moveLeft();
+								}
+								else if (right_move && !left_move)
+								{
+									moveRight();
+								}
 							}
 						}
 					}
 					saveLastGameScreen();
 					break;
 				case GS_SETTINGS:
-					SDL_EnableKeyRepeat(1, SETTINGS_KEY_REPEAT_RATE);
 					while (GS_SETTINGS == gamestate)
 					{
 						settings_updateScreen();
@@ -278,7 +295,6 @@ int main(int argc, char *argv[])
 					}
 					break;
 				case GS_GAMEOVER:
-					SDL_EnableKeyRepeat(1, SETTINGS_KEY_REPEAT_RATE);
 					gameover_updateScreen();
 					while (GS_GAMEOVER == gamestate)
 					{
@@ -440,7 +456,6 @@ Uint32 getNextDropTime(void)
 	const double maxDropRate = FPS;
 	double coef = (double)(MAX_SOFTDROP_PRESS - softdrop_press_time) / MAX_SOFTDROP_PRESS;
 	coef = 1 - coef;
-	coef *= coef;
 	return last_drop_time + (Uint32)(1000 / (drop_rate * (1 - coef) + maxDropRate * coef));
 }
 
@@ -468,6 +483,26 @@ void softDropTimeCounter(void)
 		if (softdrop_press_time > MAX_SOFTDROP_PRESS)
 			softdrop_press_time = MAX_SOFTDROP_PRESS;
 	}
+}
+
+void moveLeft(void)
+{
+	--f_x;
+	if (isFigureColliding())
+		++f_x;
+	screenFlagUpdate(true);
+
+	next_side_move_time = SDL_GetTicks() + SIDE_MOVE_DELAY;
+}
+
+void moveRight(void)
+{
+	++f_x;
+	if (isFigureColliding())
+		--f_x;
+	screenFlagUpdate(true);
+
+	next_side_move_time = SDL_GetTicks() + SIDE_MOVE_DELAY;
 }
 
 void drawFigure(const struct Figure *fig, int x, int y, bool screendim, bool ghost)
@@ -898,9 +933,11 @@ void ingame_processInputEvents(void)
 						break;
 					case KEY_LEFT:
 						left_key_state = false;
+						left_move = false;
 						break;
 					case KEY_RIGHT:
 						right_key_state = false;
+						right_move = false;
 						break;
 				}
 				break;
@@ -977,16 +1014,20 @@ void ingame_processInputEvents(void)
 						}
 						break;
 					case KEY_LEFT:
-							--f_x;
-							if (isFigureColliding())
-								++f_x;
-							screenFlagUpdate(true);
+						if (!left_key_state)
+						{
+							left_key_state = true;
+							left_move = true;
+							moveLeft();
+						}
 						break;
 					case KEY_RIGHT:
-							++f_x;
-							if (isFigureColliding())
-								--f_x;
-							screenFlagUpdate(true);
+						if (!right_key_state)
+						{
+							right_key_state = true;
+							right_move = true;
+							moveRight();
+						}
 						break;
 					case KEY_PAUSE:
 						gamestate = GS_SETTINGS;

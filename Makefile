@@ -25,6 +25,6 @@ src/%.d: src/%.c
 	rm -f $@.$$$$
 
 clean:
-	rm -rf $(PROJECT) $(OBJ) $(DEP)
+	rm -rf $(PROJECT) $(OBJ) $(DEP) src/*.d.*
 
 -include $(DEP)
