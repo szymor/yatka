@@ -926,6 +926,8 @@ void ingame_processInputEvents(void)
 				switch (event.key.keysym.sym)
 				{
 					case KEY_ROTATE_CW:
+					{
+						bool success = true;
 						rotateFigureCW();
 						if (isFigureColliding())
 						{
@@ -937,14 +939,20 @@ void ingame_processInputEvents(void)
 								{
 									rotateFigureCCW();
 									++f_x;
+									success = false;
 								}
 							}
 						}
-						if (easyspin && figures[0] && figures[0]->id != FIGID_O)
-							markDrop();
-						screenFlagUpdate(true);
-						break;
+						if (success && figures[0] && figures[0]->id != FIGID_O)
+						{
+							if (easyspin)
+								markDrop();
+							screenFlagUpdate(true);
+						}
+					} break;
 					case KEY_ROTATE_CCW:
+					{
+						bool success = true;
 						rotateFigureCCW();
 						if (isFigureColliding())
 						{
@@ -956,13 +964,17 @@ void ingame_processInputEvents(void)
 								{
 									rotateFigureCW();
 									++f_x;
+									success = false;
 								}
 							}
 						}
-						if (easyspin && figures[0] && figures[0]->id != FIGID_O)
-							markDrop();
-						screenFlagUpdate(true);
-						break;
+						if (success && figures[0] && figures[0]->id != FIGID_O)
+						{
+							if (easyspin)
+								markDrop();
+							screenFlagUpdate(true);
+						}
+					} break;
 					case KEY_SOFTDROP:
 						softdrop_pressed = true;
 						break;
