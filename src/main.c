@@ -30,6 +30,7 @@
 #define FONT_SIZE					7
 
 #define SIDE_MOVE_DELAY				130
+#define FIXED_LOCK_DELAY			500
 
 struct Figure
 {
@@ -64,6 +65,7 @@ bool debug = false;
 bool repeattrack = false;
 bool numericbars = false;
 bool easyspin = false;
+bool lockdelay = false;
 
 int startlevel = 0;
 int nextblocks = MAX_NEXTBLOCKS;
@@ -79,6 +81,7 @@ const double drop_rate_ratio_per_level = 1.20;
 Uint32 last_drop_time;
 bool softdrop_pressed = false;
 Uint32 softdrop_press_time = 0;
+Uint32 next_lock_time = 0;
 
 bool left_move = false;
 bool right_move = false;
@@ -206,6 +209,8 @@ int main(int argc, char *argv[])
 			randomcolors = true;
 		else if (!strcmp(argv[i],"--easyspin"))
 			easyspin = true;
+		else if (!strcmp(argv[i],"--lockdelay"))
+			lockdelay = true;
 		else if (!strcmp(argv[i],"--numericbars"))
 			numericbars = true;
 		else if (!strcmp(argv[i],"--repeattrack"))
@@ -273,7 +278,18 @@ int main(int argc, char *argv[])
 							Uint32 ct = SDL_GetTicks();
 							if (ct > getNextDropTime())
 							{
-									dropSoft();
+								dropSoft();
+							}
+							if (next_lock_time && ct > next_lock_time)
+							{
+								++f_y;
+								if (isFigureColliding())
+								{
+									--f_y;
+									lockFigure();
+								}
+								else
+									next_lock_time = 0;
 							}
 							if (ct > next_side_move_time)
 							{
@@ -753,17 +769,11 @@ void onDrop(void)
 
 void onCollide(void)
 {
-	lockFigure();
-	free(figures[0]);
-	figures[0] = NULL;
-
-	removeFullLines();
-	if (checkGameEnd())
-		onGameOver();
-
-	softdrop_pressed = false;
-	softdrop_press_time = 0;
-	Mix_PlayChannel(-1, hit, 0);
+	if (!next_lock_time)
+		if (lockdelay)
+			next_lock_time = last_drop_time + FIXED_LOCK_DELAY;
+		else
+			next_lock_time = getNextDropTime();
 }
 
 void onLineClear(int removed)
@@ -817,6 +827,8 @@ void dropSoft(void)
 			--f_y;
 			onCollide();
 		}
+		else
+			next_lock_time = 0;
 		onDrop();
 	}
 }
@@ -829,6 +841,7 @@ void dropHard(void)
 			++f_y;
 		--f_y;
 		onCollide();
+		lockFigure();
 		onDrop();
 	}
 }
@@ -846,6 +859,19 @@ void lockFigure(void)
 			if ((x >= 0) && (x < BOARD_WIDTH) && (y >= 0) && (y < BOARD_HEIGHT))
 				board[y*BOARD_WIDTH + x] = figures[0]->colorid;
 		}
+
+	free(figures[0]);
+	figures[0] = NULL;
+
+	removeFullLines();
+	if (checkGameEnd())
+		onGameOver();
+
+	softdrop_pressed = false;
+	softdrop_press_time = 0;
+	Mix_PlayChannel(-1, hit, 0);
+
+	next_lock_time = 0;
 }
 
 void holdFigure(void)

@@ -49,6 +49,8 @@ void loadSettings(void)
 			randomcolors = true;
 		else if (!strcmp(buff, "easyspin"))
 			easyspin = true;
+		else if (!strcmp(buff, "lockdelay"))
+			lockdelay = true;
 		else if (!strcmp(buff, "numericbars"))
 			numericbars = true;
 		else if (!strcmp(buff, "repeattrack"))
@@ -100,6 +102,8 @@ void saveSettings(void)
 		fprintf(settingsFile, "randomcolors\n");
 	if (easyspin)
 		fprintf(settingsFile, "easyspin\n");
+	if (lockdelay)
+		fprintf(settingsFile, "lockdelay\n");
 	if (numericbars)
 		fprintf(settingsFile, "numericbars\n");
 	if (repeattrack)

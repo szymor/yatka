@@ -19,6 +19,7 @@ enum SettingsLine
 	SL_TETROMINO_COLOR,
 	SL_DEBRIS_COLOR,
 	SL_EASYSPIN,
+	SL_LOCKDELAY,
 	SL_GHOST,
 	SL_STATISTICS,
 	SL_NEXT_NUMBER,
@@ -36,6 +37,7 @@ static const char settings_text[][32] = {
 	"  tetromino color           %s",
 	"  debris color              %s",
 	"  easy spin                 %s",
+	"  fixed lock delay          %s",
 	"  ghost                     %s",
 	"  statistics mode           %s",
 	"  no of next tetrominoes    %d",
@@ -68,7 +70,7 @@ void settings_updateScreen(void)
 	sprintf(buff, "SETTINGS");
 	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
 	rect.x = (screen->w - text->w) / 2;
-	rect.y = (screen->h) / 4;
+	rect.y = (screen->h) / 6;
 	SDL_BlitSurface(text, NULL, screen, &rect);
 	SDL_FreeSurface(text);
 
@@ -140,6 +142,11 @@ void settings_processInputEvents(void)
 								easyspin = !easyspin;
 								settings_changed = true;
 							} break;
+							case SL_LOCKDELAY:
+							{
+								lockdelay = !lockdelay;
+								settings_changed = true;
+							} break;
 							case SL_GHOST:
 							{
 								ghostoff = !ghostoff;
@@ -202,6 +209,11 @@ void settings_processInputEvents(void)
 							case SL_EASYSPIN:
 							{
 								easyspin = !easyspin;
+								settings_changed = true;
+							} break;
+							case SL_LOCKDELAY:
+							{
+								lockdelay = !lockdelay;
 								settings_changed = true;
 							} break;
 							case SL_GHOST:
@@ -279,6 +291,10 @@ static char *generateSettingLine(char *buff, int pos)
 		case SL_EASYSPIN:
 		{
 			sprintf(buff, settings_text[pos], easyspin ? "on" : "off");
+		} break;
+		case SL_LOCKDELAY:
+		{
+			sprintf(buff, settings_text[pos], lockdelay ? "on" : "off");
 		} break;
 		case SL_GHOST:
 		{
