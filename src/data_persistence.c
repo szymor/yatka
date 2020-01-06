@@ -45,6 +45,8 @@ void loadSettings(void)
 		fscanf(settingsFile, "%s", buff);
 		if (!strcmp(buff, "nosound"))
 			nosound = true;
+		else if (!strcmp(buff, "smoothanim"))
+			smoothanim = true;
 		else if (!strcmp(buff, "randomcolors"))
 			randomcolors = true;
 		else if (!strcmp(buff, "easyspin"))
@@ -98,6 +100,8 @@ void saveSettings(void)
 	
 	if (nosound)
 		fprintf(settingsFile, "nosound\n");
+	if (smoothanim)
+		fprintf(settingsFile, "smoothanim\n");
 	if (randomcolors)
 		fprintf(settingsFile, "randomcolors\n");
 	if (easyspin)

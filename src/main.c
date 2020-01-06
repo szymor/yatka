@@ -66,9 +66,12 @@ bool repeattrack = false;
 bool numericbars = false;
 bool easyspin = false;
 bool lockdelay = false;
+bool smoothanim = false;
 
 int startlevel = 0;
 int nextblocks = MAX_NEXTBLOCKS;
+enum Skin skin = SKIN_LEGACY;
+
 enum GameState gamestate = GS_INGAME;
 bool hold_ready = true;
 
@@ -82,6 +85,8 @@ Uint32 last_drop_time;
 bool softdrop_pressed = false;
 Uint32 softdrop_press_time = 0;
 Uint32 next_lock_time = 0;
+
+int draw_delta_drop = -BLOCK_SIZE;
 
 bool left_move = false;
 bool right_move = false;
@@ -205,6 +210,8 @@ int main(int argc, char *argv[])
 	{
 		if (!strcmp(argv[i],"--nosound"))
 			nosound = true;
+		else if (!strcmp(argv[i],"--smoothanim"))
+			smoothanim = true;
 		else if (!strcmp(argv[i],"--randomcolors"))
 			randomcolors = true;
 		else if (!strcmp(argv[i],"--easyspin"))
@@ -567,6 +574,19 @@ void drawFigure(const struct Figure *fig, int x, int y, bool screendim, bool gho
 			{
 				rect.x = (i % FIG_DIM + x) * BLOCK_SIZE + BOARD_X_OFFSET;
 				rect.y = (i / FIG_DIM + y) * BLOCK_SIZE + BOARD_Y_OFFSET;
+				if (smoothanim && !ghost)
+				{
+					Uint32 ct = SDL_GetTicks();
+					double fraction = (double)(ct - last_drop_time) / (getNextDropTime() - last_drop_time);
+					int new_delta = BLOCK_SIZE * fraction - BLOCK_SIZE;
+					if (new_delta > draw_delta_drop)
+					{
+						draw_delta_drop = new_delta;
+						if (draw_delta_drop > 0)
+							draw_delta_drop = 0;
+					}
+					rect.y += draw_delta_drop;
+				}
 				if (f_shape.blockmap[i] == 1)
 					SDL_BlitSurface(block, NULL, screen, &rect);
 			}
@@ -581,7 +601,7 @@ void drawFigure(const struct Figure *fig, int x, int y, bool screendim, bool gho
 
 void ingame_updateScreen(void)
 {
-	if (!screenFlagUpdate(false) && !debug)
+	if (!screenFlagUpdate(false) && !debug && !smoothanim)
 		return;
 
 	SDL_Rect rect;
@@ -765,6 +785,8 @@ void onDrop(void)
 {
 	markDrop();
 	screenFlagUpdate(true);
+	if (!next_lock_time && smoothanim)
+		draw_delta_drop = -BLOCK_SIZE;
 }
 
 void onCollide(void)

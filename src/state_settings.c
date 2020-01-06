@@ -16,6 +16,7 @@ enum SettingsLine
 	SL_TRACK_SELECT,
 	SL_MUSIC_VOL,
 	SL_MUSIC_REPEAT,
+	SL_SMOOTHANIM,
 	SL_TETROMINO_COLOR,
 	SL_DEBRIS_COLOR,
 	SL_EASYSPIN,
@@ -34,6 +35,7 @@ static const char settings_text[][32] = {
 	"  track selection           %d",
 	"  music volume              %d",
 	"  repeat mode               %s",
+	"  smooth animation          %s",
 	"  tetromino color           %s",
 	"  debris color              %s",
 	"  easy spin                 %s",
@@ -127,6 +129,11 @@ void settings_processInputEvents(void)
 								repeattrack = !repeattrack;
 								settings_changed = true;
 							} break;
+							case SL_SMOOTHANIM:
+							{
+								smoothanim = !smoothanim;
+								settings_changed = true;
+							} break;
 							case SL_TETROMINO_COLOR:
 							{
 								randomcolors = !randomcolors;
@@ -194,6 +201,11 @@ void settings_processInputEvents(void)
 							case SL_MUSIC_REPEAT:
 							{
 								repeattrack = !repeattrack;
+								settings_changed = true;
+							} break;
+							case SL_SMOOTHANIM:
+							{
+								smoothanim = !smoothanim;
 								settings_changed = true;
 							} break;
 							case SL_TETROMINO_COLOR:
@@ -279,6 +291,10 @@ static char *generateSettingLine(char *buff, int pos)
 		case SL_MUSIC_REPEAT:
 		{
 			sprintf(buff, settings_text[pos], repeattrack ? "track once" : "all");
+		} break;
+		case SL_SMOOTHANIM:
+		{
+			sprintf(buff, settings_text[pos], smoothanim ? "on" : "off");
 		} break;
 		case SL_TETROMINO_COLOR:
 		{

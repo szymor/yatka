@@ -63,6 +63,14 @@ enum FigureId
 	FIGID_END
 };
 
+enum Skin
+{
+	SKIN_LEGACY,
+	SKIN_PLAIN,
+	SKIN_TENGENISH,
+	SKIN_END
+};
+
 extern enum GameState gamestate;
 
 extern bool nosound;
@@ -75,8 +83,10 @@ extern bool repeattrack;
 extern bool numericbars;
 extern bool easyspin;
 extern bool lockdelay;
+extern bool smoothanim;
 
 extern int startlevel;
 extern int nextblocks;
+extern enum Skin skin;
 
 #endif
