@@ -192,7 +192,7 @@ void onLineClear(int removed);
 void onGameOver(void);
 
 void initFigures(void);
-void drawFigure(const struct Figure *fig, int x, int y, bool screendim, bool ghost);
+void drawFigure(const struct Figure *fig, int x, int y, Uint8 alpha, bool active, bool centerx, bool centery);
 void spawnFigure(void);
 struct Figure *getNextFigure(void);
 const struct Shape* getShape(enum FigureId id);
@@ -532,18 +532,38 @@ void moveRight(void)
 	next_side_move_time = SDL_GetTicks() + SIDE_MOVE_DELAY;
 }
 
-void drawFigure(const struct Figure *fig, int x, int y, bool screendim, bool ghost)
+void drawFigure(const struct Figure *fig, int x, int y, Uint8 alpha, bool active, bool centerx, bool centery)
 {
 	if (fig != NULL)
 	{
-		const struct Shape *shape = NULL;
-		int minx, maxx, miny, maxy, w, h, offset_x, offset_y;
 		SDL_Surface *block = NULL;
+		int offset_x = 0, offset_y = 0;
+		const struct Shape *shape = NULL;
+		if (active)
+			shape = &f_shape;
+		else
+			shape = getShape(fig->id);
 
-		if (ghost)
+		if (centerx || centery)
+		{
+			int minx, maxx, miny, maxy, w, h;
+			getShapeDimensions(shape, &minx, &maxx, &miny, &maxy);
+			if (centerx)
+			{
+				w = maxx - minx + 1;
+				offset_x = (4 - w) * BLOCK_SIZE / 2 - minx * BLOCK_SIZE;
+			}
+			if (centery)
+			{
+				h = maxy - miny + 1;
+				offset_y = (2 - h) * BLOCK_SIZE / 2 - miny * BLOCK_SIZE;
+			}
+		}
+
+		if (alpha < 255)
 		{
 			block = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
-			SDL_FillRect(block, NULL, SDL_MapRGBA(block->format, 0, 0, 0, 64));
+			SDL_FillRect(block, NULL, SDL_MapRGBA(block->format, 0, 0, 0, alpha));
 			SDL_BlitSurface(colors[fig->colorid], NULL, block, NULL);
 		}
 		else
@@ -551,49 +571,17 @@ void drawFigure(const struct Figure *fig, int x, int y, bool screendim, bool gho
 			block = colors[fig->colorid];
 		}
 
-		if (screendim)
-		{
-			shape = getShape(fig->id);
-			getShapeDimensions(shape, &minx, &maxx, &miny, &maxy);
-			w = maxx - minx + 1;
-			h = maxy - miny + 1;
-			offset_x = (4 - w) * BLOCK_SIZE / 2;
-			offset_y = (2 - h) * BLOCK_SIZE / 2;
-		}
-
-		for (int i = 0; i < (FIG_DIM*FIG_DIM); ++i)
+		for (int i = 0; i < (FIG_DIM * FIG_DIM); ++i)
 		{
 			SDL_Rect rect;
-			if (screendim)
-			{
-				rect.x = (i % FIG_DIM - minx) * BLOCK_SIZE + x + offset_x;
-				rect.y = (i / FIG_DIM - miny) * BLOCK_SIZE + y + offset_y;
-				if (shape->blockmap[i] == 1)
-					SDL_BlitSurface(block, NULL, screen, &rect);
-			}
-			else
-			{
-				rect.x = (i % FIG_DIM + x) * BLOCK_SIZE + BOARD_X_OFFSET;
-				rect.y = (i / FIG_DIM + y - INVISIBLE_ROW_COUNT) * BLOCK_SIZE + BOARD_Y_OFFSET;
-				if (smoothanim && !ghost)
-				{
-					Uint32 ct = SDL_GetTicks();
-					double fraction = (double)(ct - last_drop_time) / (getNextDropTime() - last_drop_time);
-					int new_delta = BLOCK_SIZE * fraction - BLOCK_SIZE;
-					if (new_delta > draw_delta_drop)
-					{
-						draw_delta_drop = new_delta;
-						if (draw_delta_drop > 0)
-							draw_delta_drop = 0;
-					}
-					rect.y += draw_delta_drop;
-				}
-				if (f_shape.blockmap[i] == 1)
-					SDL_BlitSurface(block, NULL, screen, &rect);
-			}
+			rect.x = (i % FIG_DIM) * BLOCK_SIZE + x + offset_x;
+			rect.y = (i / FIG_DIM) * BLOCK_SIZE + y + offset_y;
+
+			if (shape->blockmap[i] == 1)
+				SDL_BlitSurface(block, NULL, screen, &rect);
 		}
 
-		if (ghost)
+		if (alpha < 255)
 		{
 			SDL_FreeSurface(block);
 		}
@@ -617,7 +605,7 @@ void ingame_updateScreen(void)
 	// display next figures
 	for (int i = 1; i <= nextblocks; ++i)
 	{
-		drawFigure(figures[i], 246, 22 + 30 * (i - 1), true, false);
+		drawFigure(figures[i], 246, 22 + 30 * (i - 1), 255, false, true, true);
 	}
 
 	// display statistics
@@ -637,7 +625,22 @@ void ingame_updateScreen(void)
 	}
 
 	// display the active figure
-	drawFigure(figures[0], f_x, f_y, false, false);
+	int x = BOARD_X_OFFSET + BLOCK_SIZE * f_x;
+	int y = BOARD_Y_OFFSET + BLOCK_SIZE * (f_y - INVISIBLE_ROW_COUNT);
+	if (smoothanim)
+	{
+		Uint32 ct = SDL_GetTicks();
+		double fraction = (double)(ct - last_drop_time) / (getNextDropTime() - last_drop_time);
+		int new_delta = BLOCK_SIZE * fraction - BLOCK_SIZE;
+		if (new_delta > draw_delta_drop)
+		{
+			draw_delta_drop = new_delta;
+			if (draw_delta_drop > 0)
+				draw_delta_drop = 0;
+		}
+		y += draw_delta_drop;
+	}
+	drawFigure(figures[0], x, y, 255, true, false, false);
 
 	// display the ghost figure
 	if (figures[0] != NULL && !ghostoff)
@@ -648,7 +651,11 @@ void ingame_updateScreen(void)
 		if (tfy != f_y)
 			--f_y;
 		if ((f_y - tfy) >= FIG_DIM)
-			drawFigure(figures[0], f_x, f_y, false, true);
+		{
+			x = BOARD_X_OFFSET + BLOCK_SIZE * f_x;
+			y = BOARD_Y_OFFSET + BLOCK_SIZE * (f_y - INVISIBLE_ROW_COUNT);
+			drawFigure(figures[0], x, y, 64, true, false, false);
+		}
 		f_y = tfy;
 	}
 
