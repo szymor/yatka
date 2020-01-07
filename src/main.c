@@ -165,6 +165,7 @@ const struct Shape shape_T =
 
 void initialize(void);
 void finalize(void);
+SDL_Surface *initBackground(void);
 
 void markDrop(void);
 Uint32 getNextDropTime(void);
@@ -193,6 +194,7 @@ void onGameOver(void);
 
 void initFigures(void);
 void drawFigure(const struct Figure *fig, int x, int y, Uint8 alpha, bool active, bool centerx, bool centery);
+void drawShape(SDL_Surface *target, const struct Shape *sh, int x, int y, SDL_Surface *block, Uint8 alpha, bool centerx, bool centery);
 void spawnFigure(void);
 struct Figure *getNextFigure(void);
 const struct Shape* getShape(enum FigureId id);
@@ -368,17 +370,13 @@ void initialize(void)
 	if (arcade_font == NULL)
 		exit(ERROR_NOFONT);
 
-	ts = IMG_Load("gfx/bg.png");
-	if (ts == NULL)
-		exit(ERROR_NOIMGFILE);
-	bg = SDL_DisplayFormat(ts);
-	SDL_FreeSurface(ts);
-
 	ts = IMG_Load("gfx/block.png");
 	if (ts == NULL)
 		exit(ERROR_NOIMGFILE);
 	gray = SDL_DisplayFormat(ts);
 	SDL_FreeSurface(ts);
+
+	ts = initBackground();
 
 	SDL_Surface *mask = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
 
@@ -453,6 +451,15 @@ void initialize(void)
 	level = startlevel;
 	setDropRate(level);
 	initFigures();
+}
+
+SDL_Surface *initBackground(void)
+{
+	SDL_Surface *ts = IMG_Load("gfx/bg.png");
+	if (ts == NULL)
+		exit(ERROR_NOIMGFILE);
+	bg = SDL_DisplayFormat(ts);
+	SDL_FreeSurface(ts);
 }
 
 void finalize(void)
@@ -536,55 +543,61 @@ void drawFigure(const struct Figure *fig, int x, int y, Uint8 alpha, bool active
 {
 	if (fig != NULL)
 	{
-		SDL_Surface *block = NULL;
-		int offset_x = 0, offset_y = 0;
 		const struct Shape *shape = NULL;
 		if (active)
 			shape = &f_shape;
 		else
 			shape = getShape(fig->id);
 
-		if (centerx || centery)
-		{
-			int minx, maxx, miny, maxy, w, h;
-			getShapeDimensions(shape, &minx, &maxx, &miny, &maxy);
-			if (centerx)
-			{
-				w = maxx - minx + 1;
-				offset_x = (4 - w) * BLOCK_SIZE / 2 - minx * BLOCK_SIZE;
-			}
-			if (centery)
-			{
-				h = maxy - miny + 1;
-				offset_y = (2 - h) * BLOCK_SIZE / 2 - miny * BLOCK_SIZE;
-			}
-		}
+		drawShape(screen, shape, x, y, colors[fig->colorid], alpha, centerx, centery);
+	}
+}
 
-		if (alpha < 255)
-		{
-			block = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
-			SDL_FillRect(block, NULL, SDL_MapRGBA(block->format, 0, 0, 0, alpha));
-			SDL_BlitSurface(colors[fig->colorid], NULL, block, NULL);
-		}
-		else
-		{
-			block = colors[fig->colorid];
-		}
+void drawShape(SDL_Surface *target, const struct Shape *sh, int x, int y, SDL_Surface *block, Uint8 alpha, bool centerx, bool centery)
+{
+	int offset_x = 0, offset_y = 0;
+	SDL_Surface *bt = NULL;
 
-		for (int i = 0; i < (FIG_DIM * FIG_DIM); ++i)
-		{
-			SDL_Rect rect;
-			rect.x = (i % FIG_DIM) * BLOCK_SIZE + x + offset_x;
-			rect.y = (i / FIG_DIM) * BLOCK_SIZE + y + offset_y;
+	if (alpha < 255)
+	{
+		bt = SDL_CreateRGBSurface(0, BLOCK_SIZE, BLOCK_SIZE, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0x00000000);
+		SDL_BlitSurface(block, NULL, bt, NULL);
+		SDL_SetAlpha(bt, SDL_SRCALPHA, alpha);
+	}
+	else
+	{
+		bt = block;
+	}
 
-			if (shape->blockmap[i] == 1)
-				SDL_BlitSurface(block, NULL, screen, &rect);
-		}
-
-		if (alpha < 255)
+	if (centerx || centery)
+	{
+		int minx, maxx, miny, maxy, w, h;
+		getShapeDimensions(sh, &minx, &maxx, &miny, &maxy);
+		if (centerx)
 		{
-			SDL_FreeSurface(block);
+			w = maxx - minx + 1;
+			offset_x = (4 - w) * BLOCK_SIZE / 2 - minx * BLOCK_SIZE;
 		}
+		if (centery)
+		{
+			h = maxy - miny + 1;
+			offset_y = (2 - h) * BLOCK_SIZE / 2 - miny * BLOCK_SIZE;
+		}
+	}
+
+	for (int i = 0; i < (FIG_DIM * FIG_DIM); ++i)
+	{
+		SDL_Rect rect;
+		rect.x = (i % FIG_DIM) * BLOCK_SIZE + x + offset_x;
+		rect.y = (i / FIG_DIM) * BLOCK_SIZE + y + offset_y;
+
+		if (sh->blockmap[i] == 1)
+			SDL_BlitSurface(bt, NULL, target, &rect);
+	}
+
+	if (alpha < 255)
+	{
+		SDL_FreeSurface(bt);
 	}
 }
 
@@ -609,6 +622,8 @@ void ingame_updateScreen(void)
 	}
 
 	// display statistics
+	for (int i = 0; i < FIGID_END; ++i)
+		drawShape(screen, getShape(i), 6, 30 + i * 30, gray, 128, true, true);
 	drawBars();
 	drawStatus(0, 0);
 
