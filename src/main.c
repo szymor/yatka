@@ -19,7 +19,8 @@
 #define BOARD_X_OFFSET				100
 #define BOARD_Y_OFFSET				0
 #define BOARD_WIDTH					10
-#define BOARD_HEIGHT				20
+#define BOARD_HEIGHT				21
+#define INVISIBLE_ROW_COUNT			1
 #define FIG_DIM						4
 #define BLOCK_SIZE					12
 
@@ -573,7 +574,7 @@ void drawFigure(const struct Figure *fig, int x, int y, bool screendim, bool gho
 			else
 			{
 				rect.x = (i % FIG_DIM + x) * BLOCK_SIZE + BOARD_X_OFFSET;
-				rect.y = (i / FIG_DIM + y) * BLOCK_SIZE + BOARD_Y_OFFSET;
+				rect.y = (i / FIG_DIM + y - INVISIBLE_ROW_COUNT) * BLOCK_SIZE + BOARD_Y_OFFSET;
 				if (smoothanim && !ghost)
 				{
 					Uint32 ct = SDL_GetTicks();
@@ -624,10 +625,10 @@ void ingame_updateScreen(void)
 	drawStatus(0, 0);
 
 	// display board
-	for (int i = 0; i < (BOARD_WIDTH*BOARD_HEIGHT); ++i)
+	for (int i = BOARD_WIDTH * INVISIBLE_ROW_COUNT; i < (BOARD_WIDTH * BOARD_HEIGHT); ++i)
 	{
 		rect.x = (i % BOARD_WIDTH) * BLOCK_SIZE + BOARD_X_OFFSET;
-		rect.y = (i / BOARD_WIDTH) * BLOCK_SIZE + BOARD_Y_OFFSET;
+		rect.y = (i / BOARD_WIDTH - INVISIBLE_ROW_COUNT) * BLOCK_SIZE + BOARD_Y_OFFSET;
 		if (board[i] < FIGID_END)
 			if (grayblocks)
 				SDL_BlitSurface(gray, NULL, screen, &rect);
@@ -906,7 +907,7 @@ void holdFigure(void)
 		*figures[1] = temp;
 		++statistics[figures[0]->id];
 
-		f_y = -FIG_DIM + 1;						// ...to gain a 'slide' effect from the top of screen
+		f_y = -FIG_DIM + 2;						// ...to gain a 'slide' effect from the top of screen
 		f_x = (BOARD_WIDTH - FIG_DIM) / 2;		// ...to center a figure
 
 		memcpy(&f_shape, getShape(figures[0]->id), sizeof(f_shape));
