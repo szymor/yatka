@@ -455,11 +455,41 @@ void initialize(void)
 
 SDL_Surface *initBackground(void)
 {
+	if (bg != NULL)
+	{
+		SDL_FreeSurface(bg);
+	}
+
 	SDL_Surface *ts = IMG_Load("gfx/bg.png");
 	if (ts == NULL)
 		exit(ERROR_NOIMGFILE);
 	bg = SDL_DisplayFormat(ts);
 	SDL_FreeSurface(ts);
+
+	// figures for statistics
+	for (int i = 0; i < FIGID_END; ++i)
+		drawShape(bg, getShape(i), 6, 30 + i * 30, gray, 160, true, true);
+
+	// placeholders for next tetrominoes
+	SDL_Surface *ph = SDL_CreateRGBSurface(0, 48, 24, bg->format->BitsPerPixel, bg->format->Rmask, bg->format->Gmask, bg->format->Bmask, 0);
+	SDL_FillRect(ph, NULL, SDL_MapRGB(ph->format, 0xff, 0xff, 0xff));
+	SDL_SetAlpha(ph, SDL_SRCALPHA, 48);
+	for (int i = 0; i < nextblocks; ++i)
+	{
+		SDL_Rect r = { .x = 246, .y = 22 + 30 * i };
+		SDL_BlitSurface(ph, NULL, bg, &r);
+	}
+	SDL_FreeSurface(ph);
+
+	// placeholder for the board
+	int w = BOARD_WIDTH * BLOCK_SIZE;
+	int h = (BOARD_HEIGHT - INVISIBLE_ROW_COUNT) * BLOCK_SIZE;
+	ph = SDL_CreateRGBSurface(0, w, h, bg->format->BitsPerPixel, bg->format->Rmask, bg->format->Gmask, bg->format->Bmask, 0);
+	SDL_FillRect(ph, NULL, SDL_MapRGB(ph->format, 0xff, 0xff, 0xff));
+	SDL_SetAlpha(ph, SDL_SRCALPHA, 48);
+	SDL_Rect r = { .x = BOARD_X_OFFSET, .y = BOARD_Y_OFFSET };
+	SDL_BlitSurface(ph, NULL, bg, &r);
+	SDL_FreeSurface(ph);
 }
 
 void finalize(void)
@@ -622,8 +652,6 @@ void ingame_updateScreen(void)
 	}
 
 	// display statistics
-	for (int i = 0; i < FIGID_END; ++i)
-		drawShape(screen, getShape(i), 6, 30 + i * 30, gray, 128, true, true);
 	drawBars();
 	drawStatus(0, 0);
 

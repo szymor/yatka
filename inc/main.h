@@ -71,6 +71,8 @@ enum Skin
 	SKIN_END
 };
 
+SDL_Surface *initBackground(void);
+
 extern enum GameState gamestate;
 
 extern bool nosound;

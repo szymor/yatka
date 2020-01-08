@@ -30,6 +30,8 @@ enum SettingsLine
 };
 
 bool settings_changed = false;
+
+static bool redraw_bg = false;
 static int settings_pos = 0;
 static const char settings_text[][32] = {
 	"  track selection           %d",
@@ -265,6 +267,11 @@ void settings_processInputEvents(void)
 					} break;
 					case KEY_PAUSE:
 						gamestate = GS_INGAME;
+						if (redraw_bg)
+						{
+							initBackground();
+							redraw_bg = false;
+						}
 						break;
 				}
 				break;
@@ -357,6 +364,7 @@ static void increaseNextBlocks(void)
 	++nextblocks;
 	if (nextblocks > MAX_NEXTBLOCKS)
 		nextblocks = MAX_NEXTBLOCKS;
+	redraw_bg = true;
 }
 
 static void decreaseNextBlocks(void)
@@ -364,4 +372,5 @@ static void decreaseNextBlocks(void)
 	--nextblocks;
 	if (nextblocks < 0)
 		nextblocks = 0;
+	redraw_bg = true;
 }
