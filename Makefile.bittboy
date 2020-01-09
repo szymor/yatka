@@ -1,11 +1,30 @@
 .PHONY: all clean
 
 PROJECT = yatka
-
-$(PROJECT): main.c
-	arm-linux-gcc -g -Ofast -march=armv5te -mtune=arm926ej-s -o $(PROJECT) main.c -lSDL -lSDL_image -lSDL_ttf -lSDL_mixer -D_BITTBOY
+SRC = src/main.c src/data_persistence.c src/video.c src/sound.c \
+	src/state_gameover.c src/state_settings.c src/randomizer.c
+OBJ = $(SRC:.c=.o)
+DEP = $(SRC:.c=.d)
+CFLAGS = -Iinc -D_BITTBOY -Ofast -march=armv5te -mtune=arm926ej-s
+LDFLAGS = -s $(shell pkg-config --libs sdl SDL_image SDL_ttf SDL_mixer)
+CC = arm-linux-gcc
 
 all: $(PROJECT)
 
+$(PROJECT): $(OBJ)
+	$(CC) -o $(PROJECT) $(OBJ) $(LDFLAGS)
+
+src/%.o: src/%.c
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+src/%.d: src/%.c
+	@set -e; \
+	rm -f $@; \
+	$(CC) -MM $(CFLAGS) $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,src/\1.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
+
 clean:
-	rm -rf $(PROJECT)
+	rm -rf $(PROJECT) $(OBJ) $(DEP) src/*.d.*
+
+-include $(DEP)
