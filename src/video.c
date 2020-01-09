@@ -17,7 +17,8 @@ void saveLastGameScreen(void)
 	if (last_game_screen)
 		SDL_FreeSurface(last_game_screen);
 
-	last_game_screen = SDL_CreateRGBSurface(SDL_SRCALPHA, SCREEN_WIDTH, SCREEN_HEIGHT, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	SDL_PixelFormat *f = screen->format;
+	last_game_screen = SDL_CreateRGBSurface(0, SCREEN_WIDTH, SCREEN_HEIGHT, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
 	SDL_BlitSurface(screen, NULL, last_game_screen, NULL);
 }
 

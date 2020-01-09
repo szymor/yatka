@@ -376,67 +376,38 @@ void initialize(void)
 	gray = SDL_DisplayFormat(ts);
 	SDL_FreeSurface(ts);
 
-	ts = initBackground();
+	initBackground();
 
-	SDL_Surface *mask = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	SDL_PixelFormat *f = screen->format;
+	SDL_SetAlpha(gray, SDL_SRCALPHA, 128);
 
-	colors[FIGID_I] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	colors[FIGID_I] = SDL_CreateRGBSurface(0, BLOCK_SIZE, BLOCK_SIZE, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
+	SDL_FillRect(colors[FIGID_I], NULL, SDL_MapRGB(colors[FIGID_I]->format, 215, 64, 0));
 	SDL_BlitSurface(gray, NULL, colors[FIGID_I], NULL);
-	SDL_FillRect(mask, NULL, SDL_MapRGBA(colors[FIGID_I]->format, 215, 64, 0, 128));
-	SDL_BlitSurface(mask, NULL, colors[FIGID_I], NULL);
-	ts = colors[FIGID_I];
-	colors[FIGID_I] = SDL_DisplayFormatAlpha(ts);
-	SDL_FreeSurface(ts);
 
-	colors[FIGID_T] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	colors[FIGID_T] = SDL_CreateRGBSurface(0, BLOCK_SIZE, BLOCK_SIZE, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
+	SDL_FillRect(colors[FIGID_T], NULL, SDL_MapRGB(colors[FIGID_T]->format, 115, 121, 0));
 	SDL_BlitSurface(gray, NULL, colors[FIGID_T], NULL);
-	SDL_FillRect(mask, NULL, SDL_MapRGBA(colors[FIGID_T]->format, 115, 121, 0, 128));
-	SDL_BlitSurface(mask, NULL, colors[FIGID_T], NULL);
-	ts = colors[FIGID_T];
-	colors[FIGID_T] = SDL_DisplayFormatAlpha(ts);
-	SDL_FreeSurface(ts);
 
-	colors[FIGID_O] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	colors[FIGID_O] = SDL_CreateRGBSurface(0, BLOCK_SIZE, BLOCK_SIZE, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
+	SDL_FillRect(colors[FIGID_O], NULL, SDL_MapRGB(colors[FIGID_O]->format, 59, 52, 255));
 	SDL_BlitSurface(gray, NULL, colors[FIGID_O], NULL);
-	SDL_FillRect(mask, NULL, SDL_MapRGBA(colors[FIGID_O]->format, 59, 52, 255, 128));
-	SDL_BlitSurface(mask, NULL, colors[FIGID_O], NULL);
-	ts = colors[FIGID_O];
-	colors[FIGID_O] = SDL_DisplayFormatAlpha(ts);
-	SDL_FreeSurface(ts);
 
-	colors[FIGID_S] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	colors[FIGID_S] = SDL_CreateRGBSurface(0, BLOCK_SIZE, BLOCK_SIZE, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
+	SDL_FillRect(colors[FIGID_S], NULL, SDL_MapRGB(colors[FIGID_S]->format, 0, 132, 96));
 	SDL_BlitSurface(gray, NULL, colors[FIGID_S], NULL);
-	SDL_FillRect(mask, NULL, SDL_MapRGBA(colors[FIGID_S]->format, 0, 132, 96, 128));
-	SDL_BlitSurface(mask, NULL, colors[FIGID_S], NULL);
-	ts = colors[FIGID_S];
-	colors[FIGID_S] = SDL_DisplayFormatAlpha(ts);
-	SDL_FreeSurface(ts);
 
-	colors[FIGID_Z] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	colors[FIGID_Z] = SDL_CreateRGBSurface(0, BLOCK_SIZE, BLOCK_SIZE, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
+	SDL_FillRect(colors[FIGID_Z], NULL, SDL_MapRGB(colors[FIGID_Z]->format, 75, 160, 255));
 	SDL_BlitSurface(gray, NULL, colors[FIGID_Z], NULL);
-	SDL_FillRect(mask, NULL, SDL_MapRGBA(colors[FIGID_Z]->format, 75, 160, 255, 128));
-	SDL_BlitSurface(mask, NULL, colors[FIGID_Z], NULL);
-	ts = colors[FIGID_Z];
-	colors[FIGID_Z] = SDL_DisplayFormatAlpha(ts);
-	SDL_FreeSurface(ts);
 
-	colors[FIGID_J] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	colors[FIGID_J] = SDL_CreateRGBSurface(0, BLOCK_SIZE, BLOCK_SIZE, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
+	SDL_FillRect(colors[FIGID_J], NULL, SDL_MapRGB(colors[FIGID_J]->format, 255, 174, 10));
 	SDL_BlitSurface(gray, NULL, colors[FIGID_J], NULL);
-	SDL_FillRect(mask, NULL, SDL_MapRGBA(colors[FIGID_J]->format, 255, 174, 10, 128));
-	SDL_BlitSurface(mask, NULL, colors[FIGID_J], NULL);
-	ts = colors[FIGID_J];
-	colors[FIGID_J] = SDL_DisplayFormatAlpha(ts);
-	SDL_FreeSurface(ts);
 
-	colors[FIGID_L] = SDL_CreateRGBSurface(SDL_SRCALPHA, BLOCK_SIZE, BLOCK_SIZE, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	colors[FIGID_L] = SDL_CreateRGBSurface(0, BLOCK_SIZE, BLOCK_SIZE, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
+	SDL_FillRect(colors[FIGID_L], NULL, SDL_MapRGB(colors[FIGID_L]->format, 255, 109, 247));
 	SDL_BlitSurface(gray, NULL, colors[FIGID_L], NULL);
-	SDL_FillRect(mask, NULL, SDL_MapRGBA(colors[FIGID_L]->format, 255, 109, 247, 128));
-	SDL_BlitSurface(mask, NULL, colors[FIGID_L], NULL);
-	ts = colors[FIGID_L];
-	colors[FIGID_L] = SDL_DisplayFormatAlpha(ts);
-	SDL_FreeSurface(ts);
-
-	SDL_FreeSurface(mask);
 
 	if (!nosound)
 	{
@@ -490,6 +461,8 @@ SDL_Surface *initBackground(void)
 	SDL_Rect r = { .x = BOARD_X_OFFSET, .y = BOARD_Y_OFFSET };
 	SDL_BlitSurface(ph, NULL, bg, &r);
 	SDL_FreeSurface(ph);
+
+	return bg;
 }
 
 void finalize(void)
@@ -586,18 +559,8 @@ void drawFigure(const struct Figure *fig, int x, int y, Uint8 alpha, bool active
 void drawShape(SDL_Surface *target, const struct Shape *sh, int x, int y, SDL_Surface *block, Uint8 alpha, bool centerx, bool centery)
 {
 	int offset_x = 0, offset_y = 0;
-	SDL_Surface *bt = NULL;
 
-	if (alpha < 255)
-	{
-		bt = SDL_CreateRGBSurface(0, BLOCK_SIZE, BLOCK_SIZE, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0x00000000);
-		SDL_BlitSurface(block, NULL, bt, NULL);
-		SDL_SetAlpha(bt, SDL_SRCALPHA, alpha);
-	}
-	else
-	{
-		bt = block;
-	}
+	SDL_SetAlpha(block, SDL_SRCALPHA, alpha);
 
 	if (centerx || centery)
 	{
@@ -622,12 +585,7 @@ void drawShape(SDL_Surface *target, const struct Shape *sh, int x, int y, SDL_Su
 		rect.y = (i / FIG_DIM) * BLOCK_SIZE + y + offset_y;
 
 		if (sh->blockmap[i] == 1)
-			SDL_BlitSurface(bt, NULL, target, &rect);
-	}
-
-	if (alpha < 255)
-	{
-		SDL_FreeSurface(bt);
+			SDL_BlitSurface(block, NULL, target, &rect);
 	}
 }
 
@@ -661,10 +619,11 @@ void ingame_updateScreen(void)
 		rect.x = (i % BOARD_WIDTH) * BLOCK_SIZE + BOARD_X_OFFSET;
 		rect.y = (i / BOARD_WIDTH - INVISIBLE_ROW_COUNT) * BLOCK_SIZE + BOARD_Y_OFFSET;
 		if (board[i] < FIGID_END)
-			if (grayblocks)
-				SDL_BlitSurface(gray, NULL, screen, &rect);
-			else
-				SDL_BlitSurface(colors[board[i]], NULL, screen, &rect);
+		{
+			SDL_Surface *block = grayblocks ? gray : colors[board[i]];
+			SDL_SetAlpha(block, SDL_SRCALPHA, 255);
+			SDL_BlitSurface(block, NULL, screen, &rect);
+		}
 	}
 
 	// display the active figure
@@ -742,7 +701,7 @@ void drawBar(int x, int y, int value)
 	SDL_Surface *bar = SDL_CreateRGBSurface(SDL_SRCALPHA,
 											BAR_WIDTH,
 											BAR_HEIGHT,
-											ALT_SCREEN_BPP,
+											32,
 											0x000000ff,
 											0x0000ff00,
 											0x00ff0000,

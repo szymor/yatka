@@ -7,7 +7,6 @@
 
 #define SCREEN_WIDTH		320
 #define SCREEN_HEIGHT		240
-#define ALT_SCREEN_BPP		32
 #define FPS					60.0
 
 #ifdef _BITTBOY

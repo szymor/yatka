@@ -5,8 +5,8 @@ SRC = src/main.c src/data_persistence.c src/video.c src/sound.c \
 	src/state_gameover.c src/state_settings.c src/randomizer.c
 OBJ = $(SRC:.c=.o)
 DEP = $(SRC:.c=.d)
-CFLAGS = -Iinc
-LDFLAGS = -s $(shell pkg-config --libs sdl SDL_image SDL_ttf SDL_mixer)
+CFLAGS = -g -Iinc
+LDFLAGS = $(shell pkg-config --libs sdl SDL_image SDL_ttf SDL_mixer)
 CC = gcc
 
 all: $(PROJECT)

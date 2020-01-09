@@ -60,8 +60,10 @@ void settings_updateScreen(void)
 	SDL_Surface *mask = NULL;
 
 	SDL_BlitSurface(last_game_screen, NULL, screen, NULL);
-	mask = SDL_CreateRGBSurface(SDL_SRCALPHA, SCREEN_WIDTH, SCREEN_HEIGHT, ALT_SCREEN_BPP, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
-	SDL_FillRect(mask, NULL, SDL_MapRGBA(mask->format,0,0,0,128));
+	SDL_PixelFormat *f = screen->format;
+	mask = SDL_CreateRGBSurface(0, SCREEN_WIDTH, SCREEN_HEIGHT, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
+	SDL_FillRect(mask, NULL, SDL_MapRGB(mask->format, 0, 0, 0));
+	SDL_SetAlpha(mask, SDL_SRCALPHA, 128);
 	SDL_BlitSurface(mask, NULL, screen, NULL);
 	SDL_FreeSurface(mask);
 
