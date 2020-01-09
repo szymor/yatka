@@ -8,6 +8,13 @@ yet another tetris klone in action
 - arcade font by Yuji Adachi
 - in-game music by Vomitron
 
+### how to build (Ubuntu)
+    apt update
+    apt install libsdl-image1.2-dev libsdl-mixer1.2-dev libsdl-ttf2.0-dev libsdl1.2-dev
+    git clone https://github.com/szymor/yatka.git
+    cd yatka
+    make
+
 ### command line parameters
 - --nosound - disable music and sound effects
 - --scale2x - 640x480 mode
