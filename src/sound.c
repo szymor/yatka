@@ -15,7 +15,7 @@ void initSound(void)
 	int mixflags = MIX_INIT_OGG;
 	if (Mix_Init(mixflags) != mixflags)
 		exit(ERROR_MIXINIT);
-	if (Mix_OpenAudio(11025, MIX_DEFAULT_FORMAT, 1, 1024) < 0)
+	if (Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, 1, 1024) < 0)
 		exit(ERROR_OPENAUDIO);
 	music[0] = Mix_LoadMUS("sfx/korobeyniki.ogg");
 	if (!music[0])
