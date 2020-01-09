@@ -8,6 +8,7 @@
 Mix_Music *music[MUSIC_TRACK_NUM];
 int current_track = 0;
 Mix_Chunk *hit = NULL;
+Mix_Chunk *clr = NULL;
 
 void initSound(void)
 {
@@ -30,6 +31,9 @@ void initSound(void)
 		exit(ERROR_NOSNDFILE);
 	hit = Mix_LoadWAV("sfx/hit.ogg");
 	if (!hit)
+		exit(ERROR_NOSNDFILE);
+	clr = Mix_LoadWAV("sfx/clear.ogg");
+	if (!clr)
 		exit(ERROR_NOSNDFILE);
 
 	current_track = 0;
