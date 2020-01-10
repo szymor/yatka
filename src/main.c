@@ -32,6 +32,7 @@
 
 #define SIDE_MOVE_DELAY				130
 #define FIXED_LOCK_DELAY			500
+#define EASY_SPIN_DELAY				500
 
 struct Figure
 {
@@ -74,24 +75,25 @@ int ghostalpha = 64;
 enum Skin skin = SKIN_LEGACY;
 
 enum GameState gamestate = GS_INGAME;
-bool hold_ready = true;
+static bool hold_ready = true;
 
-int lines = 0, hiscore = 0, old_hiscore, score = 0, level = 0;
-int cleared_count = 0;
-int tetris_count = 0;
+static int lines = 0, hiscore = 0, old_hiscore, score = 0, level = 0;
+static int cleared_count = 0;
+static int tetris_count = 0;
 
-double drop_rate = 2.00;
-const double drop_rate_ratio_per_level = 1.20;
-Uint32 last_drop_time;
-bool softdrop_pressed = false;
-Uint32 softdrop_press_time = 0;
-Uint32 next_lock_time = 0;
+static double drop_rate = 2.00;
+static const double drop_rate_ratio_per_level = 1.20;
+static Uint32 last_drop_time;
+static bool easyspin_pressed = false;
+static bool softdrop_pressed = false;
+static Uint32 softdrop_press_time = 0;
+static Uint32 next_lock_time = 0;
 
-int draw_delta_drop = -BLOCK_SIZE;
+static int draw_delta_drop = -BLOCK_SIZE;
 
-bool left_move = false;
-bool right_move = false;
-Uint32 next_side_move_time;
+static bool left_move = false;
+static bool right_move = false;
+static Uint32 next_side_move_time;
 
 const struct Shape shape_O =
 {
@@ -454,6 +456,9 @@ void markDrop(void)
 
 Uint32 getNextDropTime(void)
 {
+	if (easyspin_pressed)
+		return last_drop_time + EASY_SPIN_DELAY;
+
 	const double maxDropRate = FPS;
 	double coef = (double)(MAX_SOFTDROP_PRESS - softdrop_press_time) / MAX_SOFTDROP_PRESS;
 	coef = 1 - coef;
@@ -761,6 +766,7 @@ void onDrop(void)
 	screenFlagUpdate(true);
 	if (!next_lock_time && smoothanim)
 		draw_delta_drop = -BLOCK_SIZE;
+	easyspin_pressed = false;
 }
 
 void onCollide(void)
@@ -973,7 +979,10 @@ void ingame_processInputEvents(void)
 						if (success && figures[0] && figures[0]->id != FIGID_O)
 						{
 							if (easyspin)
+							{
 								markDrop();
+								easyspin_pressed = true;
+							}
 							screenFlagUpdate(true);
 						}
 					} break;
@@ -998,12 +1007,16 @@ void ingame_processInputEvents(void)
 						if (success && figures[0] && figures[0]->id != FIGID_O)
 						{
 							if (easyspin)
+							{
 								markDrop();
+								easyspin_pressed = true;
+							}
 							screenFlagUpdate(true);
 						}
 					} break;
 					case KEY_SOFTDROP:
 						softdrop_pressed = true;
+						easyspin_pressed = false;
 						break;
 					case KEY_HARDDROP:
 						dropHard();
