@@ -33,6 +33,7 @@
 #define SIDE_MOVE_DELAY				130
 #define FIXED_LOCK_DELAY			500
 #define EASY_SPIN_DELAY				500
+#define EASY_SPIN_MAX_COUNT			16
 
 struct Figure
 {
@@ -85,6 +86,7 @@ static double drop_rate = 2.00;
 static const double drop_rate_ratio_per_level = 1.20;
 static Uint32 last_drop_time;
 static bool easyspin_pressed = false;
+static int easyspin_counter = 0;
 static bool softdrop_pressed = false;
 static Uint32 softdrop_press_time = 0;
 static Uint32 next_lock_time = 0;
@@ -456,7 +458,7 @@ void markDrop(void)
 
 Uint32 getNextDropTime(void)
 {
-	if (easyspin_pressed)
+	if (easyspin_pressed && easyspin_counter <= EASY_SPIN_MAX_COUNT)
 		return last_drop_time + EASY_SPIN_DELAY;
 
 	const double maxDropRate = FPS;
@@ -877,6 +879,7 @@ void lockFigure(void)
 		Mix_PlayChannel(-1, hit, 0);
 
 	next_lock_time = 0;
+	easyspin_counter = 0;
 }
 
 void holdFigure(void)
@@ -982,6 +985,7 @@ void ingame_processInputEvents(void)
 							{
 								markDrop();
 								easyspin_pressed = true;
+								++easyspin_counter;
 							}
 							screenFlagUpdate(true);
 						}
@@ -1010,6 +1014,7 @@ void ingame_processInputEvents(void)
 							{
 								markDrop();
 								easyspin_pressed = true;
+								++easyspin_counter;
 							}
 							screenFlagUpdate(true);
 						}
