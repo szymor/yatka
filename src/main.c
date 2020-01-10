@@ -61,7 +61,6 @@ bool nosound = false;
 bool randomcolors = false;
 bool holdoff = false;
 bool grayblocks = false;
-bool ghostoff = false;
 bool debug = false;
 bool repeattrack = false;
 bool numericbars = false;
@@ -71,6 +70,7 @@ bool smoothanim = false;
 
 int startlevel = 0;
 int nextblocks = MAX_NEXTBLOCKS;
+int ghostalpha = 64;
 enum Skin skin = SKIN_LEGACY;
 
 enum GameState gamestate = GS_INGAME;
@@ -213,58 +213,18 @@ int main(int argc, char *argv[])
 	{
 		if (!strcmp(argv[i],"--nosound"))
 			nosound = true;
-		else if (!strcmp(argv[i],"--smoothanim"))
-			smoothanim = true;
-		else if (!strcmp(argv[i],"--randomcolors"))
-			randomcolors = true;
-		else if (!strcmp(argv[i],"--easyspin"))
-			easyspin = true;
-		else if (!strcmp(argv[i],"--lockdelay"))
-			lockdelay = true;
-		else if (!strcmp(argv[i],"--numericbars"))
-			numericbars = true;
-		else if (!strcmp(argv[i],"--repeattrack"))
-			repeattrack = true;
-		else if (!strcmp(argv[i],"--debug"))
-			debug = true;
+		else if (!strcmp(argv[i],"--scale1x"))
+			screenscale = 1;
 		else if (!strcmp(argv[i],"--scale2x"))
 			screenscale = 2;
 		else if (!strcmp(argv[i],"--scale3x"))
 			screenscale = 3;
 		else if (!strcmp(argv[i],"--scale4x"))
 			screenscale = 4;
-		else if (!strcmp(argv[i],"--holdoff"))
-			holdoff = true;
-		else if (!strcmp(argv[i],"--grayblocks"))
-			grayblocks = true;
-		else if (!strcmp(argv[i],"--ghostoff"))
-			ghostoff = true;
 		else if (!strcmp(argv[i],"--startlevel"))
 		{
 			++i;
 			startlevel = atoi(argv[i]);
-		}
-		else if (!strcmp(argv[i],"--nextblocks"))
-		{
-			++i;
-			nextblocks = atoi(argv[i]);
-		}
-		else if (!strcmp(argv[i],"--rng"))
-		{
-			++i;
-			int rng;
-			if (!strcmp(argv[i], "naive"))
-				rng = RA_NAIVE;
-			else if (!strcmp(argv[i], "7bag"))
-				rng = RA_7BAG;
-			else if (!strcmp(argv[i], "8bag"))
-				rng = RA_8BAG;
-			else
-				rng = atoi(argv[i]);
-			if (rng >= 0 && rng < RA_END)
-				randomalgo = rng;
-			else
-				printf("Selected RNG ID (%d) is not valid\n", rng);
 		}
 		else
 			printf("Unrecognized parameter: %s\n", argv[i]);
@@ -277,6 +237,7 @@ int main(int argc, char *argv[])
 			switch (gamestate)
 			{
 				case GS_INGAME:
+					SDL_EnableKeyRepeat(0, 0);
 					while (GS_INGAME == gamestate)
 					{
 						if (!frameLimiter() || debug)
@@ -317,6 +278,7 @@ int main(int argc, char *argv[])
 					saveLastGameScreen();
 					break;
 				case GS_SETTINGS:
+					SDL_EnableKeyRepeat(500, 100);
 					while (GS_SETTINGS == gamestate)
 					{
 						settings_updateScreen();
@@ -359,7 +321,7 @@ void initialize(void)
 	if (TTF_Init() < 0)
 		exit(ERROR_TTFINIT);
 	atexit(finalize);
-	screen_scaled = SDL_SetVideoMode(SCREEN_WIDTH * screenscale, SCREEN_HEIGHT * screenscale, SCREEN_BPP, SDL_HWSURFACE | SDL_DOUBLEBUF);
+	screen_scaled = SDL_SetVideoMode(SCREEN_WIDTH * screenscale, SCREEN_HEIGHT * screenscale, SCREEN_BPP, VIDEO_MODE_FLAGS);
 	if (screen_scaled == NULL)
 		exit(ERROR_SDLVIDEO);
 	screen = screenscale > 1 ? SDL_CreateRGBSurface(SDL_SWSURFACE, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BPP, 0, 0, 0, 0) : screen_scaled;
@@ -645,7 +607,7 @@ void ingame_updateScreen(void)
 	drawFigure(figures[0], x, y, 255, true, false, false);
 
 	// display the ghost figure
-	if (figures[0] != NULL && !ghostoff)
+	if (figures[0] != NULL && ghostalpha > 0)
 	{
 		int tfy = f_y;
 		while (!isFigureColliding())
@@ -656,7 +618,7 @@ void ingame_updateScreen(void)
 		{
 			x = BOARD_X_OFFSET + BLOCK_SIZE * f_x;
 			y = BOARD_Y_OFFSET + BLOCK_SIZE * (f_y - INVISIBLE_ROW_COUNT);
-			drawFigure(figures[0], x, y, 64, true, false, false);
+			drawFigure(figures[0], x, y, ghostalpha, true, false, false);
 		}
 		f_y = tfy;
 	}
@@ -1272,4 +1234,18 @@ void rotateFigureCCW(void)
 	rotateFigureCW();
 	rotateFigureCW();
 	rotateFigureCW();
+}
+
+void incMod(int *var, int limit, bool sat)
+{
+	if (sat && *var == limit - 1)
+		return;
+	*var = (*var + 1) % limit;
+}
+
+void decMod(int *var, int limit, bool sat)
+{
+	if (sat && *var == 0)
+		return;
+	*var = (*var + limit - 1) % limit;
 }

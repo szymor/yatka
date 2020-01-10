@@ -42,7 +42,7 @@ static const char settings_text[][32] = {
 	"  debris color              %s",
 	"  easy spin                 %s",
 	"  fixed lock delay          %s",
-	"  ghost                     %s",
+	"  ghost opacity             %d",
 	"  statistics mode           %s",
 	"  no of next tetrominoes    %d",
 	"  tetromino randomizer      %s",
@@ -50,10 +50,6 @@ static const char settings_text[][32] = {
 };
 
 static char *generateSettingLine(char *buff, int pos);
-static void selectNextSetting(void);
-static void selectPreviousSetting(void);
-static void increaseNextBlocks(void);
-static void decreaseNextBlocks(void);
 
 void settings_updateScreen(void)
 {
@@ -105,11 +101,11 @@ void settings_processInputEvents(void)
 				{
 					case SDLK_UP:
 					{
-						selectPreviousSetting();
+						decMod(&settings_pos, SL_END, false);
 					} break;
 					case SDLK_DOWN:
 					{
-						selectNextSetting();
+						incMod(&settings_pos, SL_END, false);
 					} break;
 					case SDLK_LEFT:
 					{
@@ -117,7 +113,7 @@ void settings_processInputEvents(void)
 						{
 							case SL_TRACK_SELECT:
 							{
-								selectPreviousTrack();
+								decMod(&current_track, MUSIC_TRACK_NUM, false);
 								Mix_PlayMusic(music[current_track], 1);
 							} break;
 							case SL_MUSIC_VOL:
@@ -160,7 +156,7 @@ void settings_processInputEvents(void)
 							} break;
 							case SL_GHOST:
 							{
-								ghostoff = !ghostoff;
+								decMod(&ghostalpha, 256, true);
 								settings_changed = true;
 							} break;
 							case SL_STATISTICS:
@@ -170,12 +166,13 @@ void settings_processInputEvents(void)
 							} break;
 							case SL_NEXT_NUMBER:
 							{
-								decreaseNextBlocks();
+								decMod(&nextblocks, MAX_NEXTBLOCKS + 1, true);
+								redraw_bg = true;
 								settings_changed = true;
 							} break;
 							case SL_RANDOMIZER:
 							{
-								selectPreviousRandomizer();
+								decMod((int*)&randomalgo, RA_END, false);
 								settings_changed = true;
 							} break;
 							case SL_DEBUG:
@@ -193,7 +190,7 @@ void settings_processInputEvents(void)
 						{
 							case SL_TRACK_SELECT:
 							{
-								selectNextTrack();
+								incMod(&current_track, MUSIC_TRACK_NUM, false);
 								Mix_PlayMusic(music[current_track], 1);
 							} break;
 							case SL_MUSIC_VOL:
@@ -234,7 +231,7 @@ void settings_processInputEvents(void)
 							} break;
 							case SL_GHOST:
 							{
-								ghostoff = !ghostoff;
+								incMod(&ghostalpha, 256, true);
 								settings_changed = true;
 							} break;
 							case SL_STATISTICS:
@@ -244,12 +241,13 @@ void settings_processInputEvents(void)
 							} break;
 							case SL_NEXT_NUMBER:
 							{
-								increaseNextBlocks();
+								incMod(&nextblocks, MAX_NEXTBLOCKS + 1, true);
+								redraw_bg = true;
 								settings_changed = true;
 							} break;
 							case SL_RANDOMIZER:
 							{
-								selectNextRandomizer();
+								incMod((int*)&randomalgo, RA_END, false);
 								settings_changed = true;
 							} break;
 							case SL_DEBUG:
@@ -323,7 +321,7 @@ static char *generateSettingLine(char *buff, int pos)
 		} break;
 		case SL_GHOST:
 		{
-			sprintf(buff, settings_text[pos], ghostoff ? "off" : "on");
+			sprintf(buff, settings_text[pos], ghostalpha);
 		} break;
 		case SL_STATISTICS:
 		{
@@ -349,30 +347,4 @@ static char *generateSettingLine(char *buff, int pos)
 		buff[0] = '>';
 
 	return buff;
-}
-
-static void selectNextSetting(void)
-{
-	settings_pos = (settings_pos + 1) % SL_END;
-}
-
-static void selectPreviousSetting(void)
-{
-	settings_pos = (settings_pos + SL_END - 1) % SL_END;
-}
-
-static void increaseNextBlocks(void)
-{
-	++nextblocks;
-	if (nextblocks > MAX_NEXTBLOCKS)
-		nextblocks = MAX_NEXTBLOCKS;
-	redraw_bg = true;
-}
-
-static void decreaseNextBlocks(void)
-{
-	--nextblocks;
-	if (nextblocks < 0)
-		nextblocks = 0;
-	redraw_bg = true;
 }

@@ -13,16 +13,6 @@ static char *rng_strings[] = {
 	"8bag"
 };
 
-void selectNextRandomizer(void)
-{
-	randomalgo = (randomalgo + 1) % RA_END;
-}
-
-void selectPreviousRandomizer(void)
-{
-	randomalgo = (randomalgo + RA_END - 1) % RA_END;
-}
-
 enum FigureId getNextId(void)
 {
 	switch (randomalgo)

@@ -69,8 +69,10 @@ void loadSettings(void)
 			holdoff = true;
 		else if (!strcmp(buff, "grayblocks"))
 			grayblocks = true;
-		else if (!strcmp(buff, "ghostoff"))
-			ghostoff = true;
+		else if (!strcmp(buff, "ghostalpha"))
+		{
+			fscanf(settingsFile, "%d", &ghostalpha);
+		}
 		else if (!strcmp(buff, "startlevel"))
 		{
 			fscanf(settingsFile, "%d", &startlevel);
@@ -122,10 +124,9 @@ void saveSettings(void)
 		fprintf(settingsFile, "holdoff\n");
 	if (grayblocks)
 		fprintf(settingsFile, "grayblocks\n");
-	if (ghostoff)
-		fprintf(settingsFile, "ghostoff\n");
 	if (debug)
 		fprintf(settingsFile, "debug\n");
+	fprintf(settingsFile, "ghostalpha %d\n", ghostalpha);
 	fprintf(settingsFile, "startlevel %d\n", startlevel);
 	fprintf(settingsFile, "nextblocks %d\n", nextblocks);
 	fprintf(settingsFile, "rng %s\n", getRandomizerString());

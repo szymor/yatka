@@ -47,23 +47,13 @@ void deinitSound(void)
 	Mix_Quit();
 }
 
-void selectNextTrack(void)
-{
-	current_track = (current_track + 1) % MUSIC_TRACK_NUM;
-}
-
-void selectPreviousTrack(void)
-{
-	current_track = (current_track + MUSIC_TRACK_NUM - 1) % MUSIC_TRACK_NUM;
-}
-
 void trackFinished(void)
 {
 	if (GS_GAMEOVER != gamestate)
 	{
 		if (!repeattrack)
 		{
-			selectNextTrack();
+			incMod(&current_track, MUSIC_TRACK_NUM, false);
 		}
 		Mix_PlayMusic(music[current_track], 1);
 

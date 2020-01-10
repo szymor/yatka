@@ -11,8 +11,10 @@
 
 #ifdef _BITTBOY
 #define SCREEN_BPP			16
+#define VIDEO_MODE_FLAGS	SDL_SWSURFACE
 #else
 #define SCREEN_BPP			32
+#define VIDEO_MODE_FLAGS	(SDL_HWSURFACE | SDL_DOUBLEBUF)
 #endif
 
 extern SDL_Surface *screen;

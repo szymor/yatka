@@ -72,6 +72,8 @@ enum Skin
 };
 
 SDL_Surface *initBackground(void);
+void incMod(int *var, int limit, bool sat);
+void decMod(int *var, int limit, bool sat);
 
 extern enum GameState gamestate;
 
@@ -79,7 +81,6 @@ extern bool nosound;
 extern bool randomcolors;
 extern bool holdoff;
 extern bool grayblocks;
-extern bool ghostoff;
 extern bool debug;
 extern bool repeattrack;
 extern bool numericbars;
@@ -87,6 +88,7 @@ extern bool easyspin;
 extern bool lockdelay;
 extern bool smoothanim;
 
+extern int ghostalpha;
 extern int startlevel;
 extern int nextblocks;
 extern enum Skin skin;

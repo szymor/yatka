@@ -11,8 +11,6 @@ extern Mix_Chunk *clr;
 
 void initSound(void);
 void deinitSound(void);
-void selectNextTrack(void);
-void selectPreviousTrack(void);
 void trackFinished(void);
 
 #endif
