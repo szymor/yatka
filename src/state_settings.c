@@ -119,10 +119,11 @@ void settings_processInputEvents(void)
 							case SL_MUSIC_VOL:
 							{
 								int vol = Mix_VolumeMusic(-1);
-								vol -= 10;
+								vol -= 1;
 								if (vol < 0)
 									vol = 0;
 								Mix_VolumeMusic(vol);
+								settings_changed = true;
 							} break;
 							case SL_MUSIC_REPEAT:
 							{
@@ -196,8 +197,9 @@ void settings_processInputEvents(void)
 							case SL_MUSIC_VOL:
 							{
 								int vol = Mix_VolumeMusic(-1);
-								vol += 10;
+								vol += 1;
 								Mix_VolumeMusic(vol);
+								settings_changed = true;
 							} break;
 							case SL_MUSIC_REPEAT:
 							{

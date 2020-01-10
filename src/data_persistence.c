@@ -1,7 +1,10 @@
 
 #include <stdio.h>
 
+#include <SDL/SDL_mixer.h>
+
 #include "main.h"
+#include "sound.h"
 #include "video.h"
 #include "data_persistence.h"
 #include "randomizer.h"
@@ -69,6 +72,10 @@ void loadSettings(void)
 			holdoff = true;
 		else if (!strcmp(buff, "grayblocks"))
 			grayblocks = true;
+		else if (!strcmp(buff, "musicvol"))
+		{
+			fscanf(settingsFile, "%d", &initmusvol);
+		}
 		else if (!strcmp(buff, "ghostalpha"))
 		{
 			fscanf(settingsFile, "%d", &ghostalpha);
@@ -92,14 +99,14 @@ void loadSettings(void)
 				randomalgo = RA_8BAG;
 		}
 	}
-	
+
 	fclose(settingsFile);
 }
 
 void saveSettings(void)
 {
 	FILE *settingsFile = fopen(SETTINGS_PATH, "w");
-	
+
 	if (nosound)
 		fprintf(settingsFile, "nosound\n");
 	if (smoothanim)
@@ -126,10 +133,12 @@ void saveSettings(void)
 		fprintf(settingsFile, "grayblocks\n");
 	if (debug)
 		fprintf(settingsFile, "debug\n");
+	if (!nosound)
+		fprintf(settingsFile, "musicvol %d\n", Mix_VolumeMusic(-1));
 	fprintf(settingsFile, "ghostalpha %d\n", ghostalpha);
 	fprintf(settingsFile, "startlevel %d\n", startlevel);
 	fprintf(settingsFile, "nextblocks %d\n", nextblocks);
 	fprintf(settingsFile, "rng %s\n", getRandomizerString());
-	
+
 	fclose(settingsFile);
 }

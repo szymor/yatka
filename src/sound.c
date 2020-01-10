@@ -5,6 +5,7 @@
 #include "sound.h"
 #include "main.h"
 
+int initmusvol = MIX_MAX_VOLUME / 2;
 Mix_Music *music[MUSIC_TRACK_NUM];
 int current_track = 0;
 Mix_Chunk *hit = NULL;
@@ -39,7 +40,7 @@ void initSound(void)
 	current_track = 0;
 	Mix_FadeInMusic(music[current_track], 1, MUSIC_FADE_TIME);
 	Mix_HookMusicFinished(trackFinished);
-	Mix_VolumeMusic(MIX_MAX_VOLUME / 2);
+	Mix_VolumeMusic(initmusvol);
 }
 
 void deinitSound(void)
