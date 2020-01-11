@@ -50,8 +50,6 @@ void loadSettings(void)
 			nosound = true;
 		else if (!strcmp(buff, "smoothanim"))
 			smoothanim = true;
-		else if (!strcmp(buff, "randomcolors"))
-			randomcolors = true;
 		else if (!strcmp(buff, "easyspin"))
 			easyspin = true;
 		else if (!strcmp(buff, "lockdelay"))
@@ -79,6 +77,10 @@ void loadSettings(void)
 		else if (!strcmp(buff, "ghostalpha"))
 		{
 			fscanf(settingsFile, "%d", &ghostalpha);
+		}
+		else if (!strcmp(buff, "tetrominocolor"))
+		{
+			fscanf(settingsFile, "%d", &tetrominocolor);
 		}
 		else if (!strcmp(buff, "startlevel"))
 		{
@@ -111,8 +113,6 @@ void saveSettings(void)
 		fprintf(settingsFile, "nosound\n");
 	if (smoothanim)
 		fprintf(settingsFile, "smoothanim\n");
-	if (randomcolors)
-		fprintf(settingsFile, "randomcolors\n");
 	if (easyspin)
 		fprintf(settingsFile, "easyspin\n");
 	if (lockdelay)
@@ -136,6 +136,7 @@ void saveSettings(void)
 	if (!nosound)
 		fprintf(settingsFile, "musicvol %d\n", Mix_VolumeMusic(-1));
 	fprintf(settingsFile, "ghostalpha %d\n", ghostalpha);
+	fprintf(settingsFile, "tetrominocolor %d\n", tetrominocolor);
 	fprintf(settingsFile, "startlevel %d\n", startlevel);
 	fprintf(settingsFile, "nextblocks %d\n", nextblocks);
 	fprintf(settingsFile, "rng %s\n", getRandomizerString());

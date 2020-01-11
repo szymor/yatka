@@ -137,7 +137,7 @@ void settings_processInputEvents(void)
 							} break;
 							case SL_TETROMINO_COLOR:
 							{
-								randomcolors = !randomcolors;
+								decMod((int*)&tetrominocolor, TC_END, false);
 								settings_changed = true;
 							} break;
 							case SL_DEBRIS_COLOR:
@@ -213,7 +213,7 @@ void settings_processInputEvents(void)
 							} break;
 							case SL_TETROMINO_COLOR:
 							{
-								randomcolors = !randomcolors;
+								incMod((int*)&tetrominocolor, TC_END, false);
 								settings_changed = true;
 							} break;
 							case SL_DEBRIS_COLOR:
@@ -307,7 +307,12 @@ static char *generateSettingLine(char *buff, int pos)
 		} break;
 		case SL_TETROMINO_COLOR:
 		{
-			sprintf(buff, settings_text[pos], randomcolors ? "random" : "piecewise");
+			static char *tc_strings[] = {
+				"random",
+				"piecewise",
+				"gray"
+			};
+			sprintf(buff, settings_text[pos], tc_strings[tetrominocolor]);
 		} break;
 		case SL_DEBRIS_COLOR:
 		{

@@ -57,10 +57,9 @@ enum FigureId *board = NULL;
 struct Figure *figures[FIG_NUM];
 int f_x, f_y;			// coordinates of the active figure
 struct Shape f_shape;	// shape of the active figure
-int statistics[FIGID_END];
+int statistics[FIGID_GRAY];
 
 bool nosound = false;
-bool randomcolors = false;
 bool holdoff = false;
 bool grayblocks = false;
 bool debug = false;
@@ -73,6 +72,7 @@ bool smoothanim = false;
 int startlevel = 0;
 int nextblocks = MAX_NEXTBLOCKS;
 int ghostalpha = 64;
+enum TetrominoColor tetrominocolor = TC_PIECEWISE;
 enum Skin skin = SKIN_LEGACY;
 
 enum GameState gamestate = GS_INGAME;
@@ -377,6 +377,8 @@ void initialize(void)
 	SDL_FillRect(colors[FIGID_L], NULL, SDL_MapRGB(colors[FIGID_L]->format, 255, 109, 247));
 	SDL_BlitSurface(gray, NULL, colors[FIGID_L], NULL);
 
+	colors[FIGID_GRAY] = gray;
+
 	if (!nosound)
 	{
 		initSound();
@@ -406,7 +408,7 @@ SDL_Surface *initBackground(void)
 	SDL_FreeSurface(ts);
 
 	// figures for statistics
-	for (int i = 0; i < FIGID_END; ++i)
+	for (int i = 0; i < FIGID_GRAY; ++i)
 		drawShape(bg, getShape(i), 6, 30 + i * 30, gray, 160, true, true);
 
 	// placeholders for next tetrominoes
@@ -645,7 +647,7 @@ void drawBars(void)
 		SDL_Rect rect;
 		char buff[256];
 
-		for (int i = 0; i < FIGID_END; ++i)
+		for (int i = 0; i < FIGID_GRAY; ++i)
 		{
 			sprintf(buff, "%d", statistics[i]);
 			text = TTF_RenderUTF8_Blended(arcade_font, buff, white);
@@ -657,7 +659,7 @@ void drawBars(void)
 	}
 	else
 	{
-		for (int i = 0; i < FIGID_END; ++i)
+		for (int i = 0; i < FIGID_GRAY; ++i)
 		{
 			drawBar(64, 38 + i * 30, statistics[i]);
 		}
@@ -1115,15 +1117,21 @@ const struct Shape* getShape(enum FigureId id)
 
 enum FigureId getNextColor(enum FigureId id)
 {
-	if (randomcolors)
-		return getRandomColor();
-	else
-		return id;
+	switch (tetrominocolor)
+	{
+		case TC_RANDOM:
+			return getRandomColor();
+		case TC_PIECEWISE:
+			return id;
+		case TC_GRAY:
+		default:
+			return FIGID_GRAY;
+	}
 }
 
 enum FigureId getRandomColor(void)
 {
-	return rand() % FIGID_END;
+	return rand() % FIGID_GRAY;
 }
 
 void getShapeDimensions(const struct Shape *shape, int *minx, int *maxx, int *miny, int *maxy)

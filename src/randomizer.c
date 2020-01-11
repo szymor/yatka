@@ -31,24 +31,24 @@ enum FigureId getNextId(void)
 
 static enum FigureId getRandomId(void)
 {
-	return rand() % FIGID_END;
+	return rand() % FIGID_GRAY;
 }
 
 static enum FigureId getRandom7BagId(void)
 {
-	static enum FigureId tab[FIGID_END];
-	static int pos = FIGID_END;
+	static enum FigureId tab[FIGID_GRAY];
+	static int pos = FIGID_GRAY;
 
-	if (pos >= FIGID_END)
+	if (pos >= FIGID_GRAY)
 	{
 		pos = 0;
-		for (int i = 0; i < FIGID_END; ++i)
+		for (int i = 0; i < FIGID_GRAY; ++i)
 			tab[i] = i;
 
 		for (int i = 0; i < 1000; ++i)
 		{
-			int one = rand() % FIGID_END;
-			int two = rand() % FIGID_END;
+			int one = rand() % FIGID_GRAY;
+			int two = rand() % FIGID_GRAY;
 			int temp = tab[one];
 			tab[one] = tab[two];
 			tab[two] = temp;
@@ -66,10 +66,10 @@ static enum FigureId getRandom8BagId(void)
 	if (pos >= MAX8BAGID)
 	{
 		pos = 0;
-		for (int i = 0; i < FIGID_END; ++i)
+		for (int i = 0; i < FIGID_GRAY; ++i)
 			tab[i] = i;
-		for (int i = FIGID_END; i < MAX8BAGID; ++i)
-			tab[i] = rand() % FIGID_END;
+		for (int i = FIGID_GRAY; i < MAX8BAGID; ++i)
+			tab[i] = rand() % FIGID_GRAY;
 
 		for (int i = 0; i < 1000; ++i)
 		{

@@ -60,7 +60,16 @@ enum FigureId
 	FIGID_Z,
 	FIGID_J,
 	FIGID_L,
+	FIGID_GRAY,
 	FIGID_END
+};
+
+enum TetrominoColor
+{
+	TC_RANDOM,
+	TC_PIECEWISE,
+	TC_GRAY,
+	TC_END
 };
 
 enum Skin
@@ -78,7 +87,6 @@ void decMod(int *var, int limit, bool sat);
 extern enum GameState gamestate;
 
 extern bool nosound;
-extern bool randomcolors;
 extern bool holdoff;
 extern bool grayblocks;
 extern bool debug;
@@ -88,6 +96,7 @@ extern bool easyspin;
 extern bool lockdelay;
 extern bool smoothanim;
 
+extern enum TetrominoColor tetrominocolor;
 extern int ghostalpha;
 extern int startlevel;
 extern int nextblocks;
