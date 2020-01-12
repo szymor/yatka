@@ -8,6 +8,8 @@ yet another tetris klone in action
 - arcade font by Yuji Adachi
 - in-game music by Vomitron
 
+Feel free to report errors.
+
 ### how to build (Ubuntu)
     apt update
     apt install libsdl-image1.2-dev libsdl-mixer1.2-dev libsdl-ttf2.0-dev libsdl1.2-dev
@@ -25,7 +27,14 @@ yet another tetris klone in action
 
 For more, please refer to the source code.
 
-### plans
-- better scoring (T-spins, combos, etc.)
-- better wall kick
-- better gfx (tetrominoes, animations, etc.)
+### ideas / plans
+- animated mascot (becchi?) evolving while playing
+- main menu
+- better support for PC (e.g. joystick support, fullscreen mode)
+- better score system (combos, T-spins)
+- advanced wall kick
+- rumble support for Bittboy
+- line clear animation (TGM?)
+- introducing fixed drop delay for left/right movements when easy spin mode is enabled
+- game save
+- ports for other platforms
