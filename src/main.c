@@ -35,26 +35,42 @@
 #define EASY_SPIN_DELAY				500
 #define EASY_SPIN_MAX_COUNT			16
 
-struct Figure
+enum BlockOrientation
 {
-	enum FigureId id;
-	enum FigureId colorid;
+	// proper coding allows to rotate blocks using shift operations
+	BO_EMPTY	= 0x00,
+	BO_UP		= 0x08,
+	BO_DOWN		= 0x02,
+	BO_LEFT		= 0x01,
+	BO_RIGHT	= 0x04,
+	BO_FULL		= 0x0f
+};
+
+struct Block
+{
+	enum FigureId color;
+	enum BlockOrientation orientation;
 };
 
 struct Shape
 {
-	int blockmap[FIG_DIM*FIG_DIM];
+	enum BlockOrientation blockmap[FIG_DIM*FIG_DIM];
 	int cx, cy;		// correction of position after CW rotation
 };
 
-enum BlockOrientation
+struct ShapeTemplate
 {
-	BO_FULL		= 0x00,
-	BO_UP		= 0x08,
-	BO_DOWN		= 0x04,
-	BO_LEFT		= 0x02,
-	BO_RIGHT	= 0x01,
-	BO_CROSS	= 0x0f,
+	int blockmap[FIG_DIM*FIG_DIM];
+	int cx, cy;
+};
+
+struct Figure
+{
+	enum FigureId id;
+	enum FigureId color;
+	struct Shape shape;
+	int x;
+	int y;
 };
 
 SDL_Surface *bg = NULL;
@@ -63,10 +79,8 @@ SDL_Surface *bg = NULL;
 SDL_Surface *legacy_colors[FIGID_END];
 SDL_Surface *plain_colors[FIGID_END];
 
-enum FigureId *board = NULL;
+struct Block *board = NULL;
 struct Figure *figures[FIG_NUM];
-int f_x, f_y;			// coordinates of the active figure
-struct Shape f_shape;	// shape of the active figure
 int statistics[FIGID_GRAY];
 
 bool nosound = false;
@@ -107,79 +121,70 @@ static bool left_move = false;
 static bool right_move = false;
 static Uint32 next_side_move_time;
 
-const struct Shape shape_O =
-{
-	.blockmap	= { 0, 0, 0, 0,
-					0, 1, 1, 0,
-					0, 1, 1, 0,
-					0, 0, 0, 0 },
-	.cx = 0,
-	.cy = 0
-};
-
-const struct Shape shape_L =
-{
-	.blockmap	= { 0, 0, 0, 0,
-					0, 0, 1, 0,
-					1, 1, 1, 0,
-					0, 0, 0, 0 },
-	.cx = 0,
-	.cy = 1
-};
-
-const struct Shape shape_J =
-{
-	.blockmap	= { 0, 0, 0, 0,
-					1, 0, 0, 0,
-					1, 1, 1, 0,
-					0, 0, 0, 0 },
-	.cx = 0,
-	.cy = 1
-};
-
-const struct Shape shape_S =
-{
-	.blockmap	= { 0, 0, 0, 0,
-					0, 1, 1, 0,
-					1, 1, 0, 0,
-					0, 0, 0, 0 },
-	.cx = 0,
-	.cy = 1
-};
-
-const struct Shape shape_Z =
-{
-	.blockmap	= { 0, 0, 0, 0,
-					1, 1, 0, 0,
-					0, 1, 1, 0,
-					0, 0, 0, 0 },
-	.cx = 0,
-	.cy = 1
-};
-
-const struct Shape shape_I =
-{
-	.blockmap	= { 0, 0, 0, 0,
-					0, 0, 0, 0,
-					1, 1, 1, 1,
-					0, 0, 0, 0 },
-	.cx = 0,
-	.cy = 0
-};
-
-const struct Shape shape_T =
-{
-	.blockmap	= { 0, 0, 0, 0,
-					0, 1, 0, 0,
-					1, 1, 1, 0,
-					0, 0, 0, 0 },
-	.cx = 0,
-	.cy = 1
+static struct Shape *shapes[FIGID_GRAY];
+static const struct ShapeTemplate templates[] = {
+	{	// I
+		.blockmap	= { 0, 0, 0, 0,
+						0, 0, 0, 0,
+						1, 1, 1, 1,
+						0, 0, 0, 0 },
+		.cx = 0,
+		.cy = 0
+	},
+	{	// O
+		.blockmap	= { 0, 0, 0, 0,
+						0, 1, 1, 0,
+						0, 1, 1, 0,
+						0, 0, 0, 0 },
+		.cx = 0,
+		.cy = 0
+	},
+	{	// T
+		.blockmap	= { 0, 0, 0, 0,
+						0, 1, 0, 0,
+						1, 1, 1, 0,
+						0, 0, 0, 0 },
+		.cx = 0,
+		.cy = 1
+	},
+	{	// S
+		.blockmap	= { 0, 0, 0, 0,
+						0, 1, 1, 0,
+						1, 1, 0, 0,
+						0, 0, 0, 0 },
+		.cx = 0,
+		.cy = 1
+	},
+	{	// Z
+		.blockmap	= { 0, 0, 0, 0,
+						1, 1, 0, 0,
+						0, 1, 1, 0,
+						0, 0, 0, 0 },
+		.cx = 0,
+		.cy = 1
+	},
+	{	// J
+		.blockmap	= { 0, 0, 0, 0,
+						1, 0, 0, 0,
+						1, 1, 1, 0,
+						0, 0, 0, 0 },
+		.cx = 0,
+		.cy = 1
+	},
+	{	// L
+		.blockmap	= { 0, 0, 0, 0,
+						0, 0, 1, 0,
+						1, 1, 1, 0,
+						0, 0, 0, 0 },
+		.cx = 0,
+		.cy = 1
+	}
 };
 
 void initialize(void);
 void finalize(void);
 SDL_Surface *initBackground(void);
+struct Shape *generateFromTemplate(const struct ShapeTemplate *template);
 
 void markDrop(void);
 Uint32 getNextDropTime(void);
@@ -211,7 +216,7 @@ void drawFigure(const struct Figure *fig, int x, int y, Uint8 alpha, bool active
 void drawShape(SDL_Surface *target, const struct Shape *sh, int x, int y, enum FigureId color, Uint8 alpha, bool centerx, bool centery);
 void spawnFigure(void);
 struct Figure *getNextFigure(void);
-const struct Shape* getShape(enum FigureId id);
+struct Shape* getShape(enum FigureId id);
 enum FigureId getNextColor(enum FigureId id);
 enum FigureId getRandomColor(void);
 void getShapeDimensions(const struct Shape *shape, int *minx, int *maxx, int *miny, int *maxy);
@@ -251,65 +256,65 @@ int main(int argc, char *argv[])
 	markDrop();
 	while (1)
 	{
-			switch (gamestate)
-			{
-				case GS_INGAME:
-					SDL_EnableKeyRepeat(0, 0);
-					while (GS_INGAME == gamestate)
+		switch (gamestate)
+		{
+			case GS_INGAME:
+				SDL_EnableKeyRepeat(0, 0);
+				while (GS_INGAME == gamestate)
+				{
+					if (!frameLimiter() || debug)
 					{
-						if (!frameLimiter() || debug)
-						{
-							ingame_processInputEvents();
-							ingame_updateScreen();
-							softDropTimeCounter();
+						ingame_processInputEvents();
+						ingame_updateScreen();
+						softDropTimeCounter();
 
-							Uint32 ct = SDL_GetTicks();
-							if (ct > getNextDropTime())
+						Uint32 ct = SDL_GetTicks();
+						if (ct > getNextDropTime())
+						{
+							dropSoft();
+						}
+						if (next_lock_time && ct > next_lock_time)
+						{
+							++figures[0]->y;
+							if (isFigureColliding())
 							{
-								dropSoft();
+								--figures[0]->y;
+								lockFigure();
 							}
-							if (next_lock_time && ct > next_lock_time)
+							else
+								next_lock_time = 0;
+						}
+						if (ct > next_side_move_time)
+						{
+							if (left_move && !right_move)
 							{
-								++f_y;
-								if (isFigureColliding())
-								{
-									--f_y;
-									lockFigure();
-								}
-								else
-									next_lock_time = 0;
+								moveLeft();
 							}
-							if (ct > next_side_move_time)
+							else if (right_move && !left_move)
 							{
-								if (left_move && !right_move)
-								{
-									moveLeft();
-								}
-								else if (right_move && !left_move)
-								{
-									moveRight();
-								}
+								moveRight();
 							}
 						}
 					}
-					saveLastGameScreen();
-					break;
-				case GS_SETTINGS:
-					SDL_EnableKeyRepeat(500, 100);
-					while (GS_SETTINGS == gamestate)
-					{
-						settings_updateScreen();
-						settings_processInputEvents();
-					}
-					break;
-				case GS_GAMEOVER:
-					gameover_updateScreen();
-					while (GS_GAMEOVER == gamestate)
-					{
-						gameover_processInputEvents();
-					}
-					break;
-			}
+				}
+				saveLastGameScreen();
+				break;
+			case GS_SETTINGS:
+				SDL_EnableKeyRepeat(500, 100);
+				while (GS_SETTINGS == gamestate)
+				{
+					settings_updateScreen();
+					settings_processInputEvents();
+				}
+				break;
+			case GS_GAMEOVER:
+				gameover_updateScreen();
+				while (GS_GAMEOVER == gamestate)
+				{
+					gameover_processInputEvents();
+				}
+				break;
+		}
 	}
 	return 0;
 }
@@ -361,8 +366,6 @@ void initialize(void)
 	plain_colors[FIGID_GRAY] = SDL_DisplayFormat(ts);
 	SDL_FreeSurface(ts);
 
-	initBackground();
-
 	SDL_PixelFormat *f = screen->format;
 	SDL_SetAlpha(legacy_colors[FIGID_GRAY], SDL_SRCALPHA, 128);
 	SDL_SetAlpha(plain_colors[FIGID_GRAY], SDL_SRCALPHA, 128);
@@ -380,11 +383,11 @@ void initialize(void)
 	// tetromino dyeing
 	for (int i = 0; i < FIGID_GRAY; ++i)
 	{
-		legacy_colors[i] = SDL_CreateRGBSurface(0, BLOCK_SIZE, BLOCK_SIZE, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
+		legacy_colors[i] = SDL_CreateRGBSurface(0, legacy_colors[FIGID_GRAY]->w, legacy_colors[FIGID_GRAY]->h, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
 		SDL_FillRect(legacy_colors[i], NULL, rgb[i]);
 		SDL_BlitSurface(legacy_colors[FIGID_GRAY], NULL, legacy_colors[i], NULL);
 
-		plain_colors[i] = SDL_CreateRGBSurface(0, BLOCK_SIZE, BLOCK_SIZE, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
+		plain_colors[i] = SDL_CreateRGBSurface(0, plain_colors[FIGID_GRAY]->w, plain_colors[FIGID_GRAY]->h, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
 		SDL_FillRect(plain_colors[i], NULL, rgb[i]);
 		SDL_BlitSurface(plain_colors[FIGID_GRAY], NULL, plain_colors[i], NULL);
 	}
@@ -394,14 +397,27 @@ void initialize(void)
 		initSound();
 	}
 
-	board = malloc(sizeof(int)*BOARD_WIDTH*BOARD_HEIGHT);
+	// shape init
+	for (int i = 0; i < FIGID_GRAY; ++i)
+	{
+		shapes[i] = generateFromTemplate(&templates[i]);
+	}
+
+	// board init
+	board = malloc(sizeof(struct Block)*BOARD_WIDTH*BOARD_HEIGHT);
 	for (int i = 0; i < (BOARD_WIDTH*BOARD_HEIGHT); ++i)
-		board[i] = FIGID_END;
+	{
+		board[i].color = FIGID_END;
+		board[i].orientation = BO_EMPTY;
+	}
+
 	srand((unsigned)time(NULL));
 	lines = 0;
 	level = startlevel;
 	setDropRate(level);
+
 	initFigures();
+	initBackground();
 }
 
 SDL_Surface *initBackground(void)
@@ -463,6 +479,57 @@ void finalize(void)
 		free(figures[i]);
 }
 
+struct Shape *generateFromTemplate(const struct ShapeTemplate *template)
+{
+	struct Shape *sh = malloc(sizeof(struct Shape));
+	if (!sh)
+		return NULL;
+
+	sh->cx = template->cx;
+	sh->cy = template->cy;
+	for (int i = 0; i < FIG_DIM * FIG_DIM; ++i)
+	{
+		if (template->blockmap[i])
+		{
+			int x = i % FIG_DIM;
+			int y = i / FIG_DIM;
+			int p;
+			sh->blockmap[i] = BO_EMPTY;
+
+			--y;
+			p = x + y * FIG_DIM;
+			if (p >= 0 && (p < FIG_DIM * FIG_DIM) && template->blockmap[p])
+				sh->blockmap[i] |= BO_UP;
+			++y;
+
+			++y;
+			p = x + y * FIG_DIM;
+			if (p >= 0 && (p < FIG_DIM * FIG_DIM) && template->blockmap[p])
+				sh->blockmap[i] |= BO_DOWN;
+			--y;
+
+			--x;
+			p = x + y * FIG_DIM;
+			if (p >= 0 && (p < FIG_DIM * FIG_DIM) && template->blockmap[p])
+				sh->blockmap[i] |= BO_LEFT;
+			++x;
+
+			++x;
+			p = x + y * FIG_DIM;
+			if (p >= 0 && (p < FIG_DIM * FIG_DIM) && template->blockmap[p])
+				sh->blockmap[i] |= BO_RIGHT;
+			--x;
+
+			if (sh->blockmap[i] == BO_EMPTY)
+				sh->blockmap[i] = BO_FULL;
+		}
+		else
+			sh->blockmap[i] = BO_EMPTY;
+	}
+
+	return sh;
+}
+
 void markDrop(void)
 {
 	last_drop_time = SDL_GetTicks();
@@ -507,22 +574,28 @@ void softDropTimeCounter(void)
 
 void moveLeft(void)
 {
-	--f_x;
-	if (isFigureColliding())
-		++f_x;
-	screenFlagUpdate(true);
+	if (figures[0] != NULL)
+	{
+		--figures[0]->x;
+		if (isFigureColliding())
+			++figures[0]->x;
+		screenFlagUpdate(true);
 
-	next_side_move_time = SDL_GetTicks() + SIDE_MOVE_DELAY;
+		next_side_move_time = SDL_GetTicks() + SIDE_MOVE_DELAY;
+	}
 }
 
 void moveRight(void)
 {
-	++f_x;
-	if (isFigureColliding())
-		--f_x;
-	screenFlagUpdate(true);
+	if (figures[0] != NULL)
+	{
+		++figures[0]->x;
+		if (isFigureColliding())
+			--figures[0]->x;
+		screenFlagUpdate(true);
 
-	next_side_move_time = SDL_GetTicks() + SIDE_MOVE_DELAY;
+		next_side_move_time = SDL_GetTicks() + SIDE_MOVE_DELAY;
+	}
 }
 
 void drawFigure(const struct Figure *fig, int x, int y, Uint8 alpha, bool active, bool centerx, bool centery)
@@ -531,11 +604,11 @@ void drawFigure(const struct Figure *fig, int x, int y, Uint8 alpha, bool active
 	{
 		const struct Shape *shape = NULL;
 		if (active)
-			shape = &f_shape;
+			shape = &figures[0]->shape;
 		else
 			shape = getShape(fig->id);
 
-		drawShape(screen, shape, x, y, fig->colorid, alpha, centerx, centery);
+		drawShape(screen, shape, x, y, fig->color, alpha, centerx, centery);
 	}
 }
 
@@ -543,10 +616,6 @@ void drawShape(SDL_Surface *target, const struct Shape *sh, int x, int y, enum F
 {
 	int offset_x = 0, offset_y = 0;
 	SDL_Rect srcrect;
-
-	SDL_Surface *block = getBlock(color, 0, &srcrect);
-
-	SDL_SetAlpha(block, SDL_SRCALPHA, alpha);
 
 	if (centerx || centery)
 	{
@@ -570,7 +639,10 @@ void drawShape(SDL_Surface *target, const struct Shape *sh, int x, int y, enum F
 		rect.x = (i % FIG_DIM) * BLOCK_SIZE + x + offset_x;
 		rect.y = (i / FIG_DIM) * BLOCK_SIZE + y + offset_y;
 
-		if (sh->blockmap[i] == 1)
+		SDL_Surface *block = getBlock(color, sh->blockmap[i], &srcrect);
+		SDL_SetAlpha(block, SDL_SRCALPHA, alpha);
+
+		if (sh->blockmap[i])
 			SDL_BlitSurface(block, &srcrect, target, &rect);
 	}
 }
@@ -604,48 +676,51 @@ void ingame_updateScreen(void)
 	{
 		rect.x = (i % BOARD_WIDTH) * BLOCK_SIZE + BOARD_X_OFFSET;
 		rect.y = (i / BOARD_WIDTH - INVISIBLE_ROW_COUNT) * BLOCK_SIZE + BOARD_Y_OFFSET;
-		if (board[i] < FIGID_END)
+		if (board[i].orientation != BO_EMPTY)
 		{
 			SDL_Rect srcrect;
-			SDL_Surface *block = grayblocks ? getBlock(FIGID_GRAY, 0, &srcrect) : getBlock(board[i], 0, &srcrect);
+			SDL_Surface *block = grayblocks ? getBlock(FIGID_GRAY, board[i].orientation, &srcrect) : getBlock(board[i].color, board[i].orientation, &srcrect);
 			SDL_SetAlpha(block, SDL_SRCALPHA, 255);
 			SDL_BlitSurface(block, &srcrect, screen, &rect);
 		}
 	}
 
 	// display the active figure
-	int x = BOARD_X_OFFSET + BLOCK_SIZE * f_x;
-	int y = BOARD_Y_OFFSET + BLOCK_SIZE * (f_y - INVISIBLE_ROW_COUNT);
-	if (smoothanim)
+	if (figures[0] != NULL)
 	{
-		Uint32 ct = SDL_GetTicks();
-		double fraction = (double)(ct - last_drop_time) / (getNextDropTime() - last_drop_time);
-		int new_delta = BLOCK_SIZE * fraction - BLOCK_SIZE;
-		if (new_delta > draw_delta_drop)
+		int x = BOARD_X_OFFSET + BLOCK_SIZE * figures[0]->x;
+		int y = BOARD_Y_OFFSET + BLOCK_SIZE * (figures[0]->y - INVISIBLE_ROW_COUNT);
+		if (smoothanim)
 		{
-			draw_delta_drop = new_delta;
-			if (draw_delta_drop > 0)
-				draw_delta_drop = 0;
+			Uint32 ct = SDL_GetTicks();
+			double fraction = (double)(ct - last_drop_time) / (getNextDropTime() - last_drop_time);
+			int new_delta = BLOCK_SIZE * fraction - BLOCK_SIZE;
+			if (new_delta > draw_delta_drop)
+			{
+				draw_delta_drop = new_delta;
+				if (draw_delta_drop > 0)
+					draw_delta_drop = 0;
+			}
+			y += draw_delta_drop;
 		}
-		y += draw_delta_drop;
+		drawFigure(figures[0], x, y, 255, true, false, false);
 	}
-	drawFigure(figures[0], x, y, 255, true, false, false);
 
 	// display the ghost figure
 	if (figures[0] != NULL && ghostalpha > 0)
 	{
-		int tfy = f_y;
+		int tfy = figures[0]->y;
 		while (!isFigureColliding())
-			++f_y;
-		if (tfy != f_y)
-			--f_y;
-		if ((f_y - tfy) >= FIG_DIM)
+			++figures[0]->y;
+		if (tfy != figures[0]->y)
+			--figures[0]->y;
+		if ((figures[0]->y - tfy) >= FIG_DIM)
 		{
-			x = BOARD_X_OFFSET + BLOCK_SIZE * f_x;
-			y = BOARD_Y_OFFSET + BLOCK_SIZE * (f_y - INVISIBLE_ROW_COUNT);
+			int x = BOARD_X_OFFSET + BLOCK_SIZE * figures[0]->x;
+			int y = BOARD_Y_OFFSET + BLOCK_SIZE * (figures[0]->y - INVISIBLE_ROW_COUNT);
 			drawFigure(figures[0], x, y, ghostalpha, true, false, false);
 		}
-		f_y = tfy;
+		figures[0]->y = tfy;
 	}
 
 	flipScreenScaled();
@@ -843,10 +918,10 @@ void dropSoft(void)
 	}
 	else
 	{
-		++f_y;
+		++figures[0]->y;
 		if (isFigureColliding())
 		{
-			--f_y;
+			--figures[0]->y;
 			onCollide();
 		}
 		else
@@ -860,8 +935,8 @@ void dropHard(void)
 	if (figures[0] != NULL)
 	{
 		while (!isFigureColliding())
-			++f_y;
-		--f_y;
+			++figures[0]->y;
+		--figures[0]->y;
 		onCollide();
 		lockFigure();
 		onDrop();
@@ -874,12 +949,15 @@ void lockFigure(void)
 		return;
 
 	for (int i = 0; i < (FIG_DIM*FIG_DIM); ++i)
-		if (f_shape.blockmap[i] != 0)
+		if (figures[0]->shape.blockmap[i] != BO_EMPTY)
 		{
-			int x = i % FIG_DIM + f_x;
-			int y = i / FIG_DIM + f_y;
+			int x = i % FIG_DIM + figures[0]->x;
+			int y = i / FIG_DIM + figures[0]->y;
 			if ((x >= 0) && (x < BOARD_WIDTH) && (y >= 0) && (y < BOARD_HEIGHT))
-				board[y*BOARD_WIDTH + x] = figures[0]->colorid;
+			{
+				board[y*BOARD_WIDTH + x].color = figures[0]->color;
+				board[y*BOARD_WIDTH + x].orientation = figures[0]->shape.blockmap[i];
+			}
 		}
 
 	free(figures[0]);
@@ -908,10 +986,10 @@ void holdFigure(void)
 		*figures[1] = temp;
 		++statistics[figures[0]->id];
 
-		f_y = -FIG_DIM + 2;						// ...to gain a 'slide' effect from the top of screen
-		f_x = (BOARD_WIDTH - FIG_DIM) / 2;		// ...to center a figure
+		figures[0]->y = -FIG_DIM + 2;						// ...to gain a 'slide' effect from the top of screen
+		figures[0]->x = (BOARD_WIDTH - FIG_DIM) / 2;		// ...to center a figure
 
-		memcpy(&f_shape, getShape(figures[0]->id), sizeof(f_shape));
+		memcpy(&figures[0]->shape, getShape(figures[0]->id), sizeof(figures[0]->shape));
 
 		hold_ready = false;
 
@@ -929,7 +1007,7 @@ int removeFullLines(void)
 		bool flag = true;
 		for (int x = 0; x < BOARD_WIDTH; ++x)
 		{
-			if (board[y*BOARD_WIDTH + x] == FIGID_END)
+			if (board[y*BOARD_WIDTH + x].orientation == BO_EMPTY)
 			{
 				flag = false;
 				break;
@@ -983,14 +1061,14 @@ void ingame_processInputEvents(void)
 						rotateFigureCW();
 						if (isFigureColliding())
 						{
-							++f_x;
+							++figures[0]->x;
 							if (isFigureColliding())
 							{
-								f_x -= 2;
+								figures[0]->x -= 2;
 								if (isFigureColliding())
 								{
 									rotateFigureCCW();
-									++f_x;
+									++figures[0]->x;
 									success = false;
 								}
 							}
@@ -1012,14 +1090,14 @@ void ingame_processInputEvents(void)
 						rotateFigureCCW();
 						if (isFigureColliding())
 						{
-							++f_x;
+							++figures[0]->x;
 							if (isFigureColliding())
 							{
-								f_x -= 2;
+								figures[0]->x -= 2;
 								if (isFigureColliding())
 								{
 									rotateFigureCW();
-									++f_x;
+									++figures[0]->x;
 									success = false;
 								}
 							}
@@ -1074,7 +1152,7 @@ void ingame_processInputEvents(void)
 bool checkGameEnd(void)
 {
 	for (int i = 0; i < BOARD_WIDTH; ++i)
-		if (board[i] != FIGID_END)
+		if (board[i].orientation != BO_EMPTY)
 			return true;
 	return false;
 }
@@ -1086,12 +1164,12 @@ void spawnFigure(void)
 	for (int i = 0; i < FIG_NUM - 1; ++i)
 		figures[i] = figures[i+1];
 	figures[FIG_NUM - 1] = getNextFigure();
-	f_y = -FIG_DIM + 2;						// ...to gain a 'slide' effect from the top of screen
-	f_x = (BOARD_WIDTH - FIG_DIM) / 2;		// ...to center a figure
 
 	if (figures[0] != NULL)
 	{
-		memcpy(&f_shape, getShape(figures[0]->id), sizeof(f_shape));
+		figures[0]->y = -FIG_DIM + 2;						// ...to gain a 'slide' effect from the top of screen
+		figures[0]->x = (BOARD_WIDTH - FIG_DIM) / 2;		// ...to center a figure
+		memcpy(&figures[0]->shape, getShape(figures[0]->id), sizeof(figures[0]->shape));
 		++statistics[figures[0]->id];
 	}
 
@@ -1103,30 +1181,14 @@ struct Figure *getNextFigure(void)
 	struct Figure *f = malloc(sizeof(struct Figure));
 
 	f->id = getNextId();
-	f->colorid = getNextColor(f->id);
+	f->color = getNextColor(f->id);
 
 	return f;
 }
 
-const struct Shape* getShape(enum FigureId id)
+struct Shape* getShape(enum FigureId id)
 {
-	switch (id)
-	{
-		case FIGID_O:
-			return &shape_O;
-		case FIGID_L:
-			return &shape_L;
-		case FIGID_J:
-			return &shape_J;
-		case FIGID_S:
-			return &shape_S;
-		case FIGID_Z:
-			return &shape_Z;
-		case FIGID_I:
-			return &shape_I;
-		case FIGID_T:
-			return &shape_T;
-	}
+	return shapes[id];
 }
 
 enum FigureId getNextColor(enum FigureId id)
@@ -1157,7 +1219,7 @@ void getShapeDimensions(const struct Shape *shape, int *minx, int *maxx, int *mi
 	{
 		int x = i % FIG_DIM;
 		int y = i / FIG_DIM;
-		if (shape->blockmap[i])
+		if (shape->blockmap[i] != BO_EMPTY)
 		{
 			if (x < min_x)
 				min_x = x;
@@ -1188,7 +1250,7 @@ bool isFigureColliding(void)
 		{
 			i = 1;		// empty by default
 			for (int y = 0; y < FIG_DIM; ++y)
-				if (f_shape.blockmap[y*FIG_DIM + x] != 0)
+				if (figures[0]->shape.blockmap[y*FIG_DIM + x] != BO_EMPTY)
 				{
 					i = 0;
 					break;
@@ -1205,7 +1267,7 @@ bool isFigureColliding(void)
 		{
 			i = 1;		// empty by default
 			for (int y = 0; y < FIG_DIM; ++y )
-				if (f_shape.blockmap[y*FIG_DIM + x] != 0)
+				if (figures[0]->shape.blockmap[y*FIG_DIM + x] != BO_EMPTY)
 				{
 					i = 0;
 					break;
@@ -1222,7 +1284,7 @@ bool isFigureColliding(void)
 		{
 			i = 1;		// empty by default
 			for (int x = 0; x < FIG_DIM; ++x)
-				if (f_shape.blockmap[y*FIG_DIM + x] != 0)
+				if (figures[0]->shape.blockmap[y*FIG_DIM + x] != BO_EMPTY)
 				{
 					i = 0;
 					break;
@@ -1234,17 +1296,17 @@ bool isFigureColliding(void)
 		}
 
 		// proper collision checking
-		if ((f_x < -empty_columns_left) || (f_x > BOARD_WIDTH-FIG_DIM+empty_columns_right))
+		if ((figures[0]->x < -empty_columns_left) || (figures[0]->x > BOARD_WIDTH-FIG_DIM+empty_columns_right))
 			return true;
-		if (f_y > (BOARD_HEIGHT-FIG_DIM+empty_rows_down))
+		if (figures[0]->y > (BOARD_HEIGHT-FIG_DIM+empty_rows_down))
 			return true;
 		for (int i = 0; i < (FIG_DIM*FIG_DIM); ++i)
-			if (f_shape.blockmap[i] != 0)
+			if (figures[0]->shape.blockmap[i] != BO_EMPTY)
 			{
-				int x = i % FIG_DIM + f_x;
-				int y = i / FIG_DIM + f_y;
+				int x = i % FIG_DIM + figures[0]->x;
+				int y = i / FIG_DIM + figures[0]->y;
 				if (((y*BOARD_WIDTH + x) < (BOARD_WIDTH*BOARD_HEIGHT)) && ((y*BOARD_WIDTH + x) >= 0))
-					if ((board[y*BOARD_WIDTH + x] < FIGID_END) && (f_shape.blockmap[i] < FIGID_END))
+					if (board[y*BOARD_WIDTH + x].orientation != BO_EMPTY)
 						return true;
 			}
 	}
@@ -1255,20 +1317,22 @@ void rotateFigureCW(void)
 {
 	int temp[FIG_DIM*FIG_DIM];
 
-	memcpy(temp, f_shape.blockmap, sizeof(temp));
+	memcpy(temp, figures[0]->shape.blockmap, sizeof(temp));
 	for(int i = 0; i < FIG_DIM*FIG_DIM; ++i)
 	{
 		int x = i % FIG_DIM;
 		int y = i / FIG_DIM;
-		f_shape.blockmap[i] = temp[(FIG_DIM-1-x)*FIG_DIM + y];
+		figures[0]->shape.blockmap[i] = temp[(FIG_DIM-1-x)*FIG_DIM + y];
+		// block rotation
+		figures[0]->shape.blockmap[i] = ( ((figures[0]->shape.blockmap[i]) >> 1) | (((figures[0]->shape.blockmap[i]) & 1) << 3) );
 	}
 
-	f_x += f_shape.cx;
-	f_y += f_shape.cy;
+	figures[0]->x += figures[0]->shape.cx;
+	figures[0]->y += figures[0]->shape.cy;
 
-	int tcx = f_shape.cx;
-	f_shape.cx = -f_shape.cy;
-	f_shape.cy = tcx;
+	int tcx = figures[0]->shape.cx;
+	figures[0]->shape.cx = -figures[0]->shape.cy;
+	figures[0]->shape.cy = tcx;
 }
 
 void rotateFigureCCW(void)
@@ -1309,6 +1373,11 @@ SDL_Surface *getBlock(enum FigureId color, enum BlockOrientation orient, SDL_Rec
 			s = legacy_colors[color];
 			break;
 		case TS_PLAIN:
+			s = plain_colors[color];
+			break;
+		case TS_TENGENISH:
+			if (srcrect)
+				srcrect->x = orient * BLOCK_SIZE;
 			s = plain_colors[color];
 			break;
 		default:

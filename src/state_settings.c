@@ -145,6 +145,7 @@ void settings_processInputEvents(void)
 							case SL_TETROMINO_STYLE:
 							{
 								decMod((int*)&tetrominostyle, TS_END, false);
+								redraw_bg = true;
 								settings_changed = true;
 							} break;
 							case SL_DEBRIS_COLOR:
