@@ -72,12 +72,12 @@ enum TetrominoColor
 	TC_END
 };
 
-enum Skin
+enum TetrominoStyle
 {
-	SKIN_LEGACY,
-	SKIN_PLAIN,
-	SKIN_TENGENISH,
-	SKIN_END
+	TS_LEGACY,
+	TS_PLAIN,
+	TS_TENGENISH,
+	TS_END
 };
 
 SDL_Surface *initBackground(void);
@@ -100,6 +100,6 @@ extern enum TetrominoColor tetrominocolor;
 extern int ghostalpha;
 extern int startlevel;
 extern int nextblocks;
-extern enum Skin skin;
+extern enum TetrominoStyle tetrominostyle;
 
 #endif

@@ -82,6 +82,10 @@ void loadSettings(void)
 		{
 			fscanf(settingsFile, "%d", &tetrominocolor);
 		}
+		else if (!strcmp(buff, "tetrominostyle"))
+		{
+			fscanf(settingsFile, "%d", &tetrominostyle);
+		}
 		else if (!strcmp(buff, "startlevel"))
 		{
 			fscanf(settingsFile, "%d", &startlevel);
@@ -137,6 +141,7 @@ void saveSettings(void)
 		fprintf(settingsFile, "musicvol %d\n", Mix_VolumeMusic(-1));
 	fprintf(settingsFile, "ghostalpha %d\n", ghostalpha);
 	fprintf(settingsFile, "tetrominocolor %d\n", tetrominocolor);
+	fprintf(settingsFile, "tetrominostyle %d\n", tetrominostyle);
 	fprintf(settingsFile, "startlevel %d\n", startlevel);
 	fprintf(settingsFile, "nextblocks %d\n", nextblocks);
 	fprintf(settingsFile, "rng %s\n", getRandomizerString());

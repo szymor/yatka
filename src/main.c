@@ -47,11 +47,21 @@ struct Shape
 	int cx, cy;		// correction of position after CW rotation
 };
 
+enum BlockOrientation
+{
+	BO_FULL		= 0x00,
+	BO_UP		= 0x08,
+	BO_DOWN		= 0x04,
+	BO_LEFT		= 0x02,
+	BO_RIGHT	= 0x01,
+	BO_CROSS	= 0x0f,
+};
+
 SDL_Surface *bg = NULL;
 
 // sprites for blocks
-SDL_Surface *gray = NULL;
-SDL_Surface *colors[FIGID_END];
+SDL_Surface *legacy_colors[FIGID_END];
+SDL_Surface *plain_colors[FIGID_END];
 
 enum FigureId *board = NULL;
 struct Figure *figures[FIG_NUM];
@@ -73,7 +83,7 @@ int startlevel = 0;
 int nextblocks = MAX_NEXTBLOCKS;
 int ghostalpha = 64;
 enum TetrominoColor tetrominocolor = TC_PIECEWISE;
-enum Skin skin = SKIN_LEGACY;
+enum TetrominoStyle tetrominostyle = TS_LEGACY;
 
 enum GameState gamestate = GS_INGAME;
 static bool hold_ready = true;
@@ -198,7 +208,7 @@ void onGameOver(void);
 
 void initFigures(void);
 void drawFigure(const struct Figure *fig, int x, int y, Uint8 alpha, bool active, bool centerx, bool centery);
-void drawShape(SDL_Surface *target, const struct Shape *sh, int x, int y, SDL_Surface *block, Uint8 alpha, bool centerx, bool centery);
+void drawShape(SDL_Surface *target, const struct Shape *sh, int x, int y, enum FigureId color, Uint8 alpha, bool centerx, bool centery);
 void spawnFigure(void);
 struct Figure *getNextFigure(void);
 const struct Shape* getShape(enum FigureId id);
@@ -208,6 +218,7 @@ void getShapeDimensions(const struct Shape *shape, int *minx, int *maxx, int *mi
 bool isFigureColliding(void);
 void rotateFigureCW(void);
 void rotateFigureCCW(void);
+SDL_Surface *getBlock(enum FigureId color, enum BlockOrientation orient, SDL_Rect *srcrect);
 
 int main(int argc, char *argv[])
 {
@@ -338,46 +349,45 @@ void initialize(void)
 	if (arcade_font == NULL)
 		exit(ERROR_NOFONT);
 
-	ts = IMG_Load("gfx/block.png");
+	ts = IMG_Load("gfx/legacy.png");
 	if (ts == NULL)
 		exit(ERROR_NOIMGFILE);
-	gray = SDL_DisplayFormat(ts);
+	legacy_colors[FIGID_GRAY] = SDL_DisplayFormat(ts);
+	SDL_FreeSurface(ts);
+
+	ts = IMG_Load("gfx/plain.png");
+	if (ts == NULL)
+		exit(ERROR_NOIMGFILE);
+	plain_colors[FIGID_GRAY] = SDL_DisplayFormat(ts);
 	SDL_FreeSurface(ts);
 
 	initBackground();
 
 	SDL_PixelFormat *f = screen->format;
-	SDL_SetAlpha(gray, SDL_SRCALPHA, 128);
+	SDL_SetAlpha(legacy_colors[FIGID_GRAY], SDL_SRCALPHA, 128);
+	SDL_SetAlpha(plain_colors[FIGID_GRAY], SDL_SRCALPHA, 128);
 
-	colors[FIGID_I] = SDL_CreateRGBSurface(0, BLOCK_SIZE, BLOCK_SIZE, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
-	SDL_FillRect(colors[FIGID_I], NULL, SDL_MapRGB(colors[FIGID_I]->format, 215, 64, 0));
-	SDL_BlitSurface(gray, NULL, colors[FIGID_I], NULL);
+	Uint32 rgb[] = {
+		SDL_MapRGB(f, 215, 64, 0),
+		SDL_MapRGB(f, 59, 52, 255),
+		SDL_MapRGB(f, 115, 121, 0),
+		SDL_MapRGB(f, 0, 132, 96),
+		SDL_MapRGB(f, 75, 160, 255),
+		SDL_MapRGB(f, 255, 174, 10),
+		SDL_MapRGB(f, 255, 109, 247)
+	};
 
-	colors[FIGID_T] = SDL_CreateRGBSurface(0, BLOCK_SIZE, BLOCK_SIZE, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
-	SDL_FillRect(colors[FIGID_T], NULL, SDL_MapRGB(colors[FIGID_T]->format, 115, 121, 0));
-	SDL_BlitSurface(gray, NULL, colors[FIGID_T], NULL);
+	// tetromino dyeing
+	for (int i = 0; i < FIGID_GRAY; ++i)
+	{
+		legacy_colors[i] = SDL_CreateRGBSurface(0, BLOCK_SIZE, BLOCK_SIZE, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
+		SDL_FillRect(legacy_colors[i], NULL, rgb[i]);
+		SDL_BlitSurface(legacy_colors[FIGID_GRAY], NULL, legacy_colors[i], NULL);
 
-	colors[FIGID_O] = SDL_CreateRGBSurface(0, BLOCK_SIZE, BLOCK_SIZE, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
-	SDL_FillRect(colors[FIGID_O], NULL, SDL_MapRGB(colors[FIGID_O]->format, 59, 52, 255));
-	SDL_BlitSurface(gray, NULL, colors[FIGID_O], NULL);
-
-	colors[FIGID_S] = SDL_CreateRGBSurface(0, BLOCK_SIZE, BLOCK_SIZE, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
-	SDL_FillRect(colors[FIGID_S], NULL, SDL_MapRGB(colors[FIGID_S]->format, 0, 132, 96));
-	SDL_BlitSurface(gray, NULL, colors[FIGID_S], NULL);
-
-	colors[FIGID_Z] = SDL_CreateRGBSurface(0, BLOCK_SIZE, BLOCK_SIZE, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
-	SDL_FillRect(colors[FIGID_Z], NULL, SDL_MapRGB(colors[FIGID_Z]->format, 75, 160, 255));
-	SDL_BlitSurface(gray, NULL, colors[FIGID_Z], NULL);
-
-	colors[FIGID_J] = SDL_CreateRGBSurface(0, BLOCK_SIZE, BLOCK_SIZE, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
-	SDL_FillRect(colors[FIGID_J], NULL, SDL_MapRGB(colors[FIGID_J]->format, 255, 174, 10));
-	SDL_BlitSurface(gray, NULL, colors[FIGID_J], NULL);
-
-	colors[FIGID_L] = SDL_CreateRGBSurface(0, BLOCK_SIZE, BLOCK_SIZE, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
-	SDL_FillRect(colors[FIGID_L], NULL, SDL_MapRGB(colors[FIGID_L]->format, 255, 109, 247));
-	SDL_BlitSurface(gray, NULL, colors[FIGID_L], NULL);
-
-	colors[FIGID_GRAY] = gray;
+		plain_colors[i] = SDL_CreateRGBSurface(0, BLOCK_SIZE, BLOCK_SIZE, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
+		SDL_FillRect(plain_colors[i], NULL, rgb[i]);
+		SDL_BlitSurface(plain_colors[FIGID_GRAY], NULL, plain_colors[i], NULL);
+	}
 
 	if (!nosound)
 	{
@@ -409,7 +419,7 @@ SDL_Surface *initBackground(void)
 
 	// figures for statistics
 	for (int i = 0; i < FIGID_GRAY; ++i)
-		drawShape(bg, getShape(i), 6, 30 + i * 30, gray, 160, true, true);
+		drawShape(bg, getShape(i), 6, 30 + i * 30, FIGID_GRAY, 160, true, true);
 
 	// placeholders for next tetrominoes
 	SDL_Surface *ph = SDL_CreateRGBSurface(0, 48, 24, bg->format->BitsPerPixel, bg->format->Rmask, bg->format->Gmask, bg->format->Bmask, 0);
@@ -525,13 +535,16 @@ void drawFigure(const struct Figure *fig, int x, int y, Uint8 alpha, bool active
 		else
 			shape = getShape(fig->id);
 
-		drawShape(screen, shape, x, y, colors[fig->colorid], alpha, centerx, centery);
+		drawShape(screen, shape, x, y, fig->colorid, alpha, centerx, centery);
 	}
 }
 
-void drawShape(SDL_Surface *target, const struct Shape *sh, int x, int y, SDL_Surface *block, Uint8 alpha, bool centerx, bool centery)
+void drawShape(SDL_Surface *target, const struct Shape *sh, int x, int y, enum FigureId color, Uint8 alpha, bool centerx, bool centery)
 {
 	int offset_x = 0, offset_y = 0;
+	SDL_Rect srcrect;
+
+	SDL_Surface *block = getBlock(color, 0, &srcrect);
 
 	SDL_SetAlpha(block, SDL_SRCALPHA, alpha);
 
@@ -558,7 +571,7 @@ void drawShape(SDL_Surface *target, const struct Shape *sh, int x, int y, SDL_Su
 		rect.y = (i / FIG_DIM) * BLOCK_SIZE + y + offset_y;
 
 		if (sh->blockmap[i] == 1)
-			SDL_BlitSurface(block, NULL, target, &rect);
+			SDL_BlitSurface(block, &srcrect, target, &rect);
 	}
 }
 
@@ -593,9 +606,10 @@ void ingame_updateScreen(void)
 		rect.y = (i / BOARD_WIDTH - INVISIBLE_ROW_COUNT) * BLOCK_SIZE + BOARD_Y_OFFSET;
 		if (board[i] < FIGID_END)
 		{
-			SDL_Surface *block = grayblocks ? gray : colors[board[i]];
+			SDL_Rect srcrect;
+			SDL_Surface *block = grayblocks ? getBlock(FIGID_GRAY, 0, &srcrect) : getBlock(board[i], 0, &srcrect);
 			SDL_SetAlpha(block, SDL_SRCALPHA, 255);
-			SDL_BlitSurface(block, NULL, screen, &rect);
+			SDL_BlitSurface(block, &srcrect, screen, &rect);
 		}
 	}
 
@@ -1276,4 +1290,30 @@ void decMod(int *var, int limit, bool sat)
 	if (sat && *var == 0)
 		return;
 	*var = (*var + limit - 1) % limit;
+}
+
+SDL_Surface *getBlock(enum FigureId color, enum BlockOrientation orient, SDL_Rect *srcrect)
+{
+	if (srcrect)
+	{
+		srcrect->x = 0;
+		srcrect->y = 0;
+		srcrect->w = BLOCK_SIZE;
+		srcrect->h = BLOCK_SIZE;
+	}
+
+	SDL_Surface *s = NULL;
+	switch (tetrominostyle)
+	{
+		case TS_LEGACY:
+			s = legacy_colors[color];
+			break;
+		case TS_PLAIN:
+			s = plain_colors[color];
+			break;
+		default:
+			s = NULL;
+	}
+
+	return s;
 }
