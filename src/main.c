@@ -1340,22 +1340,25 @@ void rotateFigureCW(void)
 {
 	int temp[FIG_DIM*FIG_DIM];
 
-	memcpy(temp, figures[0]->shape.blockmap, sizeof(temp));
-	for(int i = 0; i < FIG_DIM*FIG_DIM; ++i)
+	if (figures[0] != NULL)
 	{
-		int x = i % FIG_DIM;
-		int y = i / FIG_DIM;
-		figures[0]->shape.blockmap[i] = temp[(FIG_DIM-1-x)*FIG_DIM + y];
-		// block rotation
-		figures[0]->shape.blockmap[i] = ( ((figures[0]->shape.blockmap[i]) >> 1) | (((figures[0]->shape.blockmap[i]) & 1) << 3) );
+		memcpy(temp, figures[0]->shape.blockmap, sizeof(temp));
+		for(int i = 0; i < FIG_DIM*FIG_DIM; ++i)
+		{
+			int x = i % FIG_DIM;
+			int y = i / FIG_DIM;
+			figures[0]->shape.blockmap[i] = temp[(FIG_DIM-1-x)*FIG_DIM + y];
+			// block rotation
+			figures[0]->shape.blockmap[i] = ( ((figures[0]->shape.blockmap[i]) >> 1) | (((figures[0]->shape.blockmap[i]) & 1) << 3) );
+		}
+
+		figures[0]->x += figures[0]->shape.cx;
+		figures[0]->y += figures[0]->shape.cy;
+
+		int tcx = figures[0]->shape.cx;
+		figures[0]->shape.cx = -figures[0]->shape.cy;
+		figures[0]->shape.cy = tcx;
 	}
-
-	figures[0]->x += figures[0]->shape.cx;
-	figures[0]->y += figures[0]->shape.cy;
-
-	int tcx = figures[0]->shape.cx;
-	figures[0]->shape.cx = -figures[0]->shape.cy;
-	figures[0]->shape.cy = tcx;
 }
 
 void rotateFigureCCW(void)
