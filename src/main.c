@@ -1013,14 +1013,37 @@ int removeFullLines(void)
 				break;
 			}
 		}
-		// removing
 		if (flag)
 		{
+			// removing
 			++lines;
 			++removed_lines;
 			for (int ys = y-1; ys >= 0; --ys)
 				for (int x = 0; x < BOARD_WIDTH; ++x)
-					board[(ys+1)*BOARD_WIDTH + x] = board[ys*BOARD_WIDTH + x];
+					board[(ys + 1) * BOARD_WIDTH + x] = board[ys * BOARD_WIDTH + x];
+
+			// adjusting orientation
+			for (int x = 0; x < BOARD_WIDTH; ++x)
+			{
+				enum BlockOrientation *bo = NULL;
+				bo = &board[y * BOARD_WIDTH + x].orientation;
+				if (*bo != BO_EMPTY && *bo != BO_FULL)
+				{
+					*bo &= ~BO_DOWN;
+					if (*bo == BO_EMPTY)
+						*bo = BO_FULL;
+				}
+				if (y + 1 < BOARD_HEIGHT)
+				{
+					bo = &board[(y + 1) * BOARD_WIDTH + x].orientation;
+					if (*bo != BO_EMPTY && *bo != BO_FULL)
+					{
+						*bo &= ~BO_UP;
+						if (*bo == BO_EMPTY)
+							*bo = BO_FULL;
+					}
+				}
+			}
 		}
 	}
 
@@ -1373,11 +1396,13 @@ SDL_Surface *getBlock(enum FigureId color, enum BlockOrientation orient, SDL_Rec
 			s = legacy_colors[color];
 			break;
 		case TS_PLAIN:
+			if (srcrect)
+				srcrect->x = BO_FULL * BLOCK_SIZE - BLOCK_SIZE;
 			s = plain_colors[color];
 			break;
 		case TS_TENGENISH:
 			if (srcrect)
-				srcrect->x = orient * BLOCK_SIZE;
+				srcrect->x = orient * BLOCK_SIZE - BLOCK_SIZE;
 			s = plain_colors[color];
 			break;
 		default:
