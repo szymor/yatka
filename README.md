@@ -38,3 +38,7 @@ For more, please refer to the source code.
 - introducing fixed drop delay for left/right movements when easy spin mode is enabled
 - game save
 - ports for other platforms
+- introducing max speed level
+- customizable starting debris
+- customizable starting level from main menu
+- selectable direction of rotation for main and auxiliary rotation buttons
