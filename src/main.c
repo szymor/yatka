@@ -1103,6 +1103,7 @@ void ingame_processInputEvents(void)
 								markDrop();
 								easyspin_pressed = true;
 								++easyspin_counter;
+								next_lock_time = 0;
 							}
 							screenFlagUpdate(true);
 						}
@@ -1132,6 +1133,7 @@ void ingame_processInputEvents(void)
 								markDrop();
 								easyspin_pressed = true;
 								++easyspin_counter;
+								next_lock_time = 0;
 							}
 							screenFlagUpdate(true);
 						}
