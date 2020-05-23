@@ -45,7 +45,10 @@ void initSound(void)
 
 void deinitSound(void)
 {
-	Mix_Quit();
+	/* calling Mix_Quit() causes segmentation fault
+	 * at SDL audio subsystem quit.
+	 */
+	// Mix_Quit();
 }
 
 void trackFinished(void)
