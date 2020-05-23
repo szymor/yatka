@@ -774,7 +774,7 @@ void drawBar(int x, int y, int value)
 	Uint32 col;
 	SDL_Rect rect;
 	int ar = (value / (BAR_WIDTH + 1)) * alpha_step + alpha_start;
-	int al = ar + alpha_step + alpha_start;
+	int al = ar + alpha_step;
 	ar = ar > 255 ? 255 : ar;
 	al = al > 255 ? 255 : al;
 	alpha_l = (Uint8)al;
