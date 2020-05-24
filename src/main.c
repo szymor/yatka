@@ -418,7 +418,7 @@ void initialize(void)
 	initFigures();
 	initBackground();
 	mainmenu_init();
-	
+
 	resetGame();
 }
 
@@ -1163,6 +1163,11 @@ void ingame_processInputEvents(void)
 						break;
 					case KEY_QUIT:
 						gamestate = GS_MAINMENU;
+						if (hiscore > old_hiscore)
+						{
+							saveHiscore(hiscore);
+							old_hiscore = hiscore;
+						}
 						break;
 				}
 				break;
@@ -1434,7 +1439,7 @@ void resetGame(void)
 	{
 		spawnFigure();
 	}
-	
+
 	for (int i = 0; i < FIGID_GRAY; ++i)
 	{
 		statistics[i] = 0;
