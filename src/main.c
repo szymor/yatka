@@ -12,6 +12,7 @@
 #include "data_persistence.h"
 #include "video.h"
 #include "sound.h"
+#include "state_mainmenu.h"
 #include "state_gameover.h"
 #include "state_settings.h"
 #include "randomizer.h"
@@ -99,7 +100,7 @@ int ghostalpha = 64;
 enum TetrominoColor tetrominocolor = TC_PIECEWISE;
 enum TetrominoStyle tetrominostyle = TS_LEGACY;
 
-enum GameState gamestate = GS_INGAME;
+enum GameState gamestate = GS_MAINMENU;
 static bool hold_ready = true;
 
 static int lines = 0, hiscore = 0, old_hiscore, score = 0, level = 0;
@@ -197,6 +198,7 @@ void moveRight(void);
 void ingame_processInputEvents(void);
 void ingame_updateScreen(void);
 
+void resetGame(void);
 void dropSoft(void);
 void dropHard(void);
 void lockFigure(void);
@@ -258,8 +260,18 @@ int main(int argc, char *argv[])
 	{
 		switch (gamestate)
 		{
+			case GS_MAINMENU:
+				SDL_EnableKeyRepeat(500, 100);
+				letMusicFinish();
+				while (GS_MAINMENU == gamestate)
+				{
+					mainmenu_updateScreen();
+					mainmenu_processInputEvents();
+				}
+				break;
 			case GS_INGAME:
 				SDL_EnableKeyRepeat(0, 0);
+				playMusic();
 				while (GS_INGAME == gamestate)
 				{
 					if (!frameLimiter() || debug)
@@ -324,10 +336,6 @@ void initFigures(void)
 	for (int i = 0; i < FIG_NUM; ++i)
 	{
 		figures[i] = NULL;
-	}
-	for (int i = 0; i < FIG_NUM; ++i)
-	{
-		spawnFigure();
 	}
 }
 
@@ -403,21 +411,15 @@ void initialize(void)
 		shapes[i] = generateFromTemplate(&templates[i]);
 	}
 
-	// board init
 	board = malloc(sizeof(struct Block)*BOARD_WIDTH*BOARD_HEIGHT);
-	for (int i = 0; i < (BOARD_WIDTH*BOARD_HEIGHT); ++i)
-	{
-		board[i].color = FIGID_END;
-		board[i].orientation = BO_EMPTY;
-	}
 
 	srand((unsigned)time(NULL));
-	lines = 0;
-	level = startlevel;
-	setDropRate(level);
 
 	initFigures();
 	initBackground();
+	mainmenu_init();
+	
+	resetGame();
 }
 
 SDL_Surface *initBackground(void)
@@ -906,7 +908,7 @@ void onLineClear(int removed)
 
 void onGameOver(void)
 {
-	Mix_FadeOutMusic(MUSIC_FADE_TIME);
+	stopMusic();
 	gamestate = GS_GAMEOVER;
 }
 
@@ -1160,11 +1162,7 @@ void ingame_processInputEvents(void)
 						gamestate = GS_SETTINGS;
 						break;
 					case KEY_QUIT:
-						{
-							SDL_Event ev;
-							ev.type = SDL_QUIT;
-							SDL_PushEvent(&ev);
-						}
+						gamestate = GS_MAINMENU;
 						break;
 				}
 				break;
@@ -1415,4 +1413,30 @@ SDL_Surface *getBlock(enum FigureId color, enum BlockOrientation orient, SDL_Rec
 	}
 
 	return s;
+}
+
+void resetGame(void)
+{
+	for (int i = 0; i < (BOARD_WIDTH*BOARD_HEIGHT); ++i)
+	{
+		board[i].color = FIGID_END;
+		board[i].orientation = BO_EMPTY;
+	}
+
+	lines = 0;
+	level = startlevel;
+	setDropRate(level);
+	score = 0;
+	cleared_count = 0;
+	tetris_count = 0;
+
+	for (int i = 0; i < FIG_NUM; ++i)
+	{
+		spawnFigure();
+	}
+	
+	for (int i = 0; i < FIGID_GRAY; ++i)
+	{
+		statistics[i] = 0;
+	}
 }

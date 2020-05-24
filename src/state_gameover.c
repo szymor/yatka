@@ -44,11 +44,7 @@ void gameover_processInputEvents(void)
 				switch (event.key.keysym.sym)
 				{
 					case KEY_QUIT:
-						{
-							SDL_Event ev;
-							ev.type = SDL_QUIT;
-							SDL_PushEvent(&ev);
-						}
+						gamestate = GS_MAINMENU;
 						break;
 				}
 				break;

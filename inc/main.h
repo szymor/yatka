@@ -45,6 +45,7 @@ enum Error
 
 enum GameState
 {
+	GS_MAINMENU,
 	GS_INGAME,
 	GS_SETTINGS,
 	GS_GAMEOVER,
@@ -101,5 +102,7 @@ extern int ghostalpha;
 extern int startlevel;
 extern int nextblocks;
 extern enum TetrominoStyle tetrominostyle;
+
+void resetGame(void);
 
 #endif

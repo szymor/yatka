@@ -38,8 +38,6 @@ void initSound(void)
 		exit(ERROR_NOSNDFILE);
 
 	current_track = 0;
-	Mix_FadeInMusic(music[current_track], 1, MUSIC_FADE_TIME);
-	Mix_HookMusicFinished(trackFinished);
 	Mix_VolumeMusic(initmusvol);
 }
 
@@ -53,7 +51,7 @@ void deinitSound(void)
 
 void trackFinished(void)
 {
-	if (GS_GAMEOVER != gamestate)
+	if (GS_GAMEOVER != gamestate && GS_MAINMENU != gamestate)
 	{
 		if (!repeattrack)
 		{
@@ -70,4 +68,21 @@ void trackFinished(void)
 		event.user.data2 = 0;
 		SDL_PushEvent(&event);
 	}
+}
+
+void playMusic(void)
+{
+	Mix_HookMusicFinished(trackFinished);
+	if (!Mix_PlayingMusic())
+		Mix_FadeInMusic(music[current_track], 1, MUSIC_FADE_TIME);
+}
+
+void stopMusic(void)
+{
+	Mix_FadeOutMusic(MUSIC_FADE_TIME);
+}
+
+void letMusicFinish(void)
+{
+	Mix_HookMusicFinished(NULL);
 }

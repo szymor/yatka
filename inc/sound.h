@@ -13,5 +13,8 @@ extern Mix_Chunk *clr;
 void initSound(void);
 void deinitSound(void);
 void trackFinished(void);
+void playMusic(void);
+void stopMusic(void);
+void letMusicFinish(void);
 
 #endif

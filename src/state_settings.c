@@ -276,11 +276,8 @@ void settings_processInputEvents(void)
 						}
 					} break;
 					case KEY_QUIT:
-					{
-						SDL_Event ev;
-						ev.type = SDL_QUIT;
-						SDL_PushEvent(&ev);
-					} break;
+						gamestate = GS_MAINMENU;
+						break;
 					case KEY_PAUSE:
 						gamestate = GS_INGAME;
 						if (redraw_bg)
