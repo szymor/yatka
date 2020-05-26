@@ -38,7 +38,7 @@
 
 enum BlockOrientation
 {
-	// proper coding allows to rotate blocks using shift operations
+	// proper encoding allows to rotate blocks using shift operations
 	BO_EMPTY	= 0x00,
 	BO_UP		= 0x08,
 	BO_DOWN		= 0x02,
@@ -1434,6 +1434,8 @@ void resetGame(void)
 	score = 0;
 	cleared_count = 0;
 	tetris_count = 0;
+	left_move = false;
+	right_move = false;
 
 	for (int i = 0; i < FIG_NUM; ++i)
 	{

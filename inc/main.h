@@ -22,7 +22,7 @@
 #define KEY_ROTATE_CW		SDLK_UP
 #define KEY_ROTATE_CCW		SDLK_z
 #define KEY_HOLD			SDLK_c
-#define KEY_PAUSE			SDLK_p
+#define KEY_PAUSE			SDLK_RETURN
 #define KEY_QUIT			SDLK_ESCAPE
 #endif
 
