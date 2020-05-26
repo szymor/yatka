@@ -99,7 +99,6 @@ extern bool smoothanim;
 
 extern enum TetrominoColor tetrominocolor;
 extern int ghostalpha;
-extern int startlevel;
 extern int nextblocks;
 extern enum TetrominoStyle tetrominostyle;
 

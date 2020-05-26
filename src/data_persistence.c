@@ -4,6 +4,7 @@
 #include <SDL/SDL_mixer.h>
 
 #include "main.h"
+#include "state_mainmenu.h"
 #include "sound.h"
 #include "video.h"
 #include "data_persistence.h"
@@ -86,10 +87,6 @@ void loadSettings(void)
 		{
 			fscanf(settingsFile, "%d", &tetrominostyle);
 		}
-		else if (!strcmp(buff, "startlevel"))
-		{
-			fscanf(settingsFile, "%d", &startlevel);
-		}
 		else if (!strcmp(buff, "nextblocks"))
 		{
 			fscanf(settingsFile, "%d", &nextblocks);
@@ -142,7 +139,6 @@ void saveSettings(void)
 	fprintf(settingsFile, "ghostalpha %d\n", ghostalpha);
 	fprintf(settingsFile, "tetrominocolor %d\n", tetrominocolor);
 	fprintf(settingsFile, "tetrominostyle %d\n", tetrominostyle);
-	fprintf(settingsFile, "startlevel %d\n", startlevel);
 	fprintf(settingsFile, "nextblocks %d\n", nextblocks);
 	fprintf(settingsFile, "rng %s\n", getRandomizerString());
 

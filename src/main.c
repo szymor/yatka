@@ -36,6 +36,8 @@
 #define EASY_SPIN_DELAY				500
 #define EASY_SPIN_MAX_COUNT			16
 
+#define START_DROP_RATE				2.00
+
 enum BlockOrientation
 {
 	// proper encoding allows to rotate blocks using shift operations
@@ -94,7 +96,6 @@ bool easyspin = false;
 bool lockdelay = false;
 bool smoothanim = false;
 
-int startlevel = 0;
 int nextblocks = MAX_NEXTBLOCKS;
 int ghostalpha = 64;
 enum TetrominoColor tetrominocolor = TC_PIECEWISE;
@@ -103,11 +104,11 @@ enum TetrominoStyle tetrominostyle = TS_LEGACY;
 enum GameState gamestate = GS_MAINMENU;
 static bool hold_ready = true;
 
-static int lines = 0, hiscore = 0, old_hiscore, score = 0, level = 0;
-static int cleared_count = 0;
+static int lines = 0, lines_level_up = 0, level = 0;
+static int hiscore = 0, old_hiscore = 0, score = 0;
 static int tetris_count = 0;
 
-static double drop_rate = 2.00;
+static double drop_rate = START_DROP_RATE;
 static const double drop_rate_ratio_per_level = 1.20;
 static Uint32 last_drop_time;
 static bool easyspin_pressed = false;
@@ -248,7 +249,7 @@ int main(int argc, char *argv[])
 		else if (!strcmp(argv[i],"--startlevel"))
 		{
 			++i;
-			startlevel = atoi(argv[i]);
+			menu_level = atoi(argv[i]);
 		}
 		else
 			printf("Unrecognized parameter: %s\n", argv[i]);
@@ -550,6 +551,7 @@ Uint32 getNextDropTime(void)
 
 void setDropRate(int level)
 {
+	drop_rate = START_DROP_RATE;
 	if (level < 0)
 		return;
 	while (level--)
@@ -836,8 +838,8 @@ void drawStatus(int x, int y)
 
 	rect.y += FONT_SIZE;
 	int ttr;
-	if (cleared_count)
-		ttr = 4 * tetris_count * 100 / cleared_count;
+	if (lines != 0)
+		ttr = 4 * tetris_count * 100 / lines;
 	else
 		ttr = 0;
 	sprintf(buff, "Tetris: %d%%", ttr);
@@ -875,7 +877,8 @@ void onCollide(void)
 
 void onLineClear(int removed)
 {
-	cleared_count += removed;
+	lines += removed;
+	lines_level_up += removed;
 
 	switch (removed)
 	{
@@ -896,12 +899,13 @@ void onLineClear(int removed)
 	if (score > hiscore)
 		hiscore = score;
 
-	int oldlevel = level;
-	level = startlevel + lines / 30;
-	if (level != oldlevel)
+	int levelup = lines_level_up / 30;
+	level += levelup;
+	if (levelup)
 	{
 		drop_rate *= drop_rate_ratio_per_level;
 	}
+	lines_level_up %= 30;
 
 	Mix_PlayChannel(-1, clr, 0);
 }
@@ -1018,7 +1022,6 @@ int removeFullLines(void)
 		if (flag)
 		{
 			// removing
-			++lines;
 			++removed_lines;
 			for (int ys = y-1; ys >= 0; --ys)
 				for (int x = 0; x < BOARD_WIDTH; ++x)
@@ -1429,10 +1432,10 @@ void resetGame(void)
 	}
 
 	lines = 0;
-	level = startlevel;
+	lines_level_up = 0;
+	level = menu_level;
 	setDropRate(level);
 	score = 0;
-	cleared_count = 0;
 	tetris_count = 0;
 	left_move = false;
 	right_move = false;
