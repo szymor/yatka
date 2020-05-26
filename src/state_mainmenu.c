@@ -105,25 +105,33 @@ void mainmenu_processInputEvents(void)
 					case SDLK_RIGHT:
 					{
 						int *option = NULL;
+						int limit = 10;
 						switch (submenu_index)
 						{
 							case 0: option = &menu_speed; break;
 							case 1: option = &menu_level; break;
-							case 2: option = &menu_debris; break;
+							case 2:
+								option = &menu_debris;
+								limit = 16;
+								break;
 						}
-						incMod(option, 10, true);
+						incMod(option, limit, true);
 					} break;
 					case SDLK_DOWN:
 					case SDLK_LEFT:
 					{
 						int *option = NULL;
+						int limit = 10;
 						switch (submenu_index)
 						{
 							case 0: option = &menu_speed; break;
 							case 1: option = &menu_level; break;
-							case 2: option = &menu_debris; break;
+							case 2:
+								option = &menu_debris;
+								limit = 16;
+								break;
 						}
-						decMod(option, 10, true);
+						decMod(option, limit, true);
 					} break;
 					case KEY_PAUSE:
 					{

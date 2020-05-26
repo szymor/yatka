@@ -1446,4 +1446,16 @@ void resetGame(void)
 	{
 		statistics[i] = 0;
 	}
+
+	// debris
+	for (int i = 0; i < (BOARD_WIDTH * BOARD_HEIGHT); ++i)
+	{
+		int y = i / BOARD_WIDTH;
+		y = BOARD_HEIGHT - INVISIBLE_ROW_COUNT - y;
+		if ((y < menu_debris) && ((rand() % 128) < 96))
+		{
+			board[i].color = FIGID_GRAY;
+			board[i].orientation = BO_FULL;
+		}
+	}
 }
