@@ -11,9 +11,9 @@
 
 #define ROUND_CORNER	(15)
 
-int menu_speed = 0;
 int menu_level = 0;
 int menu_debris = 0;
+int menu_debris_chance = 8;
 
 static SDL_Surface *menubg = NULL;
 static int submenu_index = 0;
@@ -37,7 +37,7 @@ void mainmenu_updateScreen(void)
 	SDL_Rect rect;
 	char buff[256];
 
-	sprintf(buff, "SPEED");
+	sprintf(buff, "LEVEL");
 	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
 	rect.x = 165 + ROUND_CORNER;
 	rect.y = 10 + ROUND_CORNER;
@@ -45,16 +45,16 @@ void mainmenu_updateScreen(void)
 	SDL_FreeSurface(text);
 
 	if (0 == submenu_index)
-		sprintf(buff, "< %d >", menu_speed);
+		sprintf(buff, "< %d >", menu_level);
 	else
-		sprintf(buff, "  %d  ", menu_speed);
+		sprintf(buff, "  %d  ", menu_level);
 	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
 	rect.x = 165 + 145/2 - text->w/2;
 	rect.y = 10 + 105/2 - text->h/2;
 	SDL_BlitSurface(text, NULL, screen, &rect);
 	SDL_FreeSurface(text);
 
-	sprintf(buff, "LEVEL");
+	sprintf(buff, "DEBRIS");
 	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
 	rect.x = 165 + ROUND_CORNER;
 	rect.y = 125 + ROUND_CORNER;
@@ -62,16 +62,16 @@ void mainmenu_updateScreen(void)
 	SDL_FreeSurface(text);
 
 	if (1 == submenu_index)
-		sprintf(buff, "< %d >", menu_level);
+		sprintf(buff, "< %d >", menu_debris);
 	else
-		sprintf(buff, "  %d  ", menu_level);
+		sprintf(buff, "  %d  ", menu_debris);
 	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
 	rect.x = 165 + 145/2 - text->w/2;
 	rect.y = 125 + 105/2 - text->h/2;
 	SDL_BlitSurface(text, NULL, screen, &rect);
 	SDL_FreeSurface(text);
 
-	sprintf(buff, "DEBRIS");
+	sprintf(buff, "DEBRIS CHANCE");
 	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
 	rect.x = 10 + ROUND_CORNER;
 	rect.y = 125 + ROUND_CORNER;
@@ -79,9 +79,9 @@ void mainmenu_updateScreen(void)
 	SDL_FreeSurface(text);
 
 	if (2 == submenu_index)
-		sprintf(buff, "< %d >", menu_debris);
+		sprintf(buff, "< %d >", menu_debris_chance);
 	else
-		sprintf(buff, "  %d  ", menu_debris);
+		sprintf(buff, "  %d  ", menu_debris_chance);
 	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
 	rect.x = 10 + 145/2 - text->w/2;
 	rect.y = 125 + 105/2 - text->h/2;
@@ -108,12 +108,12 @@ void mainmenu_processInputEvents(void)
 						int limit = 10;
 						switch (submenu_index)
 						{
-							case 0: option = &menu_speed; break;
-							case 1: option = &menu_level; break;
-							case 2:
+							case 0: option = &menu_level; break;
+							case 1:
 								option = &menu_debris;
 								limit = 16;
 								break;
+							case 2: option = &menu_debris_chance; break;
 						}
 						incMod(option, limit, true);
 					} break;
@@ -124,12 +124,12 @@ void mainmenu_processInputEvents(void)
 						int limit = 10;
 						switch (submenu_index)
 						{
-							case 0: option = &menu_speed; break;
-							case 1: option = &menu_level; break;
-							case 2:
+							case 0: option = &menu_level; break;
+							case 1:
 								option = &menu_debris;
 								limit = 16;
 								break;
+							case 2: option = &menu_debris_chance; break;
 						}
 						decMod(option, limit, true);
 					} break;

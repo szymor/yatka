@@ -1452,10 +1452,12 @@ void resetGame(void)
 	{
 		int y = i / BOARD_WIDTH;
 		y = BOARD_HEIGHT - INVISIBLE_ROW_COUNT - y;
-		if ((y < menu_debris) && ((rand() % 128) < 96))
+		if ((y < menu_debris) && ((rand() % 128) < (menu_debris_chance * 128 / 10)))
 		{
 			board[i].color = FIGID_GRAY;
 			board[i].orientation = BO_FULL;
 		}
 	}
+
+	// to do - fix drop rate
 }
