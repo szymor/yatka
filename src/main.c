@@ -1451,16 +1451,30 @@ void resetGame(void)
 	}
 
 	// debris
+	int filled = 0;
 	for (int i = 0; i < (BOARD_WIDTH * BOARD_HEIGHT); ++i)
 	{
 		int y = i / BOARD_WIDTH;
+		int x = i % BOARD_WIDTH;
+
 		y = BOARD_HEIGHT - INVISIBLE_ROW_COUNT - y;
 		if ((y < menu_debris) && ((rand() % 128) < (menu_debris_chance * 128 / 10)))
 		{
 			board[i].color = FIGID_GRAY;
 			board[i].orientation = BO_FULL;
+			++filled;
+		}
+
+		if ((BOARD_WIDTH - 1) == x)
+		{
+			if (BOARD_WIDTH == filled)
+			{
+				int ind = rand() % BOARD_WIDTH;
+				ind = i - ind;
+				board[ind].color = FIGID_END;
+				board[ind].orientation = BO_EMPTY;
+			}
+			filled = 0;
 		}
 	}
-
-	// to do - fix drop rate
 }
