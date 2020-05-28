@@ -3,7 +3,8 @@
 BIN_BASE = /opt/miyoo/bin/
 PROJECT = yatka
 SRC = src/main.c src/data_persistence.c src/video.c src/sound.c \
-	src/state_gameover.c src/state_settings.c src/randomizer.c
+	src/state_gameover.c src/state_settings.c src/randomizer.c \
+	src/state_mainmenu.c
 OBJ = $(SRC:.c=.o)
 DEP = $(SRC:.c=.d)
 CFLAGS = -Iinc -D_BITTBOY -Ofast -march=armv5te -mtune=arm926ej-s
