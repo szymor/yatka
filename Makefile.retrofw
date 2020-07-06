@@ -1,0 +1,45 @@
+.PHONY: all clean opk
+
+BIN_BASE = /opt/retrofw/bin/
+PROJECT = yatka
+OPK_NAME = yatka.opk
+OPK_DIR = opkg
+SRC = src/main.c src/data_persistence.c src/video.c src/sound.c \
+	src/state_gameover.c src/state_settings.c src/randomizer.c \
+	src/state_mainmenu.c
+OBJ = $(SRC:.c=.o)
+DEP = $(SRC:.c=.d)
+CFLAGS = -Iinc -D_BITTBOY -Ofast
+LDFLAGS = -s $(shell $(BIN_BASE)pkg-config --libs sdl SDL_image SDL_ttf SDL_mixer)
+CC = mipsel-linux-gcc
+
+all: $(OPK_NAME)
+
+$(PROJECT): $(OBJ)
+	$(CC) -o $(PROJECT) $(OBJ) $(LDFLAGS)
+
+$(OPK_NAME): $(PROJECT) gfx sfx arcade.ttf icon.png README.md yatka.retrofw.desktop
+	mkdir -p $(OPK_DIR)
+	cp -R gfx $(OPK_DIR)/gfx
+	cp -R sfx $(OPK_DIR)/sfx
+	cp arcade.ttf $(OPK_DIR)/
+	cp icon.png $(OPK_DIR)/
+	cp README.md $(OPK_DIR)/readme.txt
+	cp yatka.retrofw.desktop $(OPK_DIR)/
+	cp $(PROJECT) $(OPK_DIR)/
+	mksquashfs $(OPK_DIR) $@ -noappend -no-xattrs
+
+src/%.o: src/%.c
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+src/%.d: src/%.c
+	@set -e; \
+	rm -f $@; \
+	$(CC) -MM $(CFLAGS) $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,src/\1.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
+
+clean:
+	rm -rf $(PROJECT) $(OBJ) $(DEP) src/*.d.* $(OPK_DIR)
+
+-include $(DEP)

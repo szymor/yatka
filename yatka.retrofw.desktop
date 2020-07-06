@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=YATKA
+Comment=Yet Another Tetris Klone in Action
+Exec=yatka
+Terminal=false
+Type=Game
+StartupNotify=true
+Icon=icon
+Categories=games;
+Version=20200706
+X-OD-Manual=readme.txt

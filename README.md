@@ -2,7 +2,7 @@
 yet another tetris klone in action
 
 ### about
-- gfx and code (mostly) by me
+- gfx and code (mostly) by me (vamastah a.k.a. szymor)
 - background image taken from Berserk manga
 - frame limiting, counting and upscaling code by Artur 'zear' Rojek
 - arcade font by Yuji Adachi
