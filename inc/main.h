@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <SDL/SDL.h>
 
-#ifdef _BITTBOY
+#if defined _BITTBOY
 #define KEY_LEFT			SDLK_LEFT
 #define KEY_RIGHT			SDLK_RIGHT
 #define KEY_SOFTDROP		SDLK_DOWN
@@ -12,6 +12,16 @@
 #define KEY_ROTATE_CW		SDLK_LCTRL
 #define KEY_ROTATE_CCW		SDLK_SPACE
 #define KEY_HOLD			SDLK_LSHIFT
+#define KEY_PAUSE			SDLK_RETURN
+#define KEY_QUIT			SDLK_ESCAPE
+#elif defined _RETROFW
+#define KEY_LEFT			SDLK_LEFT
+#define KEY_RIGHT			SDLK_RIGHT
+#define KEY_SOFTDROP		SDLK_DOWN
+#define KEY_HARDDROP		SDLK_LCTRL
+#define KEY_ROTATE_CW		SDLK_LALT
+#define KEY_ROTATE_CCW		SDLK_LSHIFT
+#define KEY_HOLD			SDLK_SPACE
 #define KEY_PAUSE			SDLK_RETURN
 #define KEY_QUIT			SDLK_ESCAPE
 #else

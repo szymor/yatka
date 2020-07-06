@@ -9,9 +9,12 @@
 #define SCREEN_HEIGHT		240
 #define FPS					60.0
 
-#ifdef _BITTBOY
+#if defined _BITTBOY
 #define SCREEN_BPP			16
 #define VIDEO_MODE_FLAGS	SDL_SWSURFACE
+#elif defined _RETROFW
+#define SCREEN_BPP			16
+#define VIDEO_MODE_FLAGS	(SDL_HWSURFACE | SDL_DOUBLEBUF)
 #else
 #define SCREEN_BPP			32
 #define VIDEO_MODE_FLAGS	(SDL_HWSURFACE | SDL_DOUBLEBUF)
