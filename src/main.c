@@ -230,6 +230,7 @@ SDL_Surface *getBlock(enum FigureId color, enum BlockOrientation orient, SDL_Rec
 
 int main(int argc, char *argv[])
 {
+	initPaths();
 	loadSettings();
 
 	for (int i = 1; i < argc; ++i)

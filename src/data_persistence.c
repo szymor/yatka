@@ -2,6 +2,8 @@
 #include <stdio.h>
 
 #include <SDL/SDL_mixer.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "main.h"
 #include "state_mainmenu.h"
@@ -10,12 +12,30 @@
 #include "data_persistence.h"
 #include "randomizer.h"
 
-#define HISCORE_PATH		"hiscore.dat"
-#define SETTINGS_PATH		"settings.txt"
+#define GAMEDIR				".yatka"
+#define HISCORE_FILE		"hiscore.dat"
+#define SETTINGS_FILE		"settings.txt"
+
+static char dirpath[256];
+static char hiscore_path[256];
+static char settings_path[256];
+
+static void createGameDir(void)
+{
+	mkdir(dirpath, 0744);
+}
+
+void initPaths(void)
+{
+	const char *home = getenv("HOME");
+	sprintf(dirpath, "%s/%s", home, GAMEDIR);
+	sprintf(hiscore_path, "%s/%s", dirpath, HISCORE_FILE);
+	sprintf(settings_path, "%s/%s", dirpath, SETTINGS_FILE);
+}
 
 int loadHiscore(void)
 {
-	FILE *hifile = fopen(HISCORE_PATH, "r");
+	FILE *hifile = fopen(hiscore_path, "r");
 	if (hifile)
 	{
 		int hi = 0;
@@ -29,7 +49,8 @@ int loadHiscore(void)
 
 void saveHiscore(int hi)
 {
-	FILE *hifile = fopen(HISCORE_PATH, "w");
+	createGameDir();
+	FILE *hifile = fopen(hiscore_path, "w");
 	if (hifile)
 	{
 		fprintf(hifile, "%d", hi);
@@ -40,7 +61,7 @@ void saveHiscore(int hi)
 void loadSettings(void)
 {
 	char buff[256];
-	FILE *settingsFile = fopen(SETTINGS_PATH, "r");
+	FILE *settingsFile = fopen(settings_path, "r");
 	if (!settingsFile)
 		return;
 
@@ -108,7 +129,8 @@ void loadSettings(void)
 
 void saveSettings(void)
 {
-	FILE *settingsFile = fopen(SETTINGS_PATH, "w");
+	createGameDir();
+	FILE *settingsFile = fopen(settings_path, "w");
 
 	if (nosound)
 		fprintf(settingsFile, "nosound\n");
