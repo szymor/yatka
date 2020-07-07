@@ -98,8 +98,8 @@ bool smoothanim = false;
 
 int nextblocks = MAX_NEXTBLOCKS;
 int ghostalpha = 64;
-enum TetrominoColor tetrominocolor = TC_PIECEWISE;
-enum TetrominoStyle tetrominostyle = TS_LEGACY;
+enum TetrominoColor tetrominocolor = TC_TENGEN;
+enum TetrominoStyle tetrominostyle = TS_TENGENISH;
 
 enum GameState gamestate = GS_MAINMENU;
 static bool hold_ready = true;
@@ -387,12 +387,22 @@ void initialize(void)
 		SDL_MapRGB(f, 0, 132, 96),
 		SDL_MapRGB(f, 75, 160, 255),
 		SDL_MapRGB(f, 255, 174, 10),
-		SDL_MapRGB(f, 255, 109, 247)
+		SDL_MapRGB(f, 255, 109, 247),
+		0,
+		SDL_MapRGB(f, 0, 159, 218),
+		SDL_MapRGB(f, 254, 203, 0),
+		SDL_MapRGB(f, 149, 45, 152),
+		SDL_MapRGB(f, 105, 190, 40),
+		SDL_MapRGB(f, 237, 41, 57),
+		SDL_MapRGB(f, 0, 101, 189),
+		SDL_MapRGB(f, 255, 121, 0),
 	};
 
 	// tetromino dyeing
-	for (int i = 0; i < FIGID_GRAY; ++i)
+	for (int i = 0; i < FIGID_END; ++i)
 	{
+		if (FIGID_GRAY == i)
+			continue;
 		legacy_colors[i] = SDL_CreateRGBSurface(0, legacy_colors[FIGID_GRAY]->w, legacy_colors[FIGID_GRAY]->h, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
 		SDL_FillRect(legacy_colors[i], NULL, rgb[i]);
 		SDL_BlitSurface(legacy_colors[FIGID_GRAY], NULL, legacy_colors[i], NULL);
@@ -1229,8 +1239,10 @@ enum FigureId getNextColor(enum FigureId id)
 	{
 		case TC_RANDOM:
 			return getRandomColor();
-		case TC_PIECEWISE:
+		case TC_TENGEN:
 			return id;
+		case TC_STANDARD:
+			return id + FIGID_I_CYAN;
 		case TC_GRAY:
 		default:
 			return FIGID_GRAY;

@@ -320,7 +320,8 @@ static char *generateSettingLine(char *buff, int pos)
 		{
 			static char *tc_strings[] = {
 				"random",
-				"piecewise",
+				"tengen",
+				"standard",
 				"gray"
 			};
 			sprintf(buff, settings_text[pos], tc_strings[tetrominocolor]);
