@@ -10,6 +10,7 @@
 #include "video.h"
 #include "sound.h"
 #include "randomizer.h"
+#include "skin.h"
 
 enum SettingsLine
 {
@@ -282,7 +283,7 @@ void settings_processInputEvents(void)
 						gamestate = GS_INGAME;
 						if (redraw_bg)
 						{
-							initBackground();
+							skin_updateBackground(&gameskin);
 							redraw_bg = false;
 						}
 						break;

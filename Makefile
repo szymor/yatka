@@ -3,7 +3,7 @@
 PROJECT = yatka
 SRC = src/main.c src/data_persistence.c src/video.c src/sound.c \
 	src/state_gameover.c src/state_settings.c src/randomizer.c \
-	src/state_mainmenu.c
+	src/state_mainmenu.c src/skin.c
 OBJ = $(SRC:.c=.o)
 DEP = $(SRC:.c=.d)
 CFLAGS = -g -Iinc

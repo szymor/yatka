@@ -16,14 +16,7 @@
 #include "state_gameover.h"
 #include "state_settings.h"
 #include "randomizer.h"
-
-#define BOARD_X_OFFSET				100
-#define BOARD_Y_OFFSET				0
-#define BOARD_WIDTH					10
-#define BOARD_HEIGHT				21
-#define INVISIBLE_ROW_COUNT			1
-#define FIG_DIM						4
-#define BLOCK_SIZE					12
+#include "skin.h"
 
 #define BAR_WIDTH					26
 #define BAR_HEIGHT					8
@@ -38,43 +31,14 @@
 
 #define START_DROP_RATE				2.00
 
-enum BlockOrientation
-{
-	// proper encoding allows to rotate blocks using shift operations
-	BO_EMPTY	= 0x00,
-	BO_UP		= 0x08,
-	BO_DOWN		= 0x02,
-	BO_LEFT		= 0x01,
-	BO_RIGHT	= 0x04,
-	BO_FULL		= 0x0f
-};
-
-struct Block
-{
-	enum FigureId color;
-	enum BlockOrientation orientation;
-};
-
-struct Shape
-{
-	enum BlockOrientation blockmap[FIG_DIM*FIG_DIM];
-	int cx, cy;		// correction of position after CW rotation
-};
-
 struct ShapeTemplate
 {
 	int blockmap[FIG_DIM*FIG_DIM];
 	int cx, cy;
 };
 
-struct Figure
-{
-	enum FigureId id;
-	enum FigureId color;
-	struct Shape shape;
-	int x;
-	int y;
-};
+
+struct Skin gameskin;
 
 SDL_Surface *bg = NULL;
 
@@ -104,20 +68,25 @@ enum TetrominoStyle tetrominostyle = TS_TENGENISH;
 enum GameState gamestate = GS_MAINMENU;
 static bool hold_ready = true;
 
-static int lines = 0, lines_level_up = 0, level = 0;
-static int hiscore = 0, old_hiscore = 0, score = 0;
-static int tetris_count = 0;
+int hiscore = 0;
+int score = 0;
+int lines = 0;
+int level = 0;
+int tetris_count = 0;
+int ttr = 0;
+static int lines_level_up = 0;
+static int old_hiscore = 0;
 
 static double drop_rate = START_DROP_RATE;
 static const double drop_rate_ratio_per_level = 1.20;
-static Uint32 last_drop_time;
+Uint32 last_drop_time;
 static bool easyspin_pressed = false;
 static int easyspin_counter = 0;
 static bool softdrop_pressed = false;
 static Uint32 softdrop_press_time = 0;
 static Uint32 next_lock_time = 0;
 
-static int draw_delta_drop = -BLOCK_SIZE;
+int draw_delta_drop = -BLOCK_SIZE;
 
 static bool left_move = false;
 static bool right_move = false;
@@ -185,21 +154,13 @@ static const struct ShapeTemplate templates[] = {
 
 void initialize(void);
 void finalize(void);
-SDL_Surface *initBackground(void);
 struct Shape *generateFromTemplate(const struct ShapeTemplate *template);
-
-void markDrop(void);
-Uint32 getNextDropTime(void);
-void setDropRate(int level);
-void softDropTimeCounter(void);
 
 void moveLeft(void);
 void moveRight(void);
 
 void ingame_processInputEvents(void);
-void ingame_updateScreen(void);
 
-void resetGame(void);
 void dropSoft(void);
 void dropHard(void);
 void lockFigure(void);
@@ -208,25 +169,19 @@ int removeFullLines(void);
 bool checkGameEnd(void);
 void drawBars(void);
 void drawBar(int x, int y, int value);
-void drawStatus(int x, int y);
 void onDrop(void);
 void onCollide(void);
 void onLineClear(int removed);
 void onGameOver(void);
 
 void initFigures(void);
-void drawFigure(const struct Figure *fig, int x, int y, Uint8 alpha, bool active, bool centerx, bool centery);
-void drawShape(SDL_Surface *target, const struct Shape *sh, int x, int y, enum FigureId color, Uint8 alpha, bool centerx, bool centery);
 void spawnFigure(void);
 struct Figure *getNextFigure(void);
-struct Shape* getShape(enum FigureId id);
 enum FigureId getNextColor(enum FigureId id);
 enum FigureId getRandomColor(void);
 void getShapeDimensions(const struct Shape *shape, int *minx, int *maxx, int *miny, int *maxy);
-bool isFigureColliding(void);
 void rotateFigureCW(void);
 void rotateFigureCCW(void);
-SDL_Surface *getBlock(enum FigureId color, enum BlockOrientation orient, SDL_Rect *srcrect);
 
 int main(int argc, char *argv[])
 {
@@ -279,7 +234,7 @@ int main(int argc, char *argv[])
 					if (!frameLimiter() || debug)
 					{
 						ingame_processInputEvents();
-						ingame_updateScreen();
+						skin_updateScreen(&gameskin, screen);
 						softDropTimeCounter();
 
 						Uint32 ct = SDL_GetTicks();
@@ -428,51 +383,12 @@ void initialize(void)
 	srand((unsigned)time(NULL));
 
 	initFigures();
-	initBackground();
 	mainmenu_init();
 
 	resetGame();
-}
 
-SDL_Surface *initBackground(void)
-{
-	if (bg != NULL)
-	{
-		SDL_FreeSurface(bg);
-	}
-
-	SDL_Surface *ts = IMG_Load("gfx/bg.png");
-	if (ts == NULL)
-		exit(ERROR_NOIMGFILE);
-	bg = SDL_DisplayFormat(ts);
-	SDL_FreeSurface(ts);
-
-	// figures for statistics
-	for (int i = 0; i < FIGID_GRAY; ++i)
-		drawShape(bg, getShape(i), 6, 30 + i * 30, FIGID_GRAY, 160, true, true);
-
-	// placeholders for next tetrominoes
-	SDL_Surface *ph = SDL_CreateRGBSurface(0, 48, 24, bg->format->BitsPerPixel, bg->format->Rmask, bg->format->Gmask, bg->format->Bmask, 0);
-	SDL_FillRect(ph, NULL, SDL_MapRGB(ph->format, 0xff, 0xff, 0xff));
-	SDL_SetAlpha(ph, SDL_SRCALPHA, 48);
-	for (int i = 0; i < nextblocks; ++i)
-	{
-		SDL_Rect r = { .x = 246, .y = 22 + 30 * i };
-		SDL_BlitSurface(ph, NULL, bg, &r);
-	}
-	SDL_FreeSurface(ph);
-
-	// placeholder for the board
-	int w = BOARD_WIDTH * BLOCK_SIZE;
-	int h = (BOARD_HEIGHT - INVISIBLE_ROW_COUNT) * BLOCK_SIZE;
-	ph = SDL_CreateRGBSurface(0, w, h, bg->format->BitsPerPixel, bg->format->Rmask, bg->format->Gmask, bg->format->Bmask, 0);
-	SDL_FillRect(ph, NULL, SDL_MapRGB(ph->format, 0xff, 0xff, 0xff));
-	SDL_SetAlpha(ph, SDL_SRCALPHA, 48);
-	SDL_Rect r = { .x = BOARD_X_OFFSET, .y = BOARD_Y_OFFSET };
-	SDL_BlitSurface(ph, NULL, bg, &r);
-	SDL_FreeSurface(ph);
-
-	return bg;
+	skin_initSkin(&gameskin);
+	skin_loadSkin(&gameskin, "skins/default/game.txt");
 }
 
 void finalize(void)
@@ -481,6 +397,8 @@ void finalize(void)
 		saveHiscore(hiscore);
 	if (settings_changed)
 		saveSettings();
+
+	skin_destroySkin(&gameskin);
 
 	TTF_CloseFont(arcade_font);
 	TTF_Quit();
@@ -594,7 +512,6 @@ void moveLeft(void)
 		--figures[0]->x;
 		if (isFigureColliding())
 			++figures[0]->x;
-		screenFlagUpdate(true);
 
 		next_side_move_time = SDL_GetTicks() + SIDE_MOVE_DELAY;
 	}
@@ -607,7 +524,6 @@ void moveRight(void)
 		++figures[0]->x;
 		if (isFigureColliding())
 			--figures[0]->x;
-		screenFlagUpdate(true);
 
 		next_side_move_time = SDL_GetTicks() + SIDE_MOVE_DELAY;
 	}
@@ -660,86 +576,6 @@ void drawShape(SDL_Surface *target, const struct Shape *sh, int x, int y, enum F
 		if (sh->blockmap[i])
 			SDL_BlitSurface(block, &srcrect, target, &rect);
 	}
-}
-
-void ingame_updateScreen(void)
-{
-	if (!screenFlagUpdate(false) && !debug && !smoothanim)
-		return;
-
-	SDL_Rect rect;
-	SDL_Surface *mask;
-	SDL_Surface *digit;
-
-	// display background
-	rect.x = 0;
-	rect.y = 0;
-	SDL_BlitSurface(bg, NULL, screen, &rect);
-
-	// display next figures
-	for (int i = 1; i <= nextblocks; ++i)
-	{
-		drawFigure(figures[i], 246, 22 + 30 * (i - 1), 255, false, true, true);
-	}
-
-	// display statistics
-	drawBars();
-	drawStatus(0, 0);
-
-	// display board
-	for (int i = BOARD_WIDTH * INVISIBLE_ROW_COUNT; i < (BOARD_WIDTH * BOARD_HEIGHT); ++i)
-	{
-		rect.x = (i % BOARD_WIDTH) * BLOCK_SIZE + BOARD_X_OFFSET;
-		rect.y = (i / BOARD_WIDTH - INVISIBLE_ROW_COUNT) * BLOCK_SIZE + BOARD_Y_OFFSET;
-		if (board[i].orientation != BO_EMPTY)
-		{
-			SDL_Rect srcrect;
-			SDL_Surface *block = grayblocks ? getBlock(FIGID_GRAY, board[i].orientation, &srcrect) : getBlock(board[i].color, board[i].orientation, &srcrect);
-			SDL_SetAlpha(block, SDL_SRCALPHA, 255);
-			SDL_BlitSurface(block, &srcrect, screen, &rect);
-		}
-	}
-
-	// display the active figure
-	if (figures[0] != NULL)
-	{
-		int x = BOARD_X_OFFSET + BLOCK_SIZE * figures[0]->x;
-		int y = BOARD_Y_OFFSET + BLOCK_SIZE * (figures[0]->y - INVISIBLE_ROW_COUNT);
-		if (smoothanim)
-		{
-			Uint32 ct = SDL_GetTicks();
-			double fraction = (double)(ct - last_drop_time) / (getNextDropTime() - last_drop_time);
-			int new_delta = BLOCK_SIZE * fraction - BLOCK_SIZE;
-			if (new_delta > draw_delta_drop)
-			{
-				draw_delta_drop = new_delta;
-				if (draw_delta_drop > 0)
-					draw_delta_drop = 0;
-			}
-			y += draw_delta_drop;
-		}
-		drawFigure(figures[0], x, y, 255, true, false, false);
-	}
-
-	// display the ghost figure
-	if (figures[0] != NULL && ghostalpha > 0)
-	{
-		int tfy = figures[0]->y;
-		while (!isFigureColliding())
-			++figures[0]->y;
-		if (tfy != figures[0]->y)
-			--figures[0]->y;
-		if ((figures[0]->y - tfy) >= FIG_DIM)
-		{
-			int x = BOARD_X_OFFSET + BLOCK_SIZE * figures[0]->x;
-			int y = BOARD_Y_OFFSET + BLOCK_SIZE * (figures[0]->y - INVISIBLE_ROW_COUNT);
-			drawFigure(figures[0], x, y, ghostalpha, true, false, false);
-		}
-		figures[0]->y = tfy;
-	}
-
-	flipScreenScaled();
-	frameCounter();
 }
 
 void drawBars(void)
@@ -817,61 +653,9 @@ void drawBar(int x, int y, int value)
 	SDL_FreeSurface(bar);
 }
 
-void drawStatus(int x, int y)
-{
-	SDL_Color col = {.r = 255, .g = 255, .b = 255};
-	SDL_Surface *text = NULL;
-	SDL_Rect rect = {.x = x, .y = y};
-	char buff[256];
-
-	sprintf(buff, "Hiscore: %d", hiscore);
-	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
-	SDL_BlitSurface(text, NULL, screen, &rect);
-	SDL_FreeSurface(text);
-
-	rect.y += FONT_SIZE;
-	sprintf(buff, "Score: %d", score);
-	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
-	SDL_BlitSurface(text, NULL, screen, &rect);
-	SDL_FreeSurface(text);
-
-	rect.y += FONT_SIZE;
-	sprintf(buff, "Level: %d", level);
-	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
-	SDL_BlitSurface(text, NULL, screen, &rect);
-	SDL_FreeSurface(text);
-
-	rect.y += FONT_SIZE;
-	sprintf(buff, "Lines: %d", lines);
-	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
-	SDL_BlitSurface(text, NULL, screen, &rect);
-	SDL_FreeSurface(text);
-
-	rect.y += FONT_SIZE;
-	int ttr;
-	if (lines != 0)
-		ttr = 4 * tetris_count * 100 / lines;
-	else
-		ttr = 0;
-	sprintf(buff, "Tetris: %d%%", ttr);
-	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
-	SDL_BlitSurface(text, NULL, screen, &rect);
-	SDL_FreeSurface(text);
-
-	if (debug)
-	{
-		rect.y += FONT_SIZE;
-		sprintf(buff, "FPS: %d", fps);
-		text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
-		SDL_BlitSurface(text, NULL, screen, &rect);
-		SDL_FreeSurface(text);
-	}
-}
-
 void onDrop(void)
 {
 	markDrop();
-	screenFlagUpdate(true);
 	if (!next_lock_time && smoothanim)
 		draw_delta_drop = -BLOCK_SIZE;
 	easyspin_pressed = false;
@@ -917,6 +701,11 @@ void onLineClear(int removed)
 		drop_rate *= drop_rate_ratio_per_level;
 	}
 	lines_level_up %= 30;
+
+	if (lines != 0)
+		ttr = 4 * tetris_count * 100 / lines;
+	else
+		ttr = 0;
 
 	Mix_PlayChannel(-1, clr, 0);
 }
@@ -1009,8 +798,6 @@ void holdFigure(void)
 		memcpy(&figures[0]->shape, getShape(figures[0]->id), sizeof(figures[0]->shape));
 
 		hold_ready = false;
-
-		screenFlagUpdate(true);
 	}
 }
 
@@ -1121,7 +908,6 @@ void ingame_processInputEvents(void)
 								++easyspin_counter;
 								next_lock_time = 0;
 							}
-							screenFlagUpdate(true);
 						}
 					} break;
 					case KEY_ROTATE_CCW:
@@ -1151,7 +937,6 @@ void ingame_processInputEvents(void)
 								++easyspin_counter;
 								next_lock_time = 0;
 							}
-							screenFlagUpdate(true);
 						}
 					} break;
 					case KEY_SOFTDROP:
@@ -1453,7 +1238,7 @@ void resetGame(void)
 	left_move = false;
 	right_move = false;
 
-	for (int i = 0; i < FIG_NUM; ++i)
+	for (int i = 0; i < FIG_NUM - 1; ++i)
 	{
 		spawnFigure();
 	}
@@ -1462,6 +1247,8 @@ void resetGame(void)
 	{
 		statistics[i] = 0;
 	}
+
+	spawnFigure();
 
 	// debris
 	int filled = 0;

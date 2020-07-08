@@ -29,7 +29,6 @@ extern int fps;
 
 void saveLastGameScreen(void);
 void flipScreenScaled(void);
-bool screenFlagUpdate(bool v);
 void upscale2(uint32_t *to, uint32_t *from);
 void upscale3(uint32_t *to, uint32_t *from);
 void upscale4(uint32_t *to, uint32_t *from);
