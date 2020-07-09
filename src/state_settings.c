@@ -27,7 +27,6 @@ enum SettingsLine
 	SL_STATISTICS,
 	SL_NEXT_NUMBER,
 	SL_RANDOMIZER,
-	SL_DEBUG,
 	SL_END
 };
 
@@ -49,7 +48,6 @@ static const char settings_text[][32] = {
 	"  statistics mode           %s",
 	"  no of next tetrominoes    %d",
 	"  tetromino randomizer      %s",
-	"  debug mode                %s"
 };
 
 static char *generateSettingLine(char *buff, int pos);
@@ -185,11 +183,6 @@ void settings_processInputEvents(void)
 								decMod((int*)&randomalgo, RA_END, false);
 								settings_changed = true;
 							} break;
-							case SL_DEBUG:
-							{
-								debug = !debug;
-								settings_changed = true;
-							} break;
 							default:
 								break;
 						}
@@ -265,11 +258,6 @@ void settings_processInputEvents(void)
 							case SL_RANDOMIZER:
 							{
 								incMod((int*)&randomalgo, RA_END, false);
-								settings_changed = true;
-							} break;
-							case SL_DEBUG:
-							{
-								debug = !debug;
 								settings_changed = true;
 							} break;
 							default:
@@ -363,10 +351,6 @@ static char *generateSettingLine(char *buff, int pos)
 		case SL_RANDOMIZER:
 		{
 			sprintf(buff, settings_text[pos], getRandomizerString());
-		} break;
-		case SL_DEBUG:
-		{
-			sprintf(buff, settings_text[pos], debug ? "on" : "off");
 		} break;
 		default:
 			break;

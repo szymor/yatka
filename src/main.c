@@ -49,7 +49,6 @@ int statistics[FIGID_GRAY];
 bool nosound = false;
 bool holdoff = false;
 bool grayblocks = false;
-bool debug = false;
 bool repeattrack = false;
 bool numericbars = false;
 bool easyspin = false;
@@ -227,7 +226,7 @@ int main(int argc, char *argv[])
 				playMusic();
 				while (GS_INGAME == gamestate)
 				{
-					if (!frameLimiter() || debug)
+					if (!frameLimiter())
 					{
 						ingame_processInputEvents();
 						skin_updateScreen(&gameskin, screen);
@@ -420,7 +419,7 @@ Uint32 getNextDropTime(void)
 	if (easyspin_pressed && easyspin_counter <= EASY_SPIN_MAX_COUNT)
 		return last_drop_time + EASY_SPIN_DELAY;
 
-	const double maxDropRate = FPS;
+	const double maxDropRate = 60.0;
 	double coef = (double)(MAX_SOFTDROP_PRESS - softdrop_press_time) / MAX_SOFTDROP_PRESS;
 	coef = 1 - coef;
 	return last_drop_time + (Uint32)(1000 / (drop_rate * (1 - coef) + maxDropRate * coef));

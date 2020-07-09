@@ -80,8 +80,6 @@ void loadSettings(void)
 			numericbars = true;
 		else if (!strcmp(buff, "repeattrack"))
 			repeattrack = true;
-		else if (!strcmp(buff, "debug"))
-			debug = true;
 		else if (!strcmp(buff, "scale2x"))
 			screenscale = 2;
 		else if (!strcmp(buff, "scale3x"))
@@ -154,8 +152,6 @@ void saveSettings(void)
 		fprintf(settingsFile, "holdoff\n");
 	if (grayblocks)
 		fprintf(settingsFile, "grayblocks\n");
-	if (debug)
-		fprintf(settingsFile, "debug\n");
 	if (!nosound)
 		fprintf(settingsFile, "musicvol %d\n", Mix_VolumeMusic(-1));
 	fprintf(settingsFile, "ghostalpha %d\n", ghostalpha);
