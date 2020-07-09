@@ -42,10 +42,6 @@ struct Skin gameskin;
 
 SDL_Surface *bg = NULL;
 
-// sprites for blocks
-SDL_Surface *legacy_colors[FIGID_END];
-SDL_Surface *plain_colors[FIGID_END];
-
 struct Block *board = NULL;
 struct Figure *figures[FIG_NUM];
 int statistics[FIGID_GRAY];
@@ -86,7 +82,8 @@ static bool softdrop_pressed = false;
 static Uint32 softdrop_press_time = 0;
 static Uint32 next_lock_time = 0;
 
-int draw_delta_drop = -BLOCK_SIZE;
+int brick_size;
+int draw_delta_drop;
 
 static bool left_move = false;
 static bool right_move = false;
@@ -179,7 +176,6 @@ void spawnFigure(void);
 struct Figure *getNextFigure(void);
 enum FigureId getNextColor(enum FigureId id);
 enum FigureId getRandomColor(void);
-void getShapeDimensions(const struct Shape *shape, int *minx, int *maxx, int *miny, int *maxy);
 void rotateFigureCW(void);
 void rotateFigureCCW(void);
 
@@ -318,54 +314,6 @@ void initialize(void)
 	arcade_font = TTF_OpenFont("arcade.ttf", FONT_SIZE);
 	if (arcade_font == NULL)
 		exit(ERROR_NOFONT);
-
-	ts = IMG_Load("gfx/legacy.png");
-	if (ts == NULL)
-		exit(ERROR_NOIMGFILE);
-	legacy_colors[FIGID_GRAY] = SDL_DisplayFormat(ts);
-	SDL_FreeSurface(ts);
-
-	ts = IMG_Load("gfx/plain.png");
-	if (ts == NULL)
-		exit(ERROR_NOIMGFILE);
-	plain_colors[FIGID_GRAY] = SDL_DisplayFormat(ts);
-	SDL_FreeSurface(ts);
-
-	SDL_PixelFormat *f = screen->format;
-	SDL_SetAlpha(legacy_colors[FIGID_GRAY], SDL_SRCALPHA, 128);
-	SDL_SetAlpha(plain_colors[FIGID_GRAY], SDL_SRCALPHA, 128);
-
-	Uint32 rgb[] = {
-		SDL_MapRGB(f, 215, 64, 0),
-		SDL_MapRGB(f, 59, 52, 255),
-		SDL_MapRGB(f, 115, 121, 0),
-		SDL_MapRGB(f, 0, 132, 96),
-		SDL_MapRGB(f, 75, 160, 255),
-		SDL_MapRGB(f, 255, 174, 10),
-		SDL_MapRGB(f, 255, 109, 247),
-		0,
-		SDL_MapRGB(f, 0, 159, 218),
-		SDL_MapRGB(f, 254, 203, 0),
-		SDL_MapRGB(f, 149, 45, 152),
-		SDL_MapRGB(f, 105, 190, 40),
-		SDL_MapRGB(f, 237, 41, 57),
-		SDL_MapRGB(f, 0, 101, 189),
-		SDL_MapRGB(f, 255, 121, 0),
-	};
-
-	// tetromino dyeing
-	for (int i = 0; i < FIGID_END; ++i)
-	{
-		if (FIGID_GRAY == i)
-			continue;
-		legacy_colors[i] = SDL_CreateRGBSurface(0, legacy_colors[FIGID_GRAY]->w, legacy_colors[FIGID_GRAY]->h, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
-		SDL_FillRect(legacy_colors[i], NULL, rgb[i]);
-		SDL_BlitSurface(legacy_colors[FIGID_GRAY], NULL, legacy_colors[i], NULL);
-
-		plain_colors[i] = SDL_CreateRGBSurface(0, plain_colors[FIGID_GRAY]->w, plain_colors[FIGID_GRAY]->h, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
-		SDL_FillRect(plain_colors[i], NULL, rgb[i]);
-		SDL_BlitSurface(plain_colors[FIGID_GRAY], NULL, plain_colors[i], NULL);
-	}
 
 	if (!nosound)
 	{
@@ -529,55 +477,6 @@ void moveRight(void)
 	}
 }
 
-void drawFigure(const struct Figure *fig, int x, int y, Uint8 alpha, bool active, bool centerx, bool centery)
-{
-	if (fig != NULL)
-	{
-		const struct Shape *shape = NULL;
-		if (active)
-			shape = &figures[0]->shape;
-		else
-			shape = getShape(fig->id);
-
-		drawShape(screen, shape, x, y, fig->color, alpha, centerx, centery);
-	}
-}
-
-void drawShape(SDL_Surface *target, const struct Shape *sh, int x, int y, enum FigureId color, Uint8 alpha, bool centerx, bool centery)
-{
-	int offset_x = 0, offset_y = 0;
-	SDL_Rect srcrect;
-
-	if (centerx || centery)
-	{
-		int minx, maxx, miny, maxy, w, h;
-		getShapeDimensions(sh, &minx, &maxx, &miny, &maxy);
-		if (centerx)
-		{
-			w = maxx - minx + 1;
-			offset_x = (4 - w) * BLOCK_SIZE / 2 - minx * BLOCK_SIZE;
-		}
-		if (centery)
-		{
-			h = maxy - miny + 1;
-			offset_y = (2 - h) * BLOCK_SIZE / 2 - miny * BLOCK_SIZE;
-		}
-	}
-
-	for (int i = 0; i < (FIG_DIM * FIG_DIM); ++i)
-	{
-		SDL_Rect rect;
-		rect.x = (i % FIG_DIM) * BLOCK_SIZE + x + offset_x;
-		rect.y = (i / FIG_DIM) * BLOCK_SIZE + y + offset_y;
-
-		SDL_Surface *block = getBlock(color, sh->blockmap[i], &srcrect);
-		SDL_SetAlpha(block, SDL_SRCALPHA, alpha);
-
-		if (sh->blockmap[i])
-			SDL_BlitSurface(block, &srcrect, target, &rect);
-	}
-}
-
 void drawBars(void)
 {
 	if (numericbars)
@@ -657,7 +556,7 @@ void onDrop(void)
 {
 	markDrop();
 	if (!next_lock_time && smoothanim)
-		draw_delta_drop = -BLOCK_SIZE;
+		draw_delta_drop = -brick_size;
 	easyspin_pressed = false;
 }
 
@@ -1186,39 +1085,6 @@ void decMod(int *var, int limit, bool sat)
 	if (sat && *var == 0)
 		return;
 	*var = (*var + limit - 1) % limit;
-}
-
-SDL_Surface *getBlock(enum FigureId color, enum BlockOrientation orient, SDL_Rect *srcrect)
-{
-	if (srcrect)
-	{
-		srcrect->x = 0;
-		srcrect->y = 0;
-		srcrect->w = BLOCK_SIZE;
-		srcrect->h = BLOCK_SIZE;
-	}
-
-	SDL_Surface *s = NULL;
-	switch (tetrominostyle)
-	{
-		case TS_LEGACY:
-			s = legacy_colors[color];
-			break;
-		case TS_PLAIN:
-			if (srcrect)
-				srcrect->x = BO_FULL * BLOCK_SIZE - BLOCK_SIZE;
-			s = plain_colors[color];
-			break;
-		case TS_TENGENISH:
-			if (srcrect)
-				srcrect->x = orient * BLOCK_SIZE - BLOCK_SIZE;
-			s = plain_colors[color];
-			break;
-		default:
-			s = NULL;
-	}
-
-	return s;
 }
 
 void resetGame(void)

@@ -4,6 +4,10 @@ bg "bg.png"
 fg null
 ; boardxy x y
 boardxy 100 0
+; bricksize wh
+bricksize 12
+; bricksprite filename
+bricksprite "bricks.png"
 ; font id filename size
 font 0 "arcade.ttf" 7
 ; box x y w h alpha r g b

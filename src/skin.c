@@ -14,12 +14,18 @@
 static void str_replace(char *where, const char *what, const char *with);
 static void int_replace(char *where, const char *what, int with);
 
+static void drawFigure(struct Skin *skin, const struct Figure *fig, int x, int y, Uint8 alpha, bool active, bool centerx, bool centery);
+static void drawShape(struct Skin *skin, SDL_Surface *target, const struct Shape *sh, int x, int y, enum FigureId color, Uint8 alpha, bool centerx, bool centery);
+static SDL_Surface *getBlock(struct Skin *skin, enum FigureId color, enum BlockOrientation orient, SDL_Rect *srcrect);
+
 static void skin_executeScript(struct Skin *skin, bool dynamic);
 static void skin_executeStatement(struct Skin *skin, const char *statement, bool dynamic);
 static void skin_executeBFg(struct Skin *skin, const char *statement, SDL_Surface **sdls);
 static void skin_executeBg(struct Skin *skin, const char *statement);
 static void skin_executeFg(struct Skin *skin, const char *statement);
 static void skin_executeBoardxy(struct Skin *skin, const char *statement);
+static void skin_executeBricksize(struct Skin *skin, const char *statement);
+static void skin_executeBricksprite(struct Skin *skin, const char *statement);
 static void skin_executeFont(struct Skin *skin, const char *statement);
 static void skin_executeBox(struct Skin *skin, const char *statement);
 static void skin_executeShape(struct Skin *skin, const char *statement);
@@ -37,6 +43,8 @@ void skin_initSkin(struct Skin *skin)
 	for (int i = 0; i < FONT_NUM; ++i)
 		skin->fonts[i] = NULL;
 	skin->screen = NULL;
+	for (int i = 0; i < FIGID_END; ++i)
+		skin->bricksprite[i] = NULL;
 }
 
 void skin_destroySkin(struct Skin *skin)
@@ -72,6 +80,14 @@ void skin_destroySkin(struct Skin *skin)
 		}
 	}
 	skin->screen = NULL;
+	for (int i = 0; i < FIGID_END; ++i)
+	{
+		if (skin->bricksprite[i])
+		{
+			free(skin->bricksprite[i]);
+			skin->bricksprite[i] = NULL;
+		}
+	}
 }
 
 void skin_loadSkin(struct Skin *skin, const char *path)
@@ -83,7 +99,7 @@ void skin_loadSkin(struct Skin *skin, const char *path)
 	size_t filesize = ftell(sfile);
 	rewind(sfile);
 
-	skin->script = (char*)malloc(sizeof(char) * filesize);
+	skin->script = (char*)malloc(sizeof(char) * filesize + 1);
 	if (NULL == skin->script)
 	{
 		exit(ERROR_MALLOC);
@@ -94,6 +110,7 @@ void skin_loadSkin(struct Skin *skin, const char *path)
 	{
 		exit(ERROR_IO);
 	}
+	skin->script[filesize] = '\0';
 	
 	int totallen = strlen(path) + 1;
 	skin->path = (char*)malloc(totallen);
@@ -129,12 +146,12 @@ void skin_updateScreen(struct Skin *skin, SDL_Surface *screen)
 	// display board
 	for (int i = BOARD_WIDTH * INVISIBLE_ROW_COUNT; i < (BOARD_WIDTH * BOARD_HEIGHT); ++i)
 	{
-		rect.x = (i % BOARD_WIDTH) * BLOCK_SIZE + skin->boardx;
-		rect.y = (i / BOARD_WIDTH - INVISIBLE_ROW_COUNT) * BLOCK_SIZE + skin->boardy;
+		rect.x = (i % BOARD_WIDTH) * skin->bricksize + skin->boardx;
+		rect.y = (i / BOARD_WIDTH - INVISIBLE_ROW_COUNT) * skin->bricksize + skin->boardy;
 		if (board[i].orientation != BO_EMPTY)
 		{
 			SDL_Rect srcrect;
-			SDL_Surface *block = grayblocks ? getBlock(FIGID_GRAY, board[i].orientation, &srcrect) : getBlock(board[i].color, board[i].orientation, &srcrect);
+			SDL_Surface *block = grayblocks ? getBlock(skin, FIGID_GRAY, board[i].orientation, &srcrect) : getBlock(skin, board[i].color, board[i].orientation, &srcrect);
 			SDL_SetAlpha(block, SDL_SRCALPHA, 255);
 			SDL_BlitSurface(block, &srcrect, screen, &rect);
 		}
@@ -143,13 +160,13 @@ void skin_updateScreen(struct Skin *skin, SDL_Surface *screen)
 	// display the active figure
 	if (figures[0] != NULL)
 	{
-		int x = skin->boardx + BLOCK_SIZE * figures[0]->x;
-		int y = skin->boardy + BLOCK_SIZE * (figures[0]->y - INVISIBLE_ROW_COUNT);
+		int x = skin->boardx + skin->bricksize * figures[0]->x;
+		int y = skin->boardy + skin->bricksize * (figures[0]->y - INVISIBLE_ROW_COUNT);
 		if (smoothanim)
 		{
 			Uint32 ct = SDL_GetTicks();
 			double fraction = (double)(ct - last_drop_time) / (getNextDropTime() - last_drop_time);
-			int new_delta = BLOCK_SIZE * fraction - BLOCK_SIZE;
+			int new_delta = skin->bricksize * fraction - skin->bricksize;
 			if (new_delta > draw_delta_drop)
 			{
 				draw_delta_drop = new_delta;
@@ -158,7 +175,7 @@ void skin_updateScreen(struct Skin *skin, SDL_Surface *screen)
 			}
 			y += draw_delta_drop;
 		}
-		drawFigure(figures[0], x, y, 255, true, false, false);
+		drawFigure(skin, figures[0], x, y, 255, true, false, false);
 	}
 
 	// display the ghost figure
@@ -171,9 +188,9 @@ void skin_updateScreen(struct Skin *skin, SDL_Surface *screen)
 			--figures[0]->y;
 		if ((figures[0]->y - tfy) >= FIG_DIM)
 		{
-			int x = skin->boardx + BLOCK_SIZE * figures[0]->x;
-			int y = skin->boardy + BLOCK_SIZE * (figures[0]->y - INVISIBLE_ROW_COUNT);
-			drawFigure(figures[0], x, y, ghostalpha, true, false, false);
+			int x = skin->boardx + skin->bricksize * figures[0]->x;
+			int y = skin->boardy + skin->bricksize * (figures[0]->y - INVISIBLE_ROW_COUNT);
+			drawFigure(skin, figures[0], x, y, ghostalpha, true, false, false);
 		}
 		figures[0]->y = tfy;
 	}
@@ -210,7 +227,7 @@ static void skin_executeScript(struct Skin *skin, bool dynamic)
 
 static void skin_executeStatement(struct Skin *skin, const char *statement, bool dynamic)
 {
-	if (*statement == ';')
+	if (*statement == ';' || *statement == '\n' || *statement == '\0')
 		return;
 	char cmd[32];
 	sscanf(statement, "%s", cmd);
@@ -229,6 +246,16 @@ static void skin_executeStatement(struct Skin *skin, const char *statement, bool
 	{
 		if (dynamic) return;
 		skin_executeBoardxy(skin, statement);
+	}
+	else if (!strcmp(cmd, "bricksize"))
+	{
+		if (dynamic) return;
+		skin_executeBricksize(skin, statement);
+	}
+	else if (!strcmp(cmd, "bricksprite"))
+	{
+		if (dynamic) return;
+		skin_executeBricksprite(skin, statement);
 	}
 	else if (!strcmp(cmd, "font"))
 	{
@@ -300,6 +327,57 @@ static void skin_executeBoardxy(struct Skin *skin, const char *statement)
 	log("boardxy %d %d\n", skin->boardx, skin->boardy);
 }
 
+static void skin_executeBricksize(struct Skin *skin, const char *statement)
+{
+	sscanf(statement, "%*s %d", &skin->bricksize);
+	log("bricksize %d\n", skin->bricksize);
+	brick_size = skin->bricksize;
+	draw_delta_drop = -brick_size;
+}
+
+static void skin_executeBricksprite(struct Skin *skin, const char *statement)
+{
+	skin_executeBFg(skin, statement, &skin->bricksprite[FIGID_GRAY]);
+	int s = skin->bricksize;
+	if (s == skin->bricksprite[FIGID_GRAY]->w && s == skin->bricksprite[FIGID_GRAY]->h)
+		skin->brickstyle = BS_SIMPLE;
+	else if (s == skin->bricksprite[FIGID_GRAY]->h && 15 * s == skin->bricksprite[FIGID_GRAY]->w)
+		skin->brickstyle = BS_ORIENTATION_BASED;
+	else
+		exit(ERROR_SCRIPT);
+
+	// brick dyeing
+	SDL_PixelFormat *f = screen->format;
+	SDL_SetAlpha(skin->bricksprite[FIGID_GRAY], SDL_SRCALPHA, 128);
+
+	Uint32 rgb[] = {
+		SDL_MapRGB(f, 215, 64, 0),
+		SDL_MapRGB(f, 59, 52, 255),
+		SDL_MapRGB(f, 115, 121, 0),
+		SDL_MapRGB(f, 0, 132, 96),
+		SDL_MapRGB(f, 75, 160, 255),
+		SDL_MapRGB(f, 255, 174, 10),
+		SDL_MapRGB(f, 255, 109, 247),
+		0,
+		SDL_MapRGB(f, 0, 159, 218),
+		SDL_MapRGB(f, 254, 203, 0),
+		SDL_MapRGB(f, 149, 45, 152),
+		SDL_MapRGB(f, 105, 190, 40),
+		SDL_MapRGB(f, 237, 41, 57),
+		SDL_MapRGB(f, 0, 101, 189),
+		SDL_MapRGB(f, 255, 121, 0),
+	};
+
+	for (int i = 0; i < FIGID_END; ++i)
+	{
+		if (FIGID_GRAY == i)
+			continue;
+		skin->bricksprite[i] = SDL_CreateRGBSurface(0, skin->bricksprite[FIGID_GRAY]->w, skin->bricksprite[FIGID_GRAY]->h, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
+		SDL_FillRect(skin->bricksprite[i], NULL, rgb[i]);
+		SDL_BlitSurface(skin->bricksprite[FIGID_GRAY], NULL, skin->bricksprite[i], NULL);
+	}
+}
+
 static void skin_executeFont(struct Skin *skin, const char *statement)
 {
 	int id, size;
@@ -333,15 +411,15 @@ static void skin_executeShape(struct Skin *skin, const char *statement)
 {
 	int id, x, y, centerx, centery, alpha;
 	sscanf(statement, "%*s %d %d %d %d %d %d", &id, &x, &y, &centerx, &centery, &alpha);
-	drawShape(skin->bg, getShape(id), x, y, FIGID_GRAY, alpha, centerx, centery);
+	drawShape(skin, skin->bg, getShape(id), x, y, FIGID_GRAY, alpha, centerx, centery);
 }
 
 static void skin_executeText(struct Skin *skin, const char *statement)
 {
-	int fontid, x, y, centerx, centery, r, g, b;
+	int fontid, x, y, alignx, aligny, r, g, b;
 	char string[256];
 	sscanf(statement, "%*s %d %d %d %d %d %d %d %d \"%[^\"\n]", &fontid, &x, &y,
-			&centerx, &centery, &r, &g, &b, string);
+			&alignx, &aligny, &r, &g, &b, string);
 
 	int_replace(string, "$hiscore", hiscore);
 	int_replace(string, "$score", score);
@@ -361,10 +439,14 @@ static void skin_executeText(struct Skin *skin, const char *statement)
 	SDL_Surface *text = NULL;
 	SDL_Rect rect = {.x = x, .y = y};
 	text = TTF_RenderUTF8_Blended(skin->fonts[fontid], string, col);
-	if (centerx)
+	if (1 == alignx)	// to the center
 		rect.x -= text->w / 2;
-	if (centery)
+	else if (2 == alignx)	// to the right hand side
+		rect.x -= text->w;
+	if (1 == aligny)
 		rect.y -= text->h / 2;
+	else if (2 == aligny)
+		rect.y -= text->h;
 	SDL_BlitSurface(text, NULL, skin->screen, &rect);
 	SDL_FreeSurface(text);
 }
@@ -373,7 +455,7 @@ static void skin_executeFigure(struct Skin *skin, const char *statement)
 {
 	int id, x, y, centerx, centery, alpha;
 	sscanf(statement, "%*s %d %d %d %d %d %d", &id, &x, &y, &centerx, &centery, &alpha);
-	drawFigure(figures[id], x, y, alpha, false, centerx, centery);
+	drawFigure(skin, figures[id], x, y, alpha, false, centerx, centery);
 }
 
 static void str_replace(char *where, const char *what, const char *with)
@@ -394,4 +476,81 @@ static void int_replace(char *where, const char *what, int with)
 	char buff[16];
 	sprintf(buff, "%d", with);
 	str_replace(where, what, buff);
+}
+
+static void drawFigure(struct Skin *skin, const struct Figure *fig, int x, int y, Uint8 alpha, bool active, bool centerx, bool centery)
+{
+	if (fig != NULL)
+	{
+		const struct Shape *shape = NULL;
+		if (active)
+			shape = &figures[0]->shape;
+		else
+			shape = getShape(fig->id);
+
+		drawShape(skin, skin->screen, shape, x, y, fig->color, alpha, centerx, centery);
+	}
+}
+
+static void drawShape(struct Skin *skin, SDL_Surface *target, const struct Shape *sh, int x, int y, enum FigureId color, Uint8 alpha, bool centerx, bool centery)
+{
+	int offset_x = 0, offset_y = 0;
+	SDL_Rect srcrect;
+
+	if (centerx || centery)
+	{
+		int minx, maxx, miny, maxy, w, h;
+		getShapeDimensions(sh, &minx, &maxx, &miny, &maxy);
+		if (centerx)
+		{
+			w = maxx - minx + 1;
+			offset_x = (4 - w) * brick_size / 2 - minx * brick_size;
+		}
+		if (centery)
+		{
+			h = maxy - miny + 1;
+			offset_y = (2 - h) * brick_size / 2 - miny * brick_size;
+		}
+	}
+
+	for (int i = 0; i < (FIG_DIM * FIG_DIM); ++i)
+	{
+		SDL_Rect rect;
+		rect.x = (i % FIG_DIM) * brick_size + x + offset_x;
+		rect.y = (i / FIG_DIM) * brick_size + y + offset_y;
+
+		SDL_Surface *block = getBlock(skin, color, sh->blockmap[i], &srcrect);
+		SDL_SetAlpha(block, SDL_SRCALPHA, alpha);
+
+		if (sh->blockmap[i])
+			SDL_BlitSurface(block, &srcrect, target, &rect);
+	}
+}
+
+static SDL_Surface *getBlock(struct Skin *skin, enum FigureId color, enum BlockOrientation orient, SDL_Rect *srcrect)
+{
+	if (srcrect)
+	{
+		srcrect->x = 0;
+		srcrect->y = 0;
+		srcrect->w = brick_size;
+		srcrect->h = brick_size;
+	}
+
+	SDL_Surface *s = NULL;
+	switch (skin->brickstyle)
+	{
+		case BS_SIMPLE:
+			s = skin->bricksprite[color];
+			break;
+		case BS_ORIENTATION_BASED:
+			if (srcrect)
+				srcrect->x = orient * brick_size - brick_size;
+			s = skin->bricksprite[color];
+			break;
+		default:
+			s = NULL;
+	}
+
+	return s;
 }

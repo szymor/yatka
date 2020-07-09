@@ -42,7 +42,6 @@
 #define BOARD_HEIGHT				21
 #define INVISIBLE_ROW_COUNT			1
 #define FIG_DIM						4
-#define BLOCK_SIZE					12
 
 #define FIG_NUM				7
 #define MAX_NEXTBLOCKS		(FIG_NUM - 1)
@@ -71,26 +70,6 @@ enum GameState
 	GS_SETTINGS,
 	GS_GAMEOVER,
 	GS_END
-};
-
-enum FigureId
-{
-	FIGID_I,
-	FIGID_O,
-	FIGID_T,
-	FIGID_S,
-	FIGID_Z,
-	FIGID_J,
-	FIGID_L,
-	FIGID_GRAY,
-	FIGID_I_CYAN,
-	FIGID_O_YELLOW,
-	FIGID_T_PURPLE,
-	FIGID_S_GREEN,
-	FIGID_Z_RED,
-	FIGID_J_BLUE,
-	FIGID_L_ORANGE,
-	FIGID_END
 };
 
 enum TetrominoColor
@@ -164,6 +143,7 @@ extern enum TetrominoStyle tetrominostyle;
 
 extern Uint32 last_drop_time;
 extern int draw_delta_drop;
+extern int brick_size;
 
 extern int hiscore;
 extern int score;
@@ -182,10 +162,8 @@ Uint32 getNextDropTime(void);
 void setDropRate(int level);
 void softDropTimeCounter(void);
 
-void drawFigure(const struct Figure *fig, int x, int y, Uint8 alpha, bool active, bool centerx, bool centery);
-void drawShape(SDL_Surface *target, const struct Shape *sh, int x, int y, enum FigureId color, Uint8 alpha, bool centerx, bool centery);
+void getShapeDimensions(const struct Shape *shape, int *minx, int *maxx, int *miny, int *maxy);
 struct Shape* getShape(enum FigureId id);
 bool isFigureColliding(void);
-SDL_Surface *getBlock(enum FigureId color, enum BlockOrientation orient, SDL_Rect *srcrect);
 
 #endif
