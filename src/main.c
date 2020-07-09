@@ -55,7 +55,6 @@ bool easyspin = false;
 bool lockdelay = false;
 bool smoothanim = false;
 
-int nextblocks = MAX_NEXTBLOCKS;
 int ghostalpha = 64;
 enum TetrominoColor tetrominocolor = TC_TENGEN;
 enum TetrominoStyle tetrominostyle = TS_TENGENISH;

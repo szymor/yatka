@@ -137,7 +137,6 @@ extern bool smoothanim;
 
 extern enum TetrominoColor tetrominocolor;
 extern int ghostalpha;
-extern int nextblocks;
 extern enum TetrominoStyle tetrominostyle;
 
 extern Uint32 last_drop_time;

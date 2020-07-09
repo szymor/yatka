@@ -106,10 +106,6 @@ void loadSettings(void)
 		{
 			fscanf(settingsFile, "%d", &tetrominostyle);
 		}
-		else if (!strcmp(buff, "nextblocks"))
-		{
-			fscanf(settingsFile, "%d", &nextblocks);
-		}
 		else if (!strcmp(buff,"rng"))
 		{
 			fscanf(settingsFile, "%s", buff);
@@ -157,7 +153,6 @@ void saveSettings(void)
 	fprintf(settingsFile, "ghostalpha %d\n", ghostalpha);
 	fprintf(settingsFile, "tetrominocolor %d\n", tetrominocolor);
 	fprintf(settingsFile, "tetrominostyle %d\n", tetrominostyle);
-	fprintf(settingsFile, "nextblocks %d\n", nextblocks);
 	fprintf(settingsFile, "rng %s\n", getRandomizerString());
 
 	fclose(settingsFile);
