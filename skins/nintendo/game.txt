@@ -1,0 +1,35 @@
+; bg (background) filename
+bg "bg.png"
+; fg (foreground) filename
+fg null
+; boardxy x y
+boardxy 128 48
+; bricksize wh
+bricksize 8
+; bricksprite filename
+bricksprite "bricks.png"
+; font id filename size
+font 0 "arcade.ttf" 8
+font 1 "arcade.ttf" 6
+; text fontid x y alignx aligny r g b string
+text 0 80 32 1 0 255 255 255 "Yatka"
+text 1 80 70 1 0 255 255 255 "Statistics"
+text 0 168 24 1 0 255 255 255 "Lines $lines"
+text 0 224 30 0 0 255 255 255 "Top"
+text 0 224 39 0 0 255 255 255 "$hiscore"
+text 0 224 56 0 0 255 255 255 "Score"
+text 0 224 65 0 0 255 255 255 "$score"
+text 0 240 104 1 0 255 255 255 "Next"
+text 0 244 158 1 0 255 255 255 "Level"
+text 0 244 167 1 0 255 255 255 "$level"
+text 0 248 190 1 0 255 255 255 "Debris"
+text 0 248 199 1 0 255 255 255 "$debris"
+text 0 105 94 2 0 215 64 0 "$stat2"
+text 0 105 110 2 0 215 64 0 "$stat5"
+text 0 105 126 2 0 215 64 0 "$stat4"
+text 0 105 142 2 0 215 64 0 "$stat1"
+text 0 105 158 2 0 215 64 0 "$stat3"
+text 0 105 174 2 0 215 64 0 "$stat6"
+text 0 105 190 2 0 215 64 0 "$stat0"
+; figure id x y centerx centery alpha
+figure 1 224 120 1 1 255

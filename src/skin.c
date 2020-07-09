@@ -8,6 +8,7 @@
 #include "skin.h"
 #include "main.h"
 #include "video.h"
+#include "state_mainmenu.h"
 
 #define log		printf
 
@@ -426,7 +427,7 @@ static void skin_executeText(struct Skin *skin, const char *statement)
 	int_replace(string, "$level", level);
 	int_replace(string, "$lines", lines);
 	int_replace(string, "$tetris", ttr);
-	int_replace(string, "$fps", fps);
+	int_replace(string, "$debris", menu_debris);
 	int_replace(string, "$stat0", statistics[0]);
 	int_replace(string, "$stat1", statistics[1]);
 	int_replace(string, "$stat2", statistics[2]);
