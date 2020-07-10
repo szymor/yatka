@@ -92,10 +92,6 @@ void loadSettings(void)
 		{
 			fscanf(settingsFile, "%d", &initmusvol);
 		}
-		else if (!strcmp(buff, "ghostalpha"))
-		{
-			fscanf(settingsFile, "%d", &ghostalpha);
-		}
 		else if (!strcmp(buff, "tetrominocolor"))
 		{
 			fscanf(settingsFile, "%d", &tetrominocolor);
@@ -142,7 +138,6 @@ void saveSettings(void)
 		fprintf(settingsFile, "holdoff\n");
 	if (!nosound)
 		fprintf(settingsFile, "musicvol %d\n", Mix_VolumeMusic(-1));
-	fprintf(settingsFile, "ghostalpha %d\n", ghostalpha);
 	fprintf(settingsFile, "tetrominocolor %d\n", tetrominocolor);
 	fprintf(settingsFile, "rng %s\n", getRandomizerString());
 

@@ -54,7 +54,6 @@ bool easyspin = false;
 bool lockdelay = false;
 bool smoothanim = false;
 
-int ghostalpha = 64;
 enum TetrominoColor tetrominocolor = TC_TENGEN;
 
 enum GameState gamestate = GS_MAINMENU;

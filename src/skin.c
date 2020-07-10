@@ -28,6 +28,7 @@ static void skin_executeBoardxy(struct Skin *skin, const char *statement);
 static void skin_executeBricksize(struct Skin *skin, const char *statement);
 static void skin_executeBricksprite(struct Skin *skin, const char *statement);
 static void skin_executeDebriscolor(struct Skin *skin, const char *statement);
+static void skin_executeGhost(struct Skin *skin, const char *statement);
 static void skin_executeFont(struct Skin *skin, const char *statement);
 static void skin_executeBox(struct Skin *skin, const char *statement);
 static void skin_executeShape(struct Skin *skin, const char *statement);
@@ -49,6 +50,7 @@ void skin_initSkin(struct Skin *skin)
 		skin->bricksprite[i] = NULL;
 	skin->brickstyle = BS_SIMPLE;
 	skin->debriscolor = FIGID_END;
+	skin->ghost = 128;
 }
 
 void skin_destroySkin(struct Skin *skin)
@@ -94,6 +96,7 @@ void skin_destroySkin(struct Skin *skin)
 	}
 	skin->brickstyle = BS_SIMPLE;
 	skin->debriscolor = FIGID_END;
+	skin->ghost = 128;
 }
 
 void skin_loadSkin(struct Skin *skin, const char *path)
@@ -189,7 +192,7 @@ void skin_updateScreen(struct Skin *skin, SDL_Surface *screen)
 	}
 
 	// display the ghost figure
-	if (figures[0] != NULL && ghostalpha > 0)
+	if (figures[0] != NULL && skin->ghost > 0)
 	{
 		int tfy = figures[0]->y;
 		while (!isFigureColliding())
@@ -200,7 +203,7 @@ void skin_updateScreen(struct Skin *skin, SDL_Surface *screen)
 		{
 			int x = skin->boardx + skin->bricksize * figures[0]->x;
 			int y = skin->boardy + skin->bricksize * (figures[0]->y - INVISIBLE_ROW_COUNT);
-			drawFigure(skin, figures[0], x, y, ghostalpha, true, false, false);
+			drawFigure(skin, figures[0], x, y, skin->ghost, true, false, false);
 		}
 		figures[0]->y = tfy;
 	}
@@ -271,6 +274,11 @@ static void skin_executeStatement(struct Skin *skin, const char *statement, bool
 	{
 		if (dynamic) return;
 		skin_executeDebriscolor(skin, statement);
+	}
+	else if (!strcmp(cmd, "ghost"))
+	{
+		if (dynamic) return;
+		skin_executeGhost(skin, statement);
 	}
 	else if (!strcmp(cmd, "font"))
 	{
@@ -397,6 +405,12 @@ static void skin_executeDebriscolor(struct Skin *skin, const char *statement)
 {
 	sscanf(statement, "%*s %d", &skin->debriscolor);
 	log("debriscolor %d\n", skin->debriscolor);
+}
+
+static void skin_executeGhost(struct Skin *skin, const char *statement)
+{
+	sscanf(statement, "%*s %d", &skin->ghost);
+	log("ghost %d\n", skin->ghost);
 }
 
 static void skin_executeFont(struct Skin *skin, const char *statement)

@@ -10,6 +10,8 @@ bricksize 12
 bricksprite "bricks.png"
 ; debriscolor colorid
 debriscolor 100
+; ghost alpha
+ghost 64
 ; font id filename size
 font 0 "arcade.ttf" 7
 ; box x y w h alpha r g b
