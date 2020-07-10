@@ -48,7 +48,6 @@ int statistics[FIGID_GRAY];
 
 bool nosound = false;
 bool holdoff = false;
-bool grayblocks = false;
 bool repeattrack = false;
 bool numericbars = false;
 bool easyspin = false;
@@ -57,7 +56,6 @@ bool smoothanim = false;
 
 int ghostalpha = 64;
 enum TetrominoColor tetrominocolor = TC_TENGEN;
-enum TetrominoStyle tetrominostyle = TS_TENGENISH;
 
 enum GameState gamestate = GS_MAINMENU;
 static bool hold_ready = true;

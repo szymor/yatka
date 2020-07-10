@@ -41,6 +41,7 @@ struct Skin
 	SDL_Surface *fg;
 	SDL_Surface *bricksprite[FIGID_END];
 	enum BrickStyle brickstyle;
+	enum FigureId debriscolor;
 	char *script;
 	char *path;
 	int boardx;

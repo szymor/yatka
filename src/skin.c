@@ -27,6 +27,7 @@ static void skin_executeFg(struct Skin *skin, const char *statement);
 static void skin_executeBoardxy(struct Skin *skin, const char *statement);
 static void skin_executeBricksize(struct Skin *skin, const char *statement);
 static void skin_executeBricksprite(struct Skin *skin, const char *statement);
+static void skin_executeDebriscolor(struct Skin *skin, const char *statement);
 static void skin_executeFont(struct Skin *skin, const char *statement);
 static void skin_executeBox(struct Skin *skin, const char *statement);
 static void skin_executeShape(struct Skin *skin, const char *statement);
@@ -46,6 +47,8 @@ void skin_initSkin(struct Skin *skin)
 	skin->screen = NULL;
 	for (int i = 0; i < FIGID_END; ++i)
 		skin->bricksprite[i] = NULL;
+	skin->brickstyle = BS_SIMPLE;
+	skin->debriscolor = FIGID_END;
 }
 
 void skin_destroySkin(struct Skin *skin)
@@ -89,6 +92,8 @@ void skin_destroySkin(struct Skin *skin)
 			skin->bricksprite[i] = NULL;
 		}
 	}
+	skin->brickstyle = BS_SIMPLE;
+	skin->debriscolor = FIGID_END;
 }
 
 void skin_loadSkin(struct Skin *skin, const char *path)
@@ -152,7 +157,11 @@ void skin_updateScreen(struct Skin *skin, SDL_Surface *screen)
 		if (board[i].orientation != BO_EMPTY)
 		{
 			SDL_Rect srcrect;
-			SDL_Surface *block = grayblocks ? getBlock(skin, FIGID_GRAY, board[i].orientation, &srcrect) : getBlock(skin, board[i].color, board[i].orientation, &srcrect);
+			SDL_Surface *block;
+			if (skin->debriscolor >= FIGID_END)
+				block = getBlock(skin, board[i].color, board[i].orientation, &srcrect);
+			else
+				block = getBlock(skin, skin->debriscolor, board[i].orientation, &srcrect);
 			SDL_SetAlpha(block, SDL_SRCALPHA, 255);
 			SDL_BlitSurface(block, &srcrect, screen, &rect);
 		}
@@ -257,6 +266,11 @@ static void skin_executeStatement(struct Skin *skin, const char *statement, bool
 	{
 		if (dynamic) return;
 		skin_executeBricksprite(skin, statement);
+	}
+	else if (!strcmp(cmd, "debriscolor"))
+	{
+		if (dynamic) return;
+		skin_executeDebriscolor(skin, statement);
 	}
 	else if (!strcmp(cmd, "font"))
 	{
@@ -377,6 +391,12 @@ static void skin_executeBricksprite(struct Skin *skin, const char *statement)
 		SDL_FillRect(skin->bricksprite[i], NULL, rgb[i]);
 		SDL_BlitSurface(skin->bricksprite[FIGID_GRAY], NULL, skin->bricksprite[i], NULL);
 	}
+}
+
+static void skin_executeDebriscolor(struct Skin *skin, const char *statement)
+{
+	sscanf(statement, "%*s %d", &skin->debriscolor);
+	log("debriscolor %d\n", skin->debriscolor);
 }
 
 static void skin_executeFont(struct Skin *skin, const char *statement)

@@ -18,9 +18,7 @@ enum SettingsLine
 	SL_MUSIC_VOL,
 	SL_MUSIC_REPEAT,
 	SL_SMOOTHANIM,
-	SL_TETROMINO_STYLE,
 	SL_TETROMINO_COLOR,
-	SL_DEBRIS_COLOR,
 	SL_EASYSPIN,
 	SL_LOCKDELAY,
 	SL_GHOST,
@@ -38,9 +36,7 @@ static const char settings_text[][32] = {
 	"  music volume              %d",
 	"  repeat mode               %s",
 	"  smooth animation          %s",
-	"  tetromino style           %s",
 	"  tetromino color           %s",
-	"  debris color              %s",
 	"  easy spin                 %s",
 	"  fixed lock delay          %s",
 	"  ghost opacity             %d",
@@ -139,17 +135,6 @@ void settings_processInputEvents(void)
 								decMod((int*)&tetrominocolor, TC_END, false);
 								settings_changed = true;
 							} break;
-							case SL_TETROMINO_STYLE:
-							{
-								decMod((int*)&tetrominostyle, TS_END, false);
-								redraw_bg = true;
-								settings_changed = true;
-							} break;
-							case SL_DEBRIS_COLOR:
-							{
-								grayblocks = !grayblocks;
-								settings_changed = true;
-							} break;
 							case SL_EASYSPIN:
 							{
 								easyspin = !easyspin;
@@ -208,17 +193,6 @@ void settings_processInputEvents(void)
 							case SL_TETROMINO_COLOR:
 							{
 								incMod((int*)&tetrominocolor, TC_END, false);
-								settings_changed = true;
-							} break;
-							case SL_TETROMINO_STYLE:
-							{
-								incMod((int*)&tetrominostyle, TS_END, false);
-								redraw_bg = true;
-								settings_changed = true;
-							} break;
-							case SL_DEBRIS_COLOR:
-							{
-								grayblocks = !grayblocks;
 								settings_changed = true;
 							} break;
 							case SL_EASYSPIN:
@@ -300,19 +274,6 @@ static char *generateSettingLine(char *buff, int pos)
 				"gray"
 			};
 			sprintf(buff, settings_text[pos], tc_strings[tetrominocolor]);
-		} break;
-		case SL_TETROMINO_STYLE:
-		{
-			static char *ts_strings[] = {
-				"legacy",
-				"plain",
-				"tengenish"
-			};
-			sprintf(buff, settings_text[pos], ts_strings[tetrominostyle]);
-		} break;
-		case SL_DEBRIS_COLOR:
-		{
-			sprintf(buff, settings_text[pos], grayblocks ? "gray" : "original");
 		} break;
 		case SL_EASYSPIN:
 		{

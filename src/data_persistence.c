@@ -88,8 +88,6 @@ void loadSettings(void)
 			screenscale = 4;
 		else if (!strcmp(buff, "holdoff"))
 			holdoff = true;
-		else if (!strcmp(buff, "grayblocks"))
-			grayblocks = true;
 		else if (!strcmp(buff, "musicvol"))
 		{
 			fscanf(settingsFile, "%d", &initmusvol);
@@ -101,10 +99,6 @@ void loadSettings(void)
 		else if (!strcmp(buff, "tetrominocolor"))
 		{
 			fscanf(settingsFile, "%d", &tetrominocolor);
-		}
-		else if (!strcmp(buff, "tetrominostyle"))
-		{
-			fscanf(settingsFile, "%d", &tetrominostyle);
 		}
 		else if (!strcmp(buff,"rng"))
 		{
@@ -146,13 +140,10 @@ void saveSettings(void)
 		fprintf(settingsFile, "scale4x\n");
 	if (holdoff)
 		fprintf(settingsFile, "holdoff\n");
-	if (grayblocks)
-		fprintf(settingsFile, "grayblocks\n");
 	if (!nosound)
 		fprintf(settingsFile, "musicvol %d\n", Mix_VolumeMusic(-1));
 	fprintf(settingsFile, "ghostalpha %d\n", ghostalpha);
 	fprintf(settingsFile, "tetrominocolor %d\n", tetrominocolor);
-	fprintf(settingsFile, "tetrominostyle %d\n", tetrominostyle);
 	fprintf(settingsFile, "rng %s\n", getRandomizerString());
 
 	fclose(settingsFile);

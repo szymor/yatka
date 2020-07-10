@@ -81,14 +81,6 @@ enum TetrominoColor
 	TC_END
 };
 
-enum TetrominoStyle
-{
-	TS_LEGACY,
-	TS_PLAIN,
-	TS_TENGENISH,
-	TS_END
-};
-
 enum BlockOrientation
 {
 	// proper encoding allows to rotate blocks using shift operations
@@ -128,7 +120,6 @@ extern enum GameState gamestate;
 
 extern bool nosound;
 extern bool holdoff;
-extern bool grayblocks;
 extern bool repeattrack;
 extern bool numericbars;
 extern bool easyspin;
@@ -137,7 +128,6 @@ extern bool smoothanim;
 
 extern enum TetrominoColor tetrominocolor;
 extern int ghostalpha;
-extern enum TetrominoStyle tetrominostyle;
 
 extern Uint32 last_drop_time;
 extern int draw_delta_drop;
