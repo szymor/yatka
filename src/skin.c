@@ -14,6 +14,7 @@
 
 static void str_replace(char *where, const char *what, const char *with);
 static void int_replace(char *where, const char *what, int with);
+static void replace_all_vars(char *where);
 
 static void drawFigure(struct Skin *skin, const struct Figure *fig, int x, int y, Uint8 alpha, bool active, bool centerx, bool centery);
 static void drawShape(struct Skin *skin, SDL_Surface *target, const struct Shape *sh, int x, int y, enum FigureId color, Uint8 alpha, bool centerx, bool centery);
@@ -33,6 +34,7 @@ static void skin_executeFont(struct Skin *skin, const char *statement);
 static void skin_executeBox(struct Skin *skin, const char *statement);
 static void skin_executeShape(struct Skin *skin, const char *statement);
 static void skin_executeText(struct Skin *skin, const char *statement);
+static void skin_executeBar(struct Skin *skin, const char *statement);
 static void skin_executeFigure(struct Skin *skin, const char *statement);
 
 void skin_initSkin(struct Skin *skin)
@@ -300,6 +302,11 @@ static void skin_executeStatement(struct Skin *skin, const char *statement, bool
 		if (!dynamic) return;
 		skin_executeText(skin, statement);
 	}
+	else if (!strcmp(cmd, "bar"))
+	{
+		if (!dynamic) return;
+		skin_executeBar(skin, statement);
+	}
 	else if (!strcmp(cmd, "figure"))
 	{
 		if (!dynamic) return;
@@ -456,20 +463,7 @@ static void skin_executeText(struct Skin *skin, const char *statement)
 	sscanf(statement, "%*s %d %d %d %d %d %d %d %d \"%[^\"\n]", &fontid, &x, &y,
 			&alignx, &aligny, &r, &g, &b, string);
 
-	int_replace(string, "$hiscore", hiscore);
-	int_replace(string, "$score", score);
-	int_replace(string, "$level", level);
-	int_replace(string, "$lines", lines);
-	int_replace(string, "$tetris", ttr);
-	int_replace(string, "$fps", fps);
-	int_replace(string, "$debris", menu_debris);
-	int_replace(string, "$stat0", statistics[0]);
-	int_replace(string, "$stat1", statistics[1]);
-	int_replace(string, "$stat2", statistics[2]);
-	int_replace(string, "$stat3", statistics[3]);
-	int_replace(string, "$stat4", statistics[4]);
-	int_replace(string, "$stat5", statistics[5]);
-	int_replace(string, "$stat6", statistics[6]);
+	replace_all_vars(string);
 
 	SDL_Color col = {.r = r, .g = g, .b = b};
 	SDL_Surface *text = NULL;
@@ -485,6 +479,94 @@ static void skin_executeText(struct Skin *skin, const char *statement)
 		rect.y -= text->h;
 	SDL_BlitSurface(text, NULL, skin->screen, &rect);
 	SDL_FreeSurface(text);
+}
+
+static void skin_executeBar(struct Skin *skin, const char *statement)
+{
+	int x, y, w, h, limit, dir, rl, gl, bl, al, rr, gr, br, ar;
+	char var[256];
+	sscanf(statement, "%*s %d %d %d %d %s %d %d %d %d %d %d %d %d %d %d", &x, &y,
+			&w, &h, var, &limit, &dir, &rl, &gl, &bl, &al, &rr, &gr, &br, &ar);
+
+	replace_all_vars(var);
+	int value = 0;
+	sscanf(var, "%d", &value);
+	if (value > limit)
+		value = limit;
+
+	SDL_Surface *bar = SDL_CreateRGBSurface(SDL_SRCALPHA,
+		w, h, 32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+
+	SDL_Rect rect = { .x = 0, .y = 0, .w = 0, .h = 0 };
+	Uint32 col = 0;
+	if (0 == dir)	// left to right
+	{
+		rect.x = 0;
+		rect.y = 0;
+		rect.w = value * w / limit;
+		rect.h = h;
+	}
+	else if (1 == dir)	// right to left
+	{
+		rect.w = value * w / limit;
+		rect.h = h;
+		rect.x = w - rect.w;
+		rect.y = 0;
+	}
+	else if (2 == dir)	// up to down
+	{
+		rect.x = 0;
+		rect.y = 0;
+		rect.w = w;
+		rect.h = value * h / limit;
+	}
+	else if (3 == dir)	// down to up
+	{
+		rect.w = w;
+		rect.h = value * h / limit;
+		rect.x = 0;
+		rect.y = h - rect.h;
+	}
+	col = SDL_MapRGBA(bar->format, rl, gl, bl, al);
+	SDL_FillRect(bar, &rect, col);
+
+	if (0 == dir)	// left to right
+	{
+		rect.x = rect.w;
+		rect.y = 0;
+		rect.w = w - rect.w;
+		rect.h = h;
+	}
+	else if (1 == dir)	// right to left
+	{
+		rect.x = 0;
+		rect.y = 0;
+		rect.w = w - rect.w;
+		rect.h = h;
+	}
+	else if (2 == dir)	// up to down
+	{
+		rect.x = 0;
+		rect.y = rect.h;
+		rect.w = w;
+		rect.h = h - rect.h;
+	}
+	else if (3 == dir)	// down to up
+	{
+		rect.w = w;
+		rect.h = h - rect.h;
+		rect.x = 0;
+		rect.y = 0;
+	}
+	col = SDL_MapRGBA(bar->format, rr, gr, br, ar);
+	SDL_FillRect(bar, &rect, col);
+
+	rect.x = x;
+	rect.y = y;
+	rect.w = w;
+	rect.h = h;
+	SDL_BlitSurface(bar, NULL, screen, &rect);
+	SDL_FreeSurface(bar);
 }
 
 static void skin_executeFigure(struct Skin *skin, const char *statement)
@@ -512,6 +594,24 @@ static void int_replace(char *where, const char *what, int with)
 	char buff[16];
 	sprintf(buff, "%d", with);
 	str_replace(where, what, buff);
+}
+
+static void replace_all_vars(char *where)
+{
+	int_replace(where, "$hiscore", hiscore);
+	int_replace(where, "$score", score);
+	int_replace(where, "$level", level);
+	int_replace(where, "$lines", lines);
+	int_replace(where, "$tetris", ttr);
+	int_replace(where, "$fps", fps);
+	int_replace(where, "$debris", menu_debris);
+	int_replace(where, "$stat0", statistics[0]);
+	int_replace(where, "$stat1", statistics[1]);
+	int_replace(where, "$stat2", statistics[2]);
+	int_replace(where, "$stat3", statistics[3]);
+	int_replace(where, "$stat4", statistics[4]);
+	int_replace(where, "$stat5", statistics[5]);
+	int_replace(where, "$stat6", statistics[6]);
 }
 
 static void drawFigure(struct Skin *skin, const struct Figure *fig, int x, int y, Uint8 alpha, bool active, bool centerx, bool centery)
