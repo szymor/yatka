@@ -121,7 +121,6 @@ extern enum GameState gamestate;
 extern bool nosound;
 extern bool holdoff;
 extern bool repeattrack;
-extern bool numericbars;
 extern bool easyspin;
 extern bool lockdelay;
 extern bool smoothanim;

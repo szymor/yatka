@@ -49,7 +49,6 @@ int statistics[FIGID_GRAY];
 bool nosound = false;
 bool holdoff = false;
 bool repeattrack = false;
-bool numericbars = false;
 bool easyspin = false;
 bool lockdelay = false;
 bool smoothanim = false;
@@ -159,8 +158,6 @@ void lockFigure(void);
 void holdFigure(void);
 int removeFullLines(void);
 bool checkGameEnd(void);
-void drawBars(void);
-void drawBar(int x, int y, int value);
 void onDrop(void);
 void onCollide(void);
 void onLineClear(int removed);
@@ -470,81 +467,6 @@ void moveRight(void)
 
 		next_side_move_time = SDL_GetTicks() + SIDE_MOVE_DELAY;
 	}
-}
-
-void drawBars(void)
-{
-	if (numericbars)
-	{
-		const SDL_Color white = {.r = 255, .g = 255, .b = 255};
-		SDL_Surface *text = NULL;
-		SDL_Rect rect;
-		char buff[256];
-
-		for (int i = 0; i < FIGID_GRAY; ++i)
-		{
-			sprintf(buff, "%d", statistics[i]);
-			text = TTF_RenderUTF8_Blended(arcade_font, buff, white);
-			rect.x = 64 + BAR_WIDTH - text->w;
-			rect.y = 38 + i * 30;
-			SDL_BlitSurface(text, NULL, screen, &rect);
-			SDL_FreeSurface(text);
-		}
-	}
-	else
-	{
-		for (int i = 0; i < FIGID_GRAY; ++i)
-		{
-			drawBar(64, 38 + i * 30, statistics[i]);
-		}
-	}
-}
-
-void drawBar(int x, int y, int value)
-{
-	const int alpha_step = 48;
-	const int alpha_start = 32;
-
-	SDL_Surface *bar = SDL_CreateRGBSurface(SDL_SRCALPHA,
-											BAR_WIDTH,
-											BAR_HEIGHT,
-											32,
-											0x000000ff,
-											0x0000ff00,
-											0x00ff0000,
-											0xff000000);
-
-	Uint8 alpha_r;
-	Uint8 alpha_l;
-	Uint32 col;
-	SDL_Rect rect;
-	int ar = (value / (BAR_WIDTH + 1)) * alpha_step + alpha_start;
-	int al = ar + alpha_step;
-	ar = ar > 255 ? 255 : ar;
-	al = al > 255 ? 255 : al;
-	alpha_l = (Uint8)al;
-	alpha_r = (Uint8)ar;
-
-	rect.x = 0;
-	rect.y = 0;
-	rect.w = value % (BAR_WIDTH + 1);
-	rect.h = BAR_HEIGHT;
-	col = SDL_MapRGBA(bar->format, 255, 255, 255, alpha_l);
-	SDL_FillRect(bar, &rect, col);
-
-	rect.x = rect.w;
-	rect.y = 0;
-	rect.w = BAR_WIDTH - rect.w;
-	rect.h = BAR_HEIGHT;
-	col = SDL_MapRGBA(bar->format, 255, 255, 255, alpha_r);
-	SDL_FillRect(bar, &rect, col);
-
-	rect.x = x;
-	rect.y = y;
-	rect.w = BAR_WIDTH;
-	rect.h = BAR_HEIGHT;
-	SDL_BlitSurface(bar, NULL, screen, &rect);
-	SDL_FreeSurface(bar);
 }
 
 void onDrop(void)

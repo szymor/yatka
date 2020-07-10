@@ -76,8 +76,6 @@ void loadSettings(void)
 			easyspin = true;
 		else if (!strcmp(buff, "lockdelay"))
 			lockdelay = true;
-		else if (!strcmp(buff, "numericbars"))
-			numericbars = true;
 		else if (!strcmp(buff, "repeattrack"))
 			repeattrack = true;
 		else if (!strcmp(buff, "scale2x"))
@@ -124,8 +122,6 @@ void saveSettings(void)
 		fprintf(settingsFile, "easyspin\n");
 	if (lockdelay)
 		fprintf(settingsFile, "lockdelay\n");
-	if (numericbars)
-		fprintf(settingsFile, "numericbars\n");
 	if (repeattrack)
 		fprintf(settingsFile, "repeattrack\n");
 	if (2 == screenscale)
