@@ -8,6 +8,8 @@ boardxy 128 48
 bricksize 8
 ; bricksprite filename
 bricksprite "bricks.png"
+; ghost alpha
+ghost 0
 ; font id filename size
 font 0 "arcade.ttf" 8
 font 1 "arcade.ttf" 6

@@ -10,7 +10,7 @@
 #include "video.h"
 #include "state_mainmenu.h"
 
-#define log		printf
+#define log		/*printf*/
 
 static void str_replace(char *where, const char *what, const char *with);
 static void int_replace(char *where, const char *what, int with);

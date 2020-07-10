@@ -18,9 +18,6 @@
 #include "randomizer.h"
 #include "skin.h"
 
-#define BAR_WIDTH					26
-#define BAR_HEIGHT					8
-
 #define MAX_SOFTDROP_PRESS			300
 #define FONT_SIZE					7
 
@@ -303,7 +300,7 @@ void initialize(void)
 	SDL_WM_SetCaption("Y A T K A", NULL);
 	SDL_ShowCursor(SDL_DISABLE);
 
-	arcade_font = TTF_OpenFont("arcade.ttf", FONT_SIZE);
+	arcade_font = TTF_OpenFont("skins/default/arcade.ttf", FONT_SIZE);
 	if (arcade_font == NULL)
 		exit(ERROR_NOFONT);
 
@@ -328,7 +325,6 @@ void initialize(void)
 	resetGame();
 
 	skin_initSkin(&gameskin);
-	skin_loadSkin(&gameskin, "skins/default/game.txt");
 }
 
 void finalize(void)
@@ -1018,6 +1014,7 @@ void resetGame(void)
 	setDropRate(level);
 	score = 0;
 	tetris_count = 0;
+	ttr = 0;
 	left_move = false;
 	right_move = false;
 
