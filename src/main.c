@@ -80,6 +80,8 @@ static bool left_move = false;
 static bool right_move = false;
 static Uint32 next_side_move_time;
 
+static SDL_Joystick *joystick = NULL;
+
 static struct Shape *shapes[FIGID_GRAY];
 static const struct ShapeTemplate templates[] = {
 	{	// I
@@ -179,6 +181,8 @@ int main(int argc, char *argv[])
 			nosound = true;
 		else if (!strcmp(argv[i],"--sound"))
 			nosound = false;
+		else if (!strcmp(argv[i],"--fullscreen"))
+			screenscale = 0;
 		else if (!strcmp(argv[i],"--scale1x"))
 			screenscale = 1;
 		else if (!strcmp(argv[i],"--scale2x"))
@@ -288,15 +292,22 @@ void initialize(void)
 	hiscore = loadHiscore();
 	old_hiscore = hiscore;
 
-	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) < 0)
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) < 0)
 		exit(ERROR_SDLINIT);
 	if (TTF_Init() < 0)
 		exit(ERROR_TTFINIT);
 	atexit(finalize);
-	screen_scaled = SDL_SetVideoMode(SCREEN_WIDTH * screenscale, SCREEN_HEIGHT * screenscale, SCREEN_BPP, VIDEO_MODE_FLAGS);
+	int video_flags = VIDEO_MODE_FLAGS;
+	int scale = screenscale;
+	if (0 == screenscale)
+	{
+		scale = 1;
+		video_flags |= SDL_FULLSCREEN;
+	}
+	screen_scaled = SDL_SetVideoMode(SCREEN_WIDTH * scale, SCREEN_HEIGHT * scale, SCREEN_BPP, video_flags);
 	if (screen_scaled == NULL)
 		exit(ERROR_SDLVIDEO);
-	screen = screenscale > 1 ? SDL_CreateRGBSurface(SDL_SWSURFACE, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BPP, 0, 0, 0, 0) : screen_scaled;
+	screen = scale > 1 ? SDL_CreateRGBSurface(SDL_SWSURFACE, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BPP, 0, 0, 0, 0) : screen_scaled;
 	SDL_WM_SetCaption("Y A T K A", NULL);
 	SDL_ShowCursor(SDL_DISABLE);
 
@@ -307,6 +318,13 @@ void initialize(void)
 	if (!nosound)
 	{
 		initSound();
+	}
+
+	// joystick support
+	if (SDL_NumJoysticks() > 0)
+	{
+		SDL_JoystickEventState(SDL_ENABLE);
+		joystick = SDL_JoystickOpen(0);
 	}
 
 	// shape init
@@ -338,6 +356,10 @@ void finalize(void)
 
 	TTF_CloseFont(arcade_font);
 	TTF_Quit();
+
+	if (joystick != NULL)
+		SDL_JoystickClose(joystick);
+
 	if (!nosound)
 		deinitSound();
 	SDL_Quit();

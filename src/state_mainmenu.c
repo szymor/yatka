@@ -25,6 +25,12 @@ int menu_debris_chance = 8;
 
 static int submenu_index = 0;
 
+static void up(void);
+static void down(void);
+static void left(void);
+static void right(void);
+static void action(void);
+static void quit(void);
 static void text(int x, int y, const char *string, int alignx, int aligny);
 
 static void text(int x, int y, const char *string, int alignx, int aligny)
@@ -68,7 +74,7 @@ void mainmenu_init(void)
 		closedir(dp);
 	}
 	else
-		perror ("Couldn't open the directory");
+		perror("Couldn't open the directory");
 }
 
 void mainmenu_updateScreen(void)
@@ -112,6 +118,87 @@ void mainmenu_updateScreen(void)
 	flipScreenScaled();
 }
 
+static void up(void)
+{
+	decMod(&submenu_index, POSITION_NUM, false);
+}
+
+static void down(void)
+{
+	incMod(&submenu_index, POSITION_NUM, false);
+}
+
+static void left(void)
+{
+	int *option = NULL;
+	int limit = 10;
+	switch (submenu_index)
+	{
+		case 0:
+			option = &menu_skin;
+			limit = menu_skinnum;
+			decMod(option, limit, false);
+			break;
+		case 1:
+			option = &menu_level;
+			decMod(option, limit, true);
+			break;
+		case 2:
+			option = &menu_debris;
+			limit = 16;
+			decMod(option, limit, true);
+			break;
+		case 3:
+			option = &menu_debris_chance;
+			decMod(option, limit, true);
+			break;
+	}
+}
+
+static void right(void)
+{
+	int *option = NULL;
+	int limit = 10;
+	switch (submenu_index)
+	{
+		case 0:
+			option = &menu_skin;
+			limit = menu_skinnum;
+			incMod(option, limit, false);
+			break;
+		case 1:
+			option = &menu_level;
+			incMod(option, limit, true);
+			break;
+		case 2:
+			option = &menu_debris;
+			limit = 16;
+			incMod(option, limit, true);
+			break;
+		case 3:
+			option = &menu_debris_chance;
+			incMod(option, limit, true);
+			break;
+	}
+}
+
+static void action(void)
+{
+	char path[256];
+	sprintf(path, "skins/%s/game.txt", menu_skinnames[menu_skin]);
+	skin_loadSkin(&gameskin, path);
+	resetGame();
+	gamestate = GS_INGAME;
+	submenu_index = 0;
+}
+
+static void quit(void)
+{
+	SDL_Event ev;
+	ev.type = SDL_QUIT;
+	SDL_PushEvent(&ev);
+}
+
 void mainmenu_processInputEvents(void)
 {
 	SDL_Event event;
@@ -119,82 +206,57 @@ void mainmenu_processInputEvents(void)
 	if (SDL_WaitEvent(&event))
 		switch (event.type)
 		{
+			case SDL_JOYAXISMOTION:
+				if ( ( event.jaxis.value < -JOY_THRESHOLD ) || (event.jaxis.value > JOY_THRESHOLD ) )
+				{
+					if( event.jaxis.axis == 0)
+					{
+						if (event.jaxis.value < 0)
+							left();
+						else
+							right();
+					}
+
+					if( event.jaxis.axis == 1)
+					{
+						if (event.jaxis.value < 0)
+							up();
+						else
+							down();
+					}
+				}
+				break;
+			case SDL_JOYBUTTONDOWN:
+				if (event.jbutton.button == 0)
+				{
+					action();
+				}
+				if (event.jbutton.button == 1)
+				{
+					quit();
+				}
+				break;
 			case SDL_KEYDOWN:
 				switch (event.key.keysym.sym)
 				{
 					case SDLK_UP:
-						decMod(&submenu_index, POSITION_NUM, false);
+						up();
 						break;
 					case SDLK_RIGHT:
-					{
-						int *option = NULL;
-						int limit = 10;
-						switch (submenu_index)
-						{
-							case 0:
-								option = &menu_skin;
-								limit = menu_skinnum;
-								incMod(option, limit, false);
-								break;
-							case 1:
-								option = &menu_level;
-								incMod(option, limit, true);
-								break;
-							case 2:
-								option = &menu_debris;
-								limit = 16;
-								incMod(option, limit, true);
-								break;
-							case 3:
-								option = &menu_debris_chance;
-								incMod(option, limit, true);
-								break;
-						}
-					} break;
+						right();
+						break;
 					case SDLK_DOWN:
-						incMod(&submenu_index, POSITION_NUM, false);
+						down();
 						break;
 					case SDLK_LEFT:
-					{
-						int *option = NULL;
-						int limit = 10;
-						switch (submenu_index)
-						{
-							case 0:
-								option = &menu_skin;
-								limit = menu_skinnum;
-								decMod(option, limit, false);
-								break;
-							case 1:
-								option = &menu_level;
-								decMod(option, limit, true);
-								break;
-							case 2:
-								option = &menu_debris;
-								limit = 16;
-								decMod(option, limit, true);
-								break;
-							case 3:
-								option = &menu_debris_chance;
-								decMod(option, limit, true);
-								break;
-						}
-					} break;
+						left();
+						break;
 					case KEY_PAUSE:
-					{
-						char path[256];
-						sprintf(path, "skins/%s/game.txt", menu_skinnames[menu_skin]);
-						skin_loadSkin(&gameskin, path);
-						resetGame();
-						gamestate = GS_INGAME;
-						submenu_index = 0;
-					} break;
+						action();
+						break;
 					case KEY_QUIT:
-					{
-						SDL_Event ev;
-						ev.type = SDL_QUIT;
-						SDL_PushEvent(&ev);
-					} break;
+						quit();
+						break;
 				}
 				break;
 			case SDL_QUIT:

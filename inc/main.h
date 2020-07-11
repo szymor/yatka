@@ -46,6 +46,8 @@
 #define FIG_NUM				7
 #define MAX_NEXTBLOCKS		(FIG_NUM - 1)
 
+#define JOY_THRESHOLD		3200
+
 enum Error
 {
 	ERROR_NONE,

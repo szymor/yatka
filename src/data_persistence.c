@@ -78,6 +78,10 @@ void loadSettings(void)
 			lockdelay = true;
 		else if (!strcmp(buff, "repeattrack"))
 			repeattrack = true;
+		else if (!strcmp(buff, "fullscreen"))
+			screenscale = 0;
+		else if (!strcmp(buff, "scale1x"))
+			screenscale = 1;
 		else if (!strcmp(buff, "scale2x"))
 			screenscale = 2;
 		else if (!strcmp(buff, "scale3x"))
@@ -124,6 +128,10 @@ void saveSettings(void)
 		fprintf(settingsFile, "lockdelay\n");
 	if (repeattrack)
 		fprintf(settingsFile, "repeattrack\n");
+	if (0 == screenscale)
+		fprintf(settingsFile, "fullscreen\n");
+	if (1 == screenscale)
+		fprintf(settingsFile, "scale1x\n");
 	if (2 == screenscale)
 		fprintf(settingsFile, "scale2x\n");
 	if (3 == screenscale)
