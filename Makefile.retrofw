@@ -6,7 +6,7 @@ OPK_NAME = yatka.opk
 OPK_DIR = opkg
 SRC = src/main.c src/data_persistence.c src/video.c src/sound.c \
 	src/state_gameover.c src/state_settings.c src/randomizer.c \
-	src/state_mainmenu.c
+	src/state_mainmenu.c src/skin.c
 OBJ = $(SRC:.c=.o)
 DEP = $(SRC:.c=.d)
 CFLAGS = -Iinc -D_RETROFW -Ofast
@@ -18,11 +18,10 @@ all: $(OPK_NAME)
 $(PROJECT): $(OBJ)
 	$(CC) -o $(PROJECT) $(OBJ) $(LDFLAGS)
 
-$(OPK_NAME): $(PROJECT) gfx sfx arcade.ttf icon.png README.md yatka.retrofw.desktop
+$(OPK_NAME): $(PROJECT) skins sfx icon.png README.md yatka.retrofw.desktop
 	mkdir -p $(OPK_DIR)
-	cp -R gfx $(OPK_DIR)/gfx
-	cp -R sfx $(OPK_DIR)/sfx
-	cp arcade.ttf $(OPK_DIR)/
+	cp -R skins $(OPK_DIR)/
+	cp -R sfx $(OPK_DIR)/
 	cp icon.png $(OPK_DIR)/
 	cp README.md $(OPK_DIR)/readme.txt
 	cp yatka.retrofw.desktop $(OPK_DIR)/
