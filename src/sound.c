@@ -15,11 +15,21 @@ static void *LoadSound(const char *name, int mus);
 
 void initSound(void)
 {
+#if defined(_RETROFW)
+	int mixflags = MIX_INIT_OGG | MIX_INIT_MOD;
+#else
 	int mixflags = MIX_INIT_OGG | MIX_INIT_MOD | MIX_INIT_MP3;
+#endif
 	if (Mix_Init(mixflags) != mixflags)
+	{
+		printf("Mix_Init failed.\n");
 		exit(ERROR_MIXINIT);
+	}
 	if (Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, 1, 1024) < 0)
+	{
+		printf("Mix_OpenAudio failed.\n");
 		exit(ERROR_OPENAUDIO);
+	}
 	music[0] = (Mix_Music*)LoadSound("sfx/korobeyniki", 1);
 	if (!music[0])
 		exit(ERROR_NOSNDFILE);
@@ -62,6 +72,8 @@ static void *LoadSound(const char *name, int mus)
 		if (ret)
 			break;
 	}
+	if (!ret)
+		printf("LoadSound, file %s: %s\n", name, Mix_GetError());
 	return ret;
 }
 

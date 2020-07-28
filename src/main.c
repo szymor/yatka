@@ -293,9 +293,15 @@ void initialize(void)
 	old_hiscore = hiscore;
 
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) < 0)
+	{
+		printf("SDL_Init failed.\n");
 		exit(ERROR_SDLINIT);
+	}
 	if (TTF_Init() < 0)
+	{
+		printf("TTF_Init failed.\n");
 		exit(ERROR_TTFINIT);
+	}
 	atexit(finalize);
 	int video_flags = VIDEO_MODE_FLAGS;
 	int scale = screenscale;
@@ -306,14 +312,20 @@ void initialize(void)
 	}
 	screen_scaled = SDL_SetVideoMode(SCREEN_WIDTH * scale, SCREEN_HEIGHT * scale, SCREEN_BPP, video_flags);
 	if (screen_scaled == NULL)
+	{
+		printf("SDL_SetVideoMode failed.\n");
 		exit(ERROR_SDLVIDEO);
+	}
 	screen = scale > 1 ? SDL_CreateRGBSurface(SDL_SWSURFACE, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BPP, 0, 0, 0, 0) : screen_scaled;
 	SDL_WM_SetCaption("Y A T K A", NULL);
 	SDL_ShowCursor(SDL_DISABLE);
 
 	arcade_font = TTF_OpenFont("skins/default/arcade.ttf", FONT_SIZE);
 	if (arcade_font == NULL)
+	{
+		printf("TTF_OpenFont failed.\n");
 		exit(ERROR_NOFONT);
+	}
 
 	if (!nosound)
 	{
@@ -367,6 +379,7 @@ void finalize(void)
 		free(board);
 	for (int i = 0; i < FIG_NUM; ++i)
 		free(figures[i]);
+	printf("Quit successfully.\n");
 }
 
 struct Shape *generateFromTemplate(const struct ShapeTemplate *template)
