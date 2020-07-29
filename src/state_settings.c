@@ -6,6 +6,7 @@
 #include <SDL/SDL_mixer.h>
 
 #include "state_settings.h"
+#include "joystick.h"
 #include "main.h"
 #include "video.h"
 #include "sound.h"
@@ -41,6 +42,13 @@ static const char settings_text[][32] = {
 };
 
 static char *generateSettingLine(char *buff, int pos);
+
+static void up(void);
+static void down(void);
+static void left(void);
+static void right(void);
+static void quit(void);
+static void action(void);
 
 void settings_updateScreen(void)
 {
@@ -80,6 +88,135 @@ void settings_updateScreen(void)
 	flipScreenScaled();
 }
 
+static void up(void)
+{
+	decMod(&settings_pos, SL_END, false);
+}
+
+static void down(void)
+{
+	incMod(&settings_pos, SL_END, false);
+}
+
+static void left(void)
+{
+	switch (settings_pos)
+	{
+		case SL_TRACK_SELECT:
+		{
+			decMod(&current_track, MUSIC_TRACK_NUM, false);
+			Mix_PlayMusic(music[current_track], 1);
+		} break;
+		case SL_MUSIC_VOL:
+		{
+			int vol = Mix_VolumeMusic(-1);
+			vol -= 1;
+			if (vol < 0)
+				vol = 0;
+			Mix_VolumeMusic(vol);
+			settings_changed = true;
+		} break;
+		case SL_MUSIC_REPEAT:
+		{
+			repeattrack = !repeattrack;
+			settings_changed = true;
+		} break;
+		case SL_SMOOTHANIM:
+		{
+			smoothanim = !smoothanim;
+			settings_changed = true;
+		} break;
+		case SL_TETROMINO_COLOR:
+		{
+			decMod((int*)&tetrominocolor, TC_END, false);
+			settings_changed = true;
+		} break;
+		case SL_EASYSPIN:
+		{
+			easyspin = !easyspin;
+			settings_changed = true;
+		} break;
+		case SL_LOCKDELAY:
+		{
+			lockdelay = !lockdelay;
+			settings_changed = true;
+		} break;
+		case SL_RANDOMIZER:
+		{
+			decMod((int*)&randomalgo, RA_END, false);
+			settings_changed = true;
+		} break;
+		default:
+			break;
+	}
+}
+
+static void right(void)
+{
+	switch (settings_pos)
+	{
+		case SL_TRACK_SELECT:
+		{
+			incMod(&current_track, MUSIC_TRACK_NUM, false);
+			Mix_PlayMusic(music[current_track], 1);
+		} break;
+		case SL_MUSIC_VOL:
+		{
+			int vol = Mix_VolumeMusic(-1);
+			vol += 1;
+			Mix_VolumeMusic(vol);
+			settings_changed = true;
+		} break;
+		case SL_MUSIC_REPEAT:
+		{
+			repeattrack = !repeattrack;
+			settings_changed = true;
+		} break;
+		case SL_SMOOTHANIM:
+		{
+			smoothanim = !smoothanim;
+			settings_changed = true;
+		} break;
+		case SL_TETROMINO_COLOR:
+		{
+			incMod((int*)&tetrominocolor, TC_END, false);
+			settings_changed = true;
+		} break;
+		case SL_EASYSPIN:
+		{
+			easyspin = !easyspin;
+			settings_changed = true;
+		} break;
+		case SL_LOCKDELAY:
+		{
+			lockdelay = !lockdelay;
+			settings_changed = true;
+		} break;
+		case SL_RANDOMIZER:
+		{
+			incMod((int*)&randomalgo, RA_END, false);
+			settings_changed = true;
+		} break;
+		default:
+			break;
+	}
+}
+
+static void quit(void)
+{
+	gamestate = GS_MAINMENU;
+}
+
+static void action(void)
+{
+	gamestate = GS_INGAME;
+	if (redraw_bg)
+	{
+		skin_updateBackground(&gameskin);
+		redraw_bg = false;
+	}
+}
+
 void settings_processInputEvents(void)
 {
 	SDL_Event event;
@@ -87,129 +224,60 @@ void settings_processInputEvents(void)
 	if (SDL_WaitEvent(&event))
 		switch (event.type)
 		{
+			case SDL_JOYAXISMOTION:
+				if ((event.jaxis.value < -JOY_THRESHOLD) || (event.jaxis.value > JOY_THRESHOLD))
+				{
+					if(event.jaxis.axis == 0)
+					{
+						if (event.jaxis.value < 0)
+							left();
+						else
+							right();
+					}
+
+					if(event.jaxis.axis == 1)
+					{
+						if (event.jaxis.value < 0)
+							up();
+						else
+							down();
+					}
+				}
+				break;
+			case SDL_JOYBUTTONDOWN:
+				if (event.jbutton.button == JOY_PAUSE)
+				{
+					action();
+				}
+				if (event.jbutton.button == JOY_QUIT)
+				{
+					quit();
+				}
+				break;
 			case SDL_KEYDOWN:
 				switch (event.key.keysym.sym)
 				{
 					case SDLK_UP:
 					{
-						decMod(&settings_pos, SL_END, false);
+						up();
 					} break;
 					case SDLK_DOWN:
 					{
-						incMod(&settings_pos, SL_END, false);
+						down();
 					} break;
 					case SDLK_LEFT:
 					{
-						switch (settings_pos)
-						{
-							case SL_TRACK_SELECT:
-							{
-								decMod(&current_track, MUSIC_TRACK_NUM, false);
-								Mix_PlayMusic(music[current_track], 1);
-							} break;
-							case SL_MUSIC_VOL:
-							{
-								int vol = Mix_VolumeMusic(-1);
-								vol -= 1;
-								if (vol < 0)
-									vol = 0;
-								Mix_VolumeMusic(vol);
-								settings_changed = true;
-							} break;
-							case SL_MUSIC_REPEAT:
-							{
-								repeattrack = !repeattrack;
-								settings_changed = true;
-							} break;
-							case SL_SMOOTHANIM:
-							{
-								smoothanim = !smoothanim;
-								settings_changed = true;
-							} break;
-							case SL_TETROMINO_COLOR:
-							{
-								decMod((int*)&tetrominocolor, TC_END, false);
-								settings_changed = true;
-							} break;
-							case SL_EASYSPIN:
-							{
-								easyspin = !easyspin;
-								settings_changed = true;
-							} break;
-							case SL_LOCKDELAY:
-							{
-								lockdelay = !lockdelay;
-								settings_changed = true;
-							} break;
-							case SL_RANDOMIZER:
-							{
-								decMod((int*)&randomalgo, RA_END, false);
-								settings_changed = true;
-							} break;
-							default:
-								break;
-						}
+						left();
 					} break;
 					case SDLK_RIGHT:
 					{
-						switch (settings_pos)
-						{
-							case SL_TRACK_SELECT:
-							{
-								incMod(&current_track, MUSIC_TRACK_NUM, false);
-								Mix_PlayMusic(music[current_track], 1);
-							} break;
-							case SL_MUSIC_VOL:
-							{
-								int vol = Mix_VolumeMusic(-1);
-								vol += 1;
-								Mix_VolumeMusic(vol);
-								settings_changed = true;
-							} break;
-							case SL_MUSIC_REPEAT:
-							{
-								repeattrack = !repeattrack;
-								settings_changed = true;
-							} break;
-							case SL_SMOOTHANIM:
-							{
-								smoothanim = !smoothanim;
-								settings_changed = true;
-							} break;
-							case SL_TETROMINO_COLOR:
-							{
-								incMod((int*)&tetrominocolor, TC_END, false);
-								settings_changed = true;
-							} break;
-							case SL_EASYSPIN:
-							{
-								easyspin = !easyspin;
-								settings_changed = true;
-							} break;
-							case SL_LOCKDELAY:
-							{
-								lockdelay = !lockdelay;
-								settings_changed = true;
-							} break;
-							case SL_RANDOMIZER:
-							{
-								incMod((int*)&randomalgo, RA_END, false);
-								settings_changed = true;
-							} break;
-							default:
-								break;
-						}
+						right();
 					} break;
 					case KEY_QUIT:
-						gamestate = GS_MAINMENU;
+						quit();
 						break;
 					case KEY_PAUSE:
-						gamestate = GS_INGAME;
-						if (redraw_bg)
-						{
-							skin_updateBackground(&gameskin);
-							redraw_bg = false;
-						}
+						action();
 						break;
 				}
 				break;

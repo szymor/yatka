@@ -3,8 +3,11 @@
 #include <SDL/SDL_ttf.h>
 
 #include "state_gameover.h"
+#include "joystick.h"
 #include "main.h"
 #include "video.h"
+
+static void quit(void);
 
 void gameover_updateScreen(void)
 {
@@ -33,6 +36,11 @@ void gameover_updateScreen(void)
 	flipScreenScaled();
 }
 
+static void quit(void)
+{
+	gamestate = GS_MAINMENU;
+}
+
 void gameover_processInputEvents(void)
 {
 	SDL_Event event;
@@ -40,11 +48,17 @@ void gameover_processInputEvents(void)
 	if (SDL_WaitEvent(&event))
 		switch (event.type)
 		{
+			case SDL_JOYBUTTONDOWN:
+				if (event.jbutton.button == JOY_QUIT)
+				{
+					quit();
+				}
+				break;
 			case SDL_KEYDOWN:
 				switch (event.key.keysym.sym)
 				{
 					case KEY_QUIT:
-						gamestate = GS_MAINMENU;
+						quit();
 						break;
 				}
 				break;

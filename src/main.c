@@ -8,6 +8,7 @@
 #include <SDL/SDL_ttf.h>
 #include <SDL/SDL_mixer.h>
 
+#include "joystick.h"
 #include "main.h"
 #include "data_persistence.h"
 #include "video.h"
@@ -169,6 +170,17 @@ enum FigureId getNextColor(enum FigureId id);
 enum FigureId getRandomColor(void);
 void rotateFigureCW(void);
 void rotateFigureCCW(void);
+
+static void softdrop_off(void);
+static void softdrop_on(void);
+static void left_off(void);
+static void left_on(void);
+static void right_off(void);
+static void right_on(void);
+static void rotate_cw(void);
+static void rotate_ccw(void);
+static void pause(void);
+static void quit(void);
 
 int main(int argc, char *argv[])
 {
@@ -703,25 +715,198 @@ int removeFullLines(void)
 	return removed_lines;
 }
 
+static void softdrop_off(void)
+{
+	softdrop_pressed = false;
+	softdrop_press_time = 0;
+}
+
+static void softdrop_on(void)
+{
+	softdrop_pressed = true;
+	easyspin_pressed = false;
+}
+
+static void left_off(void)
+{
+	left_move = false;
+}
+
+static void left_on(void)
+{
+	left_move = true;
+	moveLeft();
+}
+
+static void right_off(void)
+{
+	right_move = false;
+}
+
+static void right_on(void)
+{
+	right_move = true;
+	moveRight();
+}
+
+static void rotate_cw(void)
+{
+	bool success = true;
+	rotateFigureCW();
+	if (isFigureColliding())
+	{
+		++figures[0]->x;
+		if (isFigureColliding())
+		{
+			figures[0]->x -= 2;
+			if (isFigureColliding())
+			{
+				rotateFigureCCW();
+				++figures[0]->x;
+				success = false;
+			}
+		}
+	}
+	if (success && figures[0] && figures[0]->id != FIGID_O)
+	{
+		if (easyspin)
+		{
+			markDrop();
+			easyspin_pressed = true;
+			++easyspin_counter;
+			next_lock_time = 0;
+		}
+	}
+}
+
+static void rotate_ccw(void)
+{
+	bool success = true;
+	rotateFigureCCW();
+	if (isFigureColliding())
+	{
+		++figures[0]->x;
+		if (isFigureColliding())
+		{
+			figures[0]->x -= 2;
+			if (isFigureColliding())
+			{
+				rotateFigureCW();
+				++figures[0]->x;
+				success = false;
+			}
+		}
+	}
+	if (success && figures[0] && figures[0]->id != FIGID_O)
+	{
+		if (easyspin)
+		{
+			markDrop();
+			easyspin_pressed = true;
+			++easyspin_counter;
+			next_lock_time = 0;
+		}
+	}
+}
+
+static void pause(void)
+{
+	gamestate = GS_SETTINGS;
+}
+
+static void quit(void)
+{
+	gamestate = GS_MAINMENU;
+	if (hiscore > old_hiscore)
+	{
+		saveHiscore(hiscore);
+		old_hiscore = hiscore;
+	}
+}
+
 void ingame_processInputEvents(void)
 {
 	SDL_Event event;
+	bool joy_harddrop = false;
 
 	if (SDL_PollEvent(&event))
 		switch (event.type)
 		{
+			case SDL_JOYAXISMOTION:
+				if ((event.jaxis.value < -JOY_THRESHOLD) || (event.jaxis.value > JOY_THRESHOLD))
+				{
+					if(event.jaxis.axis == 0)
+					{
+						if (event.jaxis.value < 0)
+						{
+							if (!left_move)
+								left_on();
+						}
+						else
+						{
+							if (!right_move)
+								right_on();
+						}
+					}
+
+					if(event.jaxis.axis == 1)
+					{
+						if (event.jaxis.value < 0)
+						{
+							if (!joy_harddrop)
+							{
+								joy_harddrop = true;
+								dropHard();
+							}
+						}
+						else
+						{
+							if (!softdrop_pressed)
+								softdrop_on();
+						}
+					}
+				}
+				else
+				{
+					left_off();
+					right_off();
+					softdrop_off();
+					joy_harddrop = false;
+				}
+				break;
+			case SDL_JOYBUTTONDOWN:
+				if (event.jbutton.button == JOY_ROTATE_CW)
+				{
+					rotate_cw();
+				}
+				else if (event.jbutton.button == JOY_ROTATE_CCW)
+				{
+					rotate_ccw();
+				}
+				else if (event.jbutton.button == JOY_HOLD)
+				{
+					holdFigure();
+				}
+				else if (event.jbutton.button == JOY_PAUSE)
+				{
+					pause();
+				}
+				else if (event.jbutton.button == JOY_QUIT)
+				{
+					quit();
+				}
+				break;
 			case SDL_KEYUP:
 				switch (event.key.keysym.sym)
 				{
 					case KEY_SOFTDROP:
-						softdrop_pressed = false;
-						softdrop_press_time = 0;
+						softdrop_off();
 						break;
 					case KEY_LEFT:
-						left_move = false;
+						left_off();
 						break;
 					case KEY_RIGHT:
-						right_move = false;
+						right_off();
 						break;
 				}
 				break;
@@ -730,65 +915,14 @@ void ingame_processInputEvents(void)
 				{
 					case KEY_ROTATE_CW:
 					{
-						bool success = true;
-						rotateFigureCW();
-						if (isFigureColliding())
-						{
-							++figures[0]->x;
-							if (isFigureColliding())
-							{
-								figures[0]->x -= 2;
-								if (isFigureColliding())
-								{
-									rotateFigureCCW();
-									++figures[0]->x;
-									success = false;
-								}
-							}
-						}
-						if (success && figures[0] && figures[0]->id != FIGID_O)
-						{
-							if (easyspin)
-							{
-								markDrop();
-								easyspin_pressed = true;
-								++easyspin_counter;
-								next_lock_time = 0;
-							}
-						}
+						rotate_cw();
 					} break;
 					case KEY_ROTATE_CCW:
 					{
-						bool success = true;
-						rotateFigureCCW();
-						if (isFigureColliding())
-						{
-							++figures[0]->x;
-							if (isFigureColliding())
-							{
-								figures[0]->x -= 2;
-								if (isFigureColliding())
-								{
-									rotateFigureCW();
-									++figures[0]->x;
-									success = false;
-								}
-							}
-						}
-						if (success && figures[0] && figures[0]->id != FIGID_O)
-						{
-							if (easyspin)
-							{
-								markDrop();
-								easyspin_pressed = true;
-								++easyspin_counter;
-								next_lock_time = 0;
-							}
-						}
+						rotate_ccw();
 					} break;
 					case KEY_SOFTDROP:
-						softdrop_pressed = true;
-						easyspin_pressed = false;
+						softdrop_on();
 						break;
 					case KEY_HARDDROP:
 						dropHard();
@@ -797,23 +931,16 @@ void ingame_processInputEvents(void)
 						holdFigure();
 						break;
 					case KEY_LEFT:
-						left_move = true;
-						moveLeft();
+						left_on();
 						break;
 					case KEY_RIGHT:
-						right_move = true;
-						moveRight();
+						right_on();
 						break;
 					case KEY_PAUSE:
-						gamestate = GS_SETTINGS;
+						pause();
 						break;
 					case KEY_QUIT:
-						gamestate = GS_MAINMENU;
-						if (hiscore > old_hiscore)
-						{
-							saveHiscore(hiscore);
-							old_hiscore = hiscore;
-						}
+						quit();
 						break;
 				}
 				break;

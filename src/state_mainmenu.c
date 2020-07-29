@@ -10,6 +10,7 @@
 
 #include "state_mainmenu.h"
 #include "main.h"
+#include "joystick.h"
 #include "video.h"
 
 #define MAX_SKIN_NUM		32
@@ -207,9 +208,9 @@ void mainmenu_processInputEvents(void)
 		switch (event.type)
 		{
 			case SDL_JOYAXISMOTION:
-				if ( ( event.jaxis.value < -JOY_THRESHOLD ) || (event.jaxis.value > JOY_THRESHOLD ) )
+				if ((event.jaxis.value < -JOY_THRESHOLD) || (event.jaxis.value > JOY_THRESHOLD))
 				{
-					if( event.jaxis.axis == 0)
+					if(event.jaxis.axis == 0)
 					{
 						if (event.jaxis.value < 0)
 							left();
@@ -217,7 +218,7 @@ void mainmenu_processInputEvents(void)
 							right();
 					}
 
-					if( event.jaxis.axis == 1)
+					if(event.jaxis.axis == 1)
 					{
 						if (event.jaxis.value < 0)
 							up();
@@ -227,11 +228,11 @@ void mainmenu_processInputEvents(void)
 				}
 				break;
 			case SDL_JOYBUTTONDOWN:
-				if (event.jbutton.button == 0)
+				if (event.jbutton.button == JOY_PAUSE)
 				{
 					action();
 				}
-				if (event.jbutton.button == 1)
+				if (event.jbutton.button == JOY_QUIT)
 				{
 					quit();
 				}
