@@ -18,6 +18,8 @@ Feel free to report errors.
 ### command line parameters
 - --nosound - disable music and sound effects
 - --sound - enable music and sound effects if disabled
+- --fullscreen - full screen mode
+- --scale1x - 320x240 mode
 - --scale2x - 640x480 mode
 - --scale3x - 960x720 mode
 - --scale4x - 1280x960 mode
@@ -27,13 +29,14 @@ For more, please refer to the source code.
 
 ### ideas / plans
 - animated mascot (becchi?) evolving while playing or saying random things during gameplay
-- better support for PC (e.g. joystick support, fullscreen mode)
 - better score system (combos, T-spins)
 - advanced wall kick
 - rumble support for Bittboy
 - line clear animation (TGM?)
-- introducing fixed drop delay for left/right movements when easy spin mode is enabled
-- game save
 - ports for other platforms
 - introducing max speed level
-- selectable direction of rotation for main and auxiliary rotation buttons
+- key configuration
+- fixed easy spin
+- more randomizers
+- tetromino color defined per skin
+- precolored (no dyeing) brick support
