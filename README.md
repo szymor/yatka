@@ -40,3 +40,4 @@ For more, please refer to the source code.
 - more randomizers
 - tetromino color defined per skin
 - precolored (no dyeing) brick support
+- skins loaded from user configuration directory
