@@ -1180,6 +1180,8 @@ void resetGame(void)
 	left_move = false;
 	right_move = false;
 
+	randomizer_reset();
+
 	for (int i = 0; i < FIG_NUM - 1; ++i)
 	{
 		spawnFigure();

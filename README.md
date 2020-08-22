@@ -5,6 +5,7 @@ yet another tetris klone in action
 - gfx and code (mostly) by me (vamastah a.k.a. szymor)
 - frame limiting, counting and upscaling code by Artur 'zear' Rojek
 - in-game music by Vomitron
+- some tetromino randomizers thanks to Simon Laroche ([link](https://simon.lc/the-history-of-tetris-randomizers))
 
 Feel free to report errors.
 
