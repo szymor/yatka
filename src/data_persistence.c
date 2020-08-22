@@ -101,12 +101,12 @@ void loadSettings(void)
 		else if (!strcmp(buff,"rng"))
 		{
 			fscanf(settingsFile, "%s", buff);
-			if (!strcmp(buff, "naive"))
-				randomalgo = RA_NAIVE;
-			else if (!strcmp(buff, "7bag"))
-				randomalgo = RA_7BAG;
-			else if (!strcmp(buff, "8bag"))
-				randomalgo = RA_8BAG;
+			for (int i = 0; i < RA_END; ++i)
+			{
+				randomalgo = i;
+				if (!strcmp(buff, getRandomizerString()))
+					break;
+			}
 		}
 	}
 

@@ -5,6 +5,7 @@ yet another tetris klone in action
 - gfx and code (mostly) by me (vamastah a.k.a. szymor)
 - frame limiting, counting and upscaling code by Artur 'zear' Rojek
 - in-game music by Vomitron
+- some tetromino randomizers thanks to Simon Laroche ([link](https://simon.lc/the-history-of-tetris-randomizers))
 
 Feel free to report errors.
 
@@ -37,6 +38,6 @@ For more, please refer to the source code.
 - introducing max speed level
 - key configuration
 - fixed easy spin
-- more randomizers
 - tetromino color defined per skin
 - precolored (no dyeing) brick support
+- skins loaded from user configuration directory
