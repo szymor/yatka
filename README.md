@@ -38,7 +38,6 @@ For more, please refer to the source code.
 - introducing max speed level
 - key configuration
 - fixed easy spin
-- more randomizers
 - tetromino color defined per skin
 - precolored (no dyeing) brick support
 - skins loaded from user configuration directory

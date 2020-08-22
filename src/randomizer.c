@@ -8,6 +8,7 @@ static bool firstDeal = true;
 static enum FigureId getRandomId(void);
 static enum FigureId getRandomId_Nintendo(void);
 static enum FigureId getRandomId_TGM98(void);
+static enum FigureId getRandomId_TGM3(void);
 static enum FigureId getRandom7BagId(void);
 static enum FigureId getRandom8BagId(void);
 static enum FigureId getRandom14BagId(void);
@@ -16,6 +17,7 @@ static char *rng_strings[] = {
 	"naive",
 	"nintendo",
 	"tgm98",
+	"tgm3",
 	"7bag",
 	"8bag",
 	"14bag"
@@ -36,6 +38,8 @@ enum FigureId getNextId(void)
 			return getRandomId_Nintendo();
 		case RA_TGM98:
 			return getRandomId_TGM98();
+		case RA_TGM3:
+			return getRandomId_TGM3();
 		case RA_7BAG:
 			return getRandom7BagId();
 		case RA_8BAG:
@@ -71,7 +75,7 @@ static enum FigureId getRandomId_Nintendo(void)
 
 static enum FigureId getRandomId_TGM98(void)
 {
-	static enum FigureId history[4];
+	static enum FigureId history[TGM_HISTORYSZ];
 
 	if (firstDeal)
 	{
@@ -94,7 +98,7 @@ static enum FigureId getRandomId_TGM98(void)
 
 			// is the piece in the history?
 			inHistory = false;
-			for (int j = 0; j < 4; ++j)
+			for (int j = 0; j < TGM_HISTORYSZ; ++j)
 			{
 				if (piece == history[j])
 				{
@@ -108,11 +112,101 @@ static enum FigureId getRandomId_TGM98(void)
 		}
 
 		// shift history and place the new piece
-		for (int i = 1; i < 4; ++i)
+		for (int i = 1; i < TGM_HISTORYSZ; ++i)
 		{
 			history[i - 1] = history[i];
 		}
-		history[3] = piece;
+		history[TGM_HISTORYSZ - 1] = piece;
+
+		return piece;
+	}
+}
+
+static enum FigureId getRandomId_TGM3(void)
+{
+	static enum FigureId pool[TGM3_POOLSZ];
+	static enum FigureId history[TGM_HISTORYSZ];
+	static enum FigureId queue[FIGID_GRAY];
+
+	if (firstDeal)
+	{
+		// init the queue
+		for (int i = 0; i < FIGID_GRAY; ++i)
+		{
+			queue[i] = FIGID_GRAY;
+		}
+
+		// init the pool
+		for (int j = 0; j < 5; ++j)
+		{
+			for (int i = 0; i < FIGID_GRAY; ++i)
+			{
+				pool[j * FIGID_GRAY + i] = i;
+			}
+		}
+
+		enum FigureId pieces[4] = { FIGID_I, FIGID_J,
+									FIGID_L, FIGID_T };
+		history[0] = FIGID_S;
+		history[1] = FIGID_Z;
+		history[2] = FIGID_S;
+		history[3] = pieces[rand() % 4];
+		firstDeal = false;
+		return history[3];
+	}
+	else
+	{
+		int index;
+		enum FigureId piece;
+		bool inHistory;
+		for (int i = 0; i < 6; ++i)
+		{
+			index = rand() % TGM3_POOLSZ;
+			piece = pool[index];
+
+			// is the piece in the history?
+			inHistory = false;
+			for (int j = 0; j < TGM_HISTORYSZ; ++j)
+			{
+				if (piece == history[j])
+				{
+					inHistory = true;
+					break;
+				}
+			}
+
+			if (!inHistory || (i == 5))
+				break;
+			if (queue[0] != FIGID_GRAY)
+				pool[index] = queue[0];
+		}
+
+		// update the queue
+		int freeSlotId = FIGID_GRAY - 1;
+		for (int i = 0; i < FIGID_GRAY; ++i)
+		{
+			if (piece == queue[i])
+			{
+				// delete the piece
+				for (int j = i + 1; j < FIGID_GRAY; ++j)
+				{
+					queue[j - 1] = queue[j];
+				}
+			}
+			if (queue[i] == FIGID_GRAY && i < freeSlotId)
+				freeSlotId = i;
+		}
+		// add the piece to the end of the queue
+		queue[freeSlotId] = piece;
+		// add the oldest piece from the queue to the pool
+		pool[index] = queue[0];
+
+		// shift history and place the new piece
+		for (int i = 1; i < TGM_HISTORYSZ; ++i)
+		{
+			history[i - 1] = history[i];
+		}
+		history[TGM_HISTORYSZ - 1] = piece;
 
 		return piece;
 	}
