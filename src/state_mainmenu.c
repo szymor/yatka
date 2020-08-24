@@ -187,6 +187,8 @@ static void action(void)
 {
 	char path[256];
 	sprintf(path, "skins/%s/game.txt", menu_skinnames[menu_skin]);
+	skin_destroySkin(&gameskin);
+	skin_initSkin(&gameskin);
 	skin_loadSkin(&gameskin, path);
 	resetGame();
 	gamestate = GS_INGAME;

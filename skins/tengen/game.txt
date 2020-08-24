@@ -4,6 +4,14 @@ bg "bg.png"
 fg null
 ; boardxy x y
 boardxy 16 73
+; tc (tetromino color) id alpha r g b
+tc 0 128 215 64 0
+tc 1 128 59 52 255
+tc 2 128 115 121 0
+tc 3 128 0 132 96
+tc 4 128 75 160 255
+tc 5 128 255 174 10
+tc 6 128 255 109 247
 ; bricksize wh
 bricksize 8
 ; bricksprite filename

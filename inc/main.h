@@ -75,7 +75,6 @@ enum GameState
 enum TetrominoColor
 {
 	TC_RANDOM,
-	TC_TENGEN,
 	TC_STANDARD,
 	TC_GRAY,
 	TC_END

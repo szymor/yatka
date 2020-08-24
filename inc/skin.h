@@ -17,13 +17,6 @@ enum FigureId
 	FIGID_J,
 	FIGID_L,
 	FIGID_GRAY,
-	FIGID_I_CYAN,
-	FIGID_O_YELLOW,
-	FIGID_T_PURPLE,
-	FIGID_S_GREEN,
-	FIGID_Z_RED,
-	FIGID_J_BLUE,
-	FIGID_L_ORANGE,
 	FIGID_END
 };
 
@@ -40,6 +33,8 @@ struct Skin
 	SDL_Surface *bg;
 	SDL_Surface *fg;
 	SDL_Surface *bricksprite[FIGID_END];
+	Uint32 colors[FIGID_GRAY];
+	Uint32 color_alphas[FIGID_GRAY];
 	enum BrickStyle brickstyle;
 	enum FigureId debriscolor;
 	char *script;

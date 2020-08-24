@@ -51,7 +51,7 @@ bool easyspin = false;
 bool lockdelay = false;
 bool smoothanim = false;
 
-enum TetrominoColor tetrominocolor = TC_TENGEN;
+enum TetrominoColor tetrominocolor = TC_STANDARD;
 
 enum GameState gamestate = GS_MAINMENU;
 static bool hold_ready = true;
@@ -980,10 +980,8 @@ void spawnFigure(void)
 struct Figure *getNextFigure(void)
 {
 	struct Figure *f = malloc(sizeof(struct Figure));
-
 	f->id = getNextId();
 	f->color = getNextColor(f->id);
-
 	return f;
 }
 
@@ -998,10 +996,8 @@ enum FigureId getNextColor(enum FigureId id)
 	{
 		case TC_RANDOM:
 			return getRandomColor();
-		case TC_TENGEN:
-			return id;
 		case TC_STANDARD:
-			return id + FIGID_I_CYAN;
+			return id;
 		case TC_GRAY:
 		default:
 			return FIGID_GRAY;

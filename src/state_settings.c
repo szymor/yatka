@@ -315,7 +315,6 @@ static char *generateSettingLine(char *buff, int pos)
 		{
 			static char *tc_strings[] = {
 				"random",
-				"tengen",
 				"standard",
 				"gray"
 			};

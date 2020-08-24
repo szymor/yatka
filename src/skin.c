@@ -26,6 +26,7 @@ static void skin_executeBFg(struct Skin *skin, const char *statement, SDL_Surfac
 static void skin_executeBg(struct Skin *skin, const char *statement);
 static void skin_executeFg(struct Skin *skin, const char *statement);
 static void skin_executeBoardxy(struct Skin *skin, const char *statement);
+static void skin_executeTC(struct Skin *skin, const char *statement);
 static void skin_executeBricksize(struct Skin *skin, const char *statement);
 static void skin_executeBricksprite(struct Skin *skin, const char *statement);
 static void skin_executeDebriscolor(struct Skin *skin, const char *statement);
@@ -50,6 +51,18 @@ void skin_initSkin(struct Skin *skin)
 	skin->screen = NULL;
 	for (int i = 0; i < FIGID_END; ++i)
 		skin->bricksprite[i] = NULL;
+	for (int i = 0; i < FIGID_GRAY; ++i)
+	{
+		skin->color_alphas[i] = 128;
+	}
+	SDL_PixelFormat *f = screen->format;
+	skin->colors[0] = SDL_MapRGB(f, 0, 159, 218);
+	skin->colors[1] = SDL_MapRGB(f, 254, 203, 0);
+	skin->colors[2] = SDL_MapRGB(f, 149, 45, 152);
+	skin->colors[3] = SDL_MapRGB(f, 105, 190, 40);
+	skin->colors[4] = SDL_MapRGB(f, 237, 41, 57);
+	skin->colors[5] = SDL_MapRGB(f, 0, 101, 189);
+	skin->colors[6] = SDL_MapRGB(f, 255, 121, 0);
 	skin->brickstyle = BS_SIMPLE;
 	skin->debriscolor = FIGID_END;
 	skin->ghost = 128;
@@ -262,6 +275,11 @@ static void skin_executeStatement(struct Skin *skin, const char *statement, bool
 		if (dynamic) return;
 		skin_executeBoardxy(skin, statement);
 	}
+	else if (!strcmp(cmd, "tc"))
+	{
+		if (dynamic) return;
+		skin_executeTC(skin, statement);
+	}
 	else if (!strcmp(cmd, "bricksize"))
 	{
 		if (dynamic) return;
@@ -357,6 +375,16 @@ static void skin_executeBoardxy(struct Skin *skin, const char *statement)
 	log("boardxy %d %d\n", skin->boardx, skin->boardy);
 }
 
+static void skin_executeTC(struct Skin *skin, const char *statement)
+{
+	int colorid, alpha, r, g, b;
+	sscanf(statement, "%*s %d %d %d %d %d", &colorid, &alpha, &r, &g, &b);
+	log("tc %d %d %d %d %d\n", colorid, alpha, r, g, b);
+	skin->color_alphas[colorid] = alpha;
+	SDL_PixelFormat *f = screen->format;
+	skin->colors[colorid] = SDL_MapRGB(f, r, g, b);
+}
+
 static void skin_executeBricksize(struct Skin *skin, const char *statement)
 {
 	sscanf(statement, "%*s %d", &skin->bricksize);
@@ -369,43 +397,23 @@ static void skin_executeBricksprite(struct Skin *skin, const char *statement)
 {
 	skin_executeBFg(skin, statement, &skin->bricksprite[FIGID_GRAY]);
 	int s = skin->bricksize;
-	if (s == skin->bricksprite[FIGID_GRAY]->w && s == skin->bricksprite[FIGID_GRAY]->h)
+	if ((s == skin->bricksprite[FIGID_GRAY]->w) && (s == skin->bricksprite[FIGID_GRAY]->h))
 		skin->brickstyle = BS_SIMPLE;
-	else if (s == skin->bricksprite[FIGID_GRAY]->h && 15 * s == skin->bricksprite[FIGID_GRAY]->w)
+	else if ((s == skin->bricksprite[FIGID_GRAY]->h) && (15 * s == skin->bricksprite[FIGID_GRAY]->w))
 		skin->brickstyle = BS_ORIENTATION_BASED;
 	else
 		exit(ERROR_SCRIPT);
 
 	// brick dyeing
 	SDL_PixelFormat *f = screen->format;
-	SDL_SetAlpha(skin->bricksprite[FIGID_GRAY], SDL_SRCALPHA, 128);
-
-	Uint32 rgb[] = {
-		SDL_MapRGB(f, 215, 64, 0),
-		SDL_MapRGB(f, 59, 52, 255),
-		SDL_MapRGB(f, 115, 121, 0),
-		SDL_MapRGB(f, 0, 132, 96),
-		SDL_MapRGB(f, 75, 160, 255),
-		SDL_MapRGB(f, 255, 174, 10),
-		SDL_MapRGB(f, 255, 109, 247),
-		0,
-		SDL_MapRGB(f, 0, 159, 218),
-		SDL_MapRGB(f, 254, 203, 0),
-		SDL_MapRGB(f, 149, 45, 152),
-		SDL_MapRGB(f, 105, 190, 40),
-		SDL_MapRGB(f, 237, 41, 57),
-		SDL_MapRGB(f, 0, 101, 189),
-		SDL_MapRGB(f, 255, 121, 0),
-	};
-
-	for (int i = 0; i < FIGID_END; ++i)
+	for (int i = 0; i < FIGID_GRAY; ++i)
 	{
-		if (FIGID_GRAY == i)
-			continue;
+		SDL_SetAlpha(skin->bricksprite[FIGID_GRAY], SDL_SRCALPHA, skin->color_alphas[i]);
 		skin->bricksprite[i] = SDL_CreateRGBSurface(0, skin->bricksprite[FIGID_GRAY]->w, skin->bricksprite[FIGID_GRAY]->h, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
-		SDL_FillRect(skin->bricksprite[i], NULL, rgb[i]);
+		SDL_FillRect(skin->bricksprite[i], NULL, skin->colors[i]);
 		SDL_BlitSurface(skin->bricksprite[FIGID_GRAY], NULL, skin->bricksprite[i], NULL);
 	}
+	SDL_SetAlpha(skin->bricksprite[FIGID_GRAY], SDL_SRCALPHA, 128);
 }
 
 static void skin_executeDebriscolor(struct Skin *skin, const char *statement)
