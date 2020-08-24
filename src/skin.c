@@ -397,12 +397,25 @@ static void skin_executeBricksprite(struct Skin *skin, const char *statement)
 {
 	skin_executeBFg(skin, statement, &skin->bricksprite[FIGID_GRAY]);
 	int s = skin->bricksize;
-	if ((s == skin->bricksprite[FIGID_GRAY]->w) && (s == skin->bricksprite[FIGID_GRAY]->h))
+	if ((s == skin->bricksprite[FIGID_GRAY]->w) &&
+		(s == skin->bricksprite[FIGID_GRAY]->h))
+	{
 		skin->brickstyle = BS_SIMPLE;
-	else if ((s == skin->bricksprite[FIGID_GRAY]->h) && (15 * s == skin->bricksprite[FIGID_GRAY]->w))
+	}
+	else if ((s == skin->bricksprite[FIGID_GRAY]->h) &&
+			(ORIENTATION_NUM * s == skin->bricksprite[FIGID_GRAY]->w))
+	{
 		skin->brickstyle = BS_ORIENTATION_BASED;
+	}
+	else if ((FIGID_GRAY * s == skin->bricksprite[FIGID_GRAY]->h) &&
+			(s == skin->bricksprite[FIGID_GRAY]->w))
+	{
+		skin->brickstyle = BS_FIGUREWISE;
+	}
 	else
+	{
 		exit(ERROR_SCRIPT);
+	}
 
 	// brick dyeing
 	SDL_PixelFormat *f = screen->format;
@@ -690,6 +703,11 @@ static SDL_Surface *getBlock(struct Skin *skin, enum FigureId color, enum BlockO
 		case BS_ORIENTATION_BASED:
 			if (srcrect)
 				srcrect->x = orient * brick_size - brick_size;
+			s = skin->bricksprite[color];
+			break;
+		case BS_FIGUREWISE:
+			if (srcrect)
+				srcrect->y = (color % FIGID_GRAY) * brick_size;
 			s = skin->bricksprite[color];
 			break;
 		default:

@@ -5,7 +5,8 @@
 #include <SDL/SDL_image.h>
 #include <SDL/SDL_ttf.h>
 
-#define FONT_NUM	8
+#define FONT_NUM			(8)
+#define ORIENTATION_NUM		(15)
 
 enum FigureId
 {
@@ -24,6 +25,7 @@ enum BrickStyle
 {
 	BS_SIMPLE,
 	BS_ORIENTATION_BASED,
+	BS_FIGUREWISE,
 	BS_END
 };
 
