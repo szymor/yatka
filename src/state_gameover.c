@@ -55,11 +55,9 @@ void gameover_processInputEvents(void)
 				}
 				break;
 			case SDL_KEYDOWN:
-				switch (event.key.keysym.sym)
+				if (event.key.keysym.sym == kquit)
 				{
-					case KEY_QUIT:
-						quit();
-						break;
+					quit();
 				}
 				break;
 			case SDL_QUIT:

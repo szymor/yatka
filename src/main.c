@@ -65,6 +65,16 @@ int ttr = 0;
 static int lines_level_up = 0;
 static int old_hiscore = 0;
 
+int kleft = KEY_LEFT;
+int kright = KEY_RIGHT;
+int ksoftdrop = KEY_SOFTDROP;
+int kharddrop = KEY_HARDDROP;
+int krotatecw = KEY_ROTATE_CW;
+int krotateccw = KEY_ROTATE_CCW;
+int khold = KEY_HOLD;
+int kpause = KEY_PAUSE;
+int kquit = KEY_QUIT;
+
 static double drop_rate = START_DROP_RATE;
 static const double drop_rate_ratio_per_level = 1.20;
 Uint32 last_drop_time;
@@ -897,51 +907,55 @@ void ingame_processInputEvents(void)
 				}
 				break;
 			case SDL_KEYUP:
-				switch (event.key.keysym.sym)
+				if (event.key.keysym.sym == ksoftdrop)
 				{
-					case KEY_SOFTDROP:
-						softdrop_off();
-						break;
-					case KEY_LEFT:
-						left_off();
-						break;
-					case KEY_RIGHT:
-						right_off();
-						break;
+					softdrop_off();
+				}
+				else if (event.key.keysym.sym == kleft)
+				{
+					left_off();
+				}
+				else if (event.key.keysym.sym == kright)
+				{
+					right_off();
 				}
 				break;
 			case SDL_KEYDOWN:
-				switch (event.key.keysym.sym)
+				if (event.key.keysym.sym == krotatecw)
 				{
-					case KEY_ROTATE_CW:
-					{
-						rotate_cw();
-					} break;
-					case KEY_ROTATE_CCW:
-					{
-						rotate_ccw();
-					} break;
-					case KEY_SOFTDROP:
-						softdrop_on();
-						break;
-					case KEY_HARDDROP:
-						dropHard();
-						break;
-					case KEY_HOLD:
-						holdFigure();
-						break;
-					case KEY_LEFT:
-						left_on();
-						break;
-					case KEY_RIGHT:
-						right_on();
-						break;
-					case KEY_PAUSE:
-						pause();
-						break;
-					case KEY_QUIT:
-						quit();
-						break;
+					rotate_cw();
+				}
+				else if (event.key.keysym.sym == krotateccw)
+				{
+					rotate_ccw();
+				}
+				else if (event.key.keysym.sym == ksoftdrop)
+				{
+					softdrop_on();
+				}
+				else if (event.key.keysym.sym == kharddrop)
+				{
+					dropHard();
+				}
+				else if (event.key.keysym.sym == khold)
+				{
+					holdFigure();
+				}
+				else if (event.key.keysym.sym == kleft)
+				{
+					left_on();
+				}
+				else if (event.key.keysym.sym == kright)
+				{
+					right_on();
+				}
+				else if (event.key.keysym.sym == kpause)
+				{
+					pause();
+				}
+				else if (event.key.keysym.sym == kquit)
+				{
+					quit();
 				}
 				break;
 			case SDL_QUIT:

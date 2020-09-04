@@ -6,6 +6,7 @@
 
 #include "skin.h"
 
+// default keys
 #if defined _BITTBOY
 #define KEY_LEFT			SDLK_LEFT
 #define KEY_RIGHT			SDLK_RIGHT
@@ -138,6 +139,17 @@ extern int level;
 extern int tetris_count;
 extern int ttr;
 extern int statistics[FIGID_GRAY];
+
+// key settings
+extern int kleft;
+extern int kright;
+extern int ksoftdrop;
+extern int kharddrop;
+extern int krotatecw;
+extern int krotateccw;
+extern int khold;
+extern int kpause;
+extern int kquit;
 
 void incMod(int *var, int limit, bool sat);
 void decMod(int *var, int limit, bool sat);

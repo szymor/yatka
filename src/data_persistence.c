@@ -98,7 +98,7 @@ void loadSettings(void)
 		{
 			fscanf(settingsFile, "%d", &tetrominocolor);
 		}
-		else if (!strcmp(buff,"rng"))
+		else if (!strcmp(buff, "rng"))
 		{
 			fscanf(settingsFile, "%s", buff);
 			for (int i = 0; i < RA_END; ++i)
@@ -107,6 +107,42 @@ void loadSettings(void)
 				if (!strcmp(buff, getRandomizerString()))
 					break;
 			}
+		}
+		else if (!strcmp(buff, "kleft"))
+		{
+			fscanf(settingsFile, "%d", &kleft);
+		}
+		else if (!strcmp(buff, "kright"))
+		{
+			fscanf(settingsFile, "%d", &kright);
+		}
+		else if (!strcmp(buff, "ksoftdrop"))
+		{
+			fscanf(settingsFile, "%d", &ksoftdrop);
+		}
+		else if (!strcmp(buff, "kharddrop"))
+		{
+			fscanf(settingsFile, "%d", &kharddrop);
+		}
+		else if (!strcmp(buff, "krotatecw"))
+		{
+			fscanf(settingsFile, "%d", &krotatecw);
+		}
+		else if (!strcmp(buff, "krotateccw"))
+		{
+			fscanf(settingsFile, "%d", &krotateccw);
+		}
+		else if (!strcmp(buff, "khold"))
+		{
+			fscanf(settingsFile, "%d", &khold);
+		}
+		else if (!strcmp(buff, "kpause"))
+		{
+			fscanf(settingsFile, "%d", &kpause);
+		}
+		else if (!strcmp(buff, "kquit"))
+		{
+			fscanf(settingsFile, "%d", &kquit);
 		}
 	}
 
@@ -144,6 +180,16 @@ void saveSettings(void)
 		fprintf(settingsFile, "musicvol %d\n", Mix_VolumeMusic(-1));
 	fprintf(settingsFile, "tetrominocolor %d\n", tetrominocolor);
 	fprintf(settingsFile, "rng %s\n", getRandomizerString());
+
+	fprintf(settingsFile, "kleft %d\n", kleft);
+	fprintf(settingsFile, "kright %d\n", kright);
+	fprintf(settingsFile, "ksoftdrop %d\n", ksoftdrop);
+	fprintf(settingsFile, "kharddrop %d\n", kharddrop);
+	fprintf(settingsFile, "krotatecw %d\n", krotatecw);
+	fprintf(settingsFile, "krotateccw %d\n", krotateccw);
+	fprintf(settingsFile, "khold %d\n", khold);
+	fprintf(settingsFile, "kpause %d\n", kpause);
+	fprintf(settingsFile, "kquit %d\n", kquit);
 
 	fclose(settingsFile);
 }

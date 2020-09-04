@@ -254,12 +254,17 @@ void mainmenu_processInputEvents(void)
 					case SDLK_LEFT:
 						left();
 						break;
-					case KEY_PAUSE:
-						action();
-						break;
-					case KEY_QUIT:
-						quit();
-						break;
+					default:
+					{
+						if (event.key.keysym.sym == kquit)
+						{
+							quit();
+						}
+						else if (event.key.keysym.sym == kpause)
+						{
+							action();
+						}
+					}
 				}
 				break;
 			case SDL_QUIT:

@@ -275,12 +275,17 @@ void settings_processInputEvents(void)
 					{
 						right();
 					} break;
-					case KEY_QUIT:
-						quit();
-						break;
-					case KEY_PAUSE:
-						action();
-						break;
+					default:
+					{
+						if (event.key.keysym.sym == kquit)
+						{
+							quit();
+						}
+						else if (event.key.keysym.sym == kpause)
+						{
+							action();
+						}
+					}
 				}
 				break;
 			case SDL_QUIT:
