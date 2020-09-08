@@ -9,6 +9,7 @@ extern Mix_Music *music[MUSIC_TRACK_NUM];
 extern int current_track;
 extern Mix_Chunk *hit;
 extern Mix_Chunk *clr;
+extern Mix_Chunk *click;
 
 void initSound(void);
 void deinitSound(void);

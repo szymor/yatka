@@ -10,6 +10,7 @@ Mix_Music *music[MUSIC_TRACK_NUM];
 int current_track = 0;
 Mix_Chunk *hit = NULL;
 Mix_Chunk *clr = NULL;
+Mix_Chunk *click = NULL;
 
 static void *LoadSound(const char *name, int mus);
 
@@ -47,6 +48,9 @@ void initSound(void)
 		exit(ERROR_NOSNDFILE);
 	clr = (Mix_Chunk*)LoadSound("sfx/clear", 0);
 	if (!clr)
+		exit(ERROR_NOSNDFILE);
+	click = (Mix_Chunk*)LoadSound("sfx/click", 0);
+	if (!click)
 		exit(ERROR_NOSNDFILE);
 
 	current_track = 0;

@@ -22,7 +22,7 @@
 #define MAX_SOFTDROP_PRESS			300
 #define FONT_SIZE					7
 
-#define SIDE_MOVE_DELAY				130
+#define SIDE_MOVE_DELAY				60
 #define FIXED_LOCK_DELAY			500
 #define EASY_SPIN_DELAY				500
 #define EASY_SPIN_MAX_COUNT			16
@@ -157,8 +157,8 @@ void initialize(void);
 void finalize(void);
 struct Shape *generateFromTemplate(const struct ShapeTemplate *template);
 
-void moveLeft(void);
-void moveRight(void);
+void moveLeft(int delay);
+void moveRight(int delay);
 
 void ingame_processInputEvents(void);
 
@@ -268,11 +268,11 @@ int main(int argc, char *argv[])
 						{
 							if (left_move && !right_move)
 							{
-								moveLeft();
+								moveLeft(SIDE_MOVE_DELAY);
 							}
 							else if (right_move && !left_move)
 							{
-								moveRight();
+								moveRight(SIDE_MOVE_DELAY);
 							}
 						}
 					}
@@ -498,27 +498,31 @@ void softDropTimeCounter(void)
 	}
 }
 
-void moveLeft(void)
+void moveLeft(int delay)
 {
 	if (figures[0] != NULL)
 	{
 		--figures[0]->x;
 		if (isFigureColliding())
 			++figures[0]->x;
+		else
+			Mix_PlayChannel(-1, click, 0);
 
-		next_side_move_time = SDL_GetTicks() + SIDE_MOVE_DELAY;
+		next_side_move_time = SDL_GetTicks() + delay;
 	}
 }
 
-void moveRight(void)
+void moveRight(int delay)
 {
 	if (figures[0] != NULL)
 	{
 		++figures[0]->x;
 		if (isFigureColliding())
 			--figures[0]->x;
+		else
+			Mix_PlayChannel(-1, click, 0);
 
-		next_side_move_time = SDL_GetTicks() + SIDE_MOVE_DELAY;
+		next_side_move_time = SDL_GetTicks() + delay;
 	}
 }
 
@@ -745,7 +749,7 @@ static void left_off(void)
 static void left_on(void)
 {
 	left_move = true;
-	moveLeft();
+	moveLeft(SIDE_MOVE_DELAY * 3);
 }
 
 static void right_off(void)
@@ -756,7 +760,7 @@ static void right_off(void)
 static void right_on(void)
 {
 	right_move = true;
-	moveRight();
+	moveRight(SIDE_MOVE_DELAY * 3);
 }
 
 static void rotate_cw(void)
