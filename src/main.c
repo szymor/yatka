@@ -78,7 +78,6 @@ int kquit = KEY_QUIT;
 static double drop_rate = START_DROP_RATE;
 static const double drop_rate_ratio_per_level = 1.20;
 Uint32 last_drop_time;
-static bool easyspin_pressed = false;
 static int easyspin_counter = 0;
 static bool softdrop_pressed = false;
 static Uint32 softdrop_press_time = 0;
@@ -166,10 +165,11 @@ void dropSoft(void);
 void dropHard(void);
 void lockFigure(void);
 void holdFigure(void);
+void updateLockTime(void);
+void updateEasySpin(void);
 int removeFullLines(void);
 bool checkGameEnd(void);
 void onDrop(void);
-void onCollide(void);
 void onLineClear(int removed);
 void onGameOver(void);
 
@@ -262,7 +262,9 @@ int main(int argc, char *argv[])
 								lockFigure();
 							}
 							else
+							{
 								next_lock_time = 0;
+							}
 						}
 						if (ct > next_side_move_time)
 						{
@@ -462,9 +464,6 @@ void markDrop(void)
 
 Uint32 getNextDropTime(void)
 {
-	if (easyspin_pressed && easyspin_counter <= EASY_SPIN_MAX_COUNT)
-		return last_drop_time + EASY_SPIN_DELAY;
-
 	const double maxDropRate = 60.0;
 	double coef = (double)(MAX_SOFTDROP_PRESS - softdrop_press_time) / MAX_SOFTDROP_PRESS;
 	coef = 1 - coef;
@@ -500,29 +499,39 @@ void softDropTimeCounter(void)
 
 void moveLeft(int delay)
 {
+	Uint32 ct = SDL_GetTicks();
 	if (figures[0] != NULL)
 	{
 		--figures[0]->x;
 		if (isFigureColliding())
 			++figures[0]->x;
 		else
+		{
 			Mix_PlayChannel(-1, click, 0);
+			updateEasySpin();
+			updateLockTime();
+		}
 
-		next_side_move_time = SDL_GetTicks() + delay;
+		next_side_move_time = ct + delay;
 	}
 }
 
 void moveRight(int delay)
 {
+	Uint32 ct = SDL_GetTicks();
 	if (figures[0] != NULL)
 	{
 		++figures[0]->x;
 		if (isFigureColliding())
 			--figures[0]->x;
 		else
+		{
 			Mix_PlayChannel(-1, click, 0);
+			updateEasySpin();
+			updateLockTime();
+		}
 
-		next_side_move_time = SDL_GetTicks() + delay;
+		next_side_move_time = ct + delay;
 	}
 }
 
@@ -531,16 +540,6 @@ void onDrop(void)
 	markDrop();
 	if (!next_lock_time && smoothanim)
 		draw_delta_drop = -brick_size;
-	easyspin_pressed = false;
-}
-
-void onCollide(void)
-{
-	if (!next_lock_time)
-		if (lockdelay)
-			next_lock_time = last_drop_time + FIXED_LOCK_DELAY;
-		else
-			next_lock_time = getNextDropTime();
 }
 
 void onLineClear(int removed)
@@ -601,10 +600,29 @@ void dropSoft(void)
 		if (isFigureColliding())
 		{
 			--figures[0]->y;
-			onCollide();
+			if (!lockdelay)
+			{
+				next_lock_time = getNextDropTime();
+			}
 		}
 		else
-			next_lock_time = 0;
+		{
+			if (lockdelay)
+			{
+				// check for prelocking state
+				// next_lock_time is both a time marker and a state flag
+				++figures[0]->y;
+				if (isFigureColliding())
+				{
+					next_lock_time = SDL_GetTicks() + FIXED_LOCK_DELAY;
+				}
+				else
+				{
+					next_lock_time = 0;
+				}
+				--figures[0]->y;
+			}
+		}
 		onDrop();
 	}
 }
@@ -616,7 +634,6 @@ void dropHard(void)
 		while (!isFigureColliding())
 			++figures[0]->y;
 		--figures[0]->y;
-		onCollide();
 		lockFigure();
 		onDrop();
 	}
@@ -738,7 +755,6 @@ static void softdrop_off(void)
 static void softdrop_on(void)
 {
 	softdrop_pressed = true;
-	easyspin_pressed = false;
 }
 
 static void left_off(void)
@@ -783,13 +799,8 @@ static void rotate_cw(void)
 	}
 	if (success && figures[0] && figures[0]->id != FIGID_O)
 	{
-		if (easyspin)
-		{
-			markDrop();
-			easyspin_pressed = true;
-			++easyspin_counter;
-			next_lock_time = 0;
-		}
+		updateEasySpin();
+		updateLockTime();
 	}
 }
 
@@ -813,13 +824,8 @@ static void rotate_ccw(void)
 	}
 	if (success && figures[0] && figures[0]->id != FIGID_O)
 	{
-		if (easyspin)
-		{
-			markDrop();
-			easyspin_pressed = true;
-			++easyspin_counter;
-			next_lock_time = 0;
-		}
+		updateEasySpin();
+		updateLockTime();
 	}
 }
 
@@ -1234,5 +1240,21 @@ void resetGame(void)
 			}
 			filled = 0;
 		}
+	}
+}
+
+void updateLockTime(void)
+{
+	if (lockdelay && easyspin && next_lock_time && (easyspin_counter < EASY_SPIN_MAX_COUNT))
+	{
+		next_lock_time = SDL_GetTicks() + FIXED_LOCK_DELAY;
+	}
+}
+
+void updateEasySpin(void)
+{
+	if (next_lock_time)
+	{
+		++easyspin_counter;
 	}
 }

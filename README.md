@@ -36,6 +36,5 @@ For more, please refer to the source code.
 - line clear animation (TGM?)
 - ports for other platforms
 - introducing max speed level
-- fixed easy spin
 - skins loaded from user configuration directory
 - support for quasi-3D bricks
