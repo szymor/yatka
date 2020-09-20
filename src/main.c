@@ -172,6 +172,7 @@ bool checkGameEnd(void);
 void onDrop(void);
 void onLineClear(int removed);
 void onGameOver(void);
+void checkForPrelocking(void);
 
 void initFigures(void);
 void spawnFigure(void);
@@ -609,22 +610,30 @@ void dropSoft(void)
 		{
 			if (lockdelay)
 			{
-				// check for prelocking state
-				// next_lock_time is both a time marker and a state flag
-				++figures[0]->y;
-				if (isFigureColliding())
-				{
-					next_lock_time = SDL_GetTicks() + FIXED_LOCK_DELAY;
-				}
-				else
-				{
-					next_lock_time = 0;
-				}
-				--figures[0]->y;
+				checkForPrelocking();
 			}
 		}
 		onDrop();
 	}
+}
+
+void checkForPrelocking(void)
+{
+	if (figures[0] == NULL)
+		return;
+	// check for prelocking state
+	// next_lock_time is both a time marker and a state flag
+	++figures[0]->y;
+	if (isFigureColliding())
+	{
+		if (!next_lock_time)
+			next_lock_time = SDL_GetTicks() + FIXED_LOCK_DELAY;
+	}
+	else
+	{
+		next_lock_time = 0;
+	}
+	--figures[0]->y;
 }
 
 void dropHard(void)
@@ -801,6 +810,10 @@ static void rotate_cw(void)
 	{
 		updateEasySpin();
 		updateLockTime();
+		if (lockdelay)
+		{
+			checkForPrelocking();
+		}
 	}
 }
 
@@ -826,6 +839,10 @@ static void rotate_ccw(void)
 	{
 		updateEasySpin();
 		updateLockTime();
+		if (lockdelay)
+		{
+			checkForPrelocking();
+		}
 	}
 }
 
