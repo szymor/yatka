@@ -511,6 +511,10 @@ void moveLeft(int delay)
 			Mix_PlayChannel(-1, click, 0);
 			updateEasySpin();
 			updateLockTime();
+			if (lockdelay)
+			{
+				checkForPrelocking();
+			}
 		}
 
 		next_side_move_time = ct + delay;
@@ -530,6 +534,10 @@ void moveRight(int delay)
 			Mix_PlayChannel(-1, click, 0);
 			updateEasySpin();
 			updateLockTime();
+			if (lockdelay)
+			{
+				checkForPrelocking();
+			}
 		}
 
 		next_side_move_time = ct + delay;
