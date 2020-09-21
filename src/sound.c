@@ -18,6 +18,8 @@ void initSound(void)
 {
 #if defined(_RETROFW)
 	int mixflags = MIX_INIT_OGG | MIX_INIT_MOD;
+#elif defined(_BITTBOY)
+	int mixflags = MIX_INIT_OGG;
 #else
 	int mixflags = MIX_INIT_OGG | MIX_INIT_MOD | MIX_INIT_MP3;
 #endif
