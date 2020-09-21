@@ -6,6 +6,7 @@ yet another tetris klone in action
 - frame limiting, counting and upscaling code by Artur 'zear' Rojek
 - in-game music by Vomitron
 - some tetromino randomizers thanks to Simon Laroche ([link](https://simon.lc/the-history-of-tetris-randomizers))
+- SRS wall kicks thanks to [Tetris Wiki](https://tetris.fandom.com/wiki/SRS)
 
 Feel free to report errors.
 
@@ -30,8 +31,8 @@ For more, please refer to the source code.
 
 ### ideas / plans
 - animated mascot (becchi?) evolving while playing or saying random things during gameplay
+- animated background
 - better score system (combos, T-spins)
-- advanced wall kick
 - rumble support for Bittboy
 - line clear animation (TGM?)
 - ports for other platforms

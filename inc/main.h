@@ -102,6 +102,7 @@ struct Shape
 {
 	enum BlockOrientation blockmap[FIG_DIM*FIG_DIM];
 	int cx, cy;		// correction of position after CW rotation
+	int phase;
 };
 
 struct Figure

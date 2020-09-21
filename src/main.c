@@ -29,10 +29,14 @@
 
 #define START_DROP_RATE				2.00
 
+#define TEST_NUM					(5)
+#define PHASE_NUM					(4)
+
 struct ShapeTemplate
 {
 	int blockmap[FIG_DIM*FIG_DIM];
 	int cx, cy;
+	int phase;
 };
 
 
@@ -100,7 +104,8 @@ static const struct ShapeTemplate templates[] = {
 						1, 1, 1, 1,
 						0, 0, 0, 0 },
 		.cx = 0,
-		.cy = 0
+		.cy = 0,
+		.phase = 2
 	},
 	{	// O
 		.blockmap	= { 0, 0, 0, 0,
@@ -108,7 +113,8 @@ static const struct ShapeTemplate templates[] = {
 						0, 1, 1, 0,
 						0, 0, 0, 0 },
 		.cx = 0,
-		.cy = 0
+		.cy = 0,
+		.phase = 0
 	},
 	{	// T
 		.blockmap	= { 0, 0, 0, 0,
@@ -116,7 +122,8 @@ static const struct ShapeTemplate templates[] = {
 						1, 1, 1, 0,
 						0, 0, 0, 0 },
 		.cx = 0,
-		.cy = 1
+		.cy = 1,
+		.phase = 0
 	},
 	{	// S
 		.blockmap	= { 0, 0, 0, 0,
@@ -124,7 +131,8 @@ static const struct ShapeTemplate templates[] = {
 						1, 1, 0, 0,
 						0, 0, 0, 0 },
 		.cx = 0,
-		.cy = 1
+		.cy = 1,
+		.phase = 0
 	},
 	{	// Z
 		.blockmap	= { 0, 0, 0, 0,
@@ -132,7 +140,8 @@ static const struct ShapeTemplate templates[] = {
 						0, 1, 1, 0,
 						0, 0, 0, 0 },
 		.cx = 0,
-		.cy = 1
+		.cy = 1,
+		.phase = 0
 	},
 	{	// J
 		.blockmap	= { 0, 0, 0, 0,
@@ -140,7 +149,8 @@ static const struct ShapeTemplate templates[] = {
 						1, 1, 1, 0,
 						0, 0, 0, 0 },
 		.cx = 0,
-		.cy = 1
+		.cy = 1,
+		.phase = 0
 	},
 	{	// L
 		.blockmap	= { 0, 0, 0, 0,
@@ -148,8 +158,24 @@ static const struct ShapeTemplate templates[] = {
 						1, 1, 1, 0,
 						0, 0, 0, 0 },
 		.cx = 0,
-		.cy = 1
+		.cy = 1,
+		.phase = 0
 	}
+};
+
+// source: https://tetris.fandom.com/wiki/SRS
+// phase, testid, x, y
+static const int wallkick_data[PHASE_NUM][TEST_NUM][2] = {
+	{ { 0, 0}, {-1, 0}, {-1,-1}, { 0, 2}, {-1, 2} },
+	{ { 0, 0}, { 1, 0}, { 1, 1}, { 0,-2}, { 1,-2} },
+	{ { 0, 0}, { 1, 0}, { 1,-1}, { 0, 2}, { 1, 2} },
+	{ { 0, 0}, {-1, 0}, {-1, 1}, { 0,-2}, {-1,-2} }
+};
+static const int wallkick_data_figI[PHASE_NUM][TEST_NUM][2] = {
+	{ { 0, 0}, {-2, 0}, { 1, 0}, {-2, 1}, { 1,-2} },
+	{ { 0, 0}, {-1, 0}, { 2, 0}, {-1,-2}, { 2, 1} },
+	{ { 0, 0}, { 2, 0}, {-1, 0}, { 2,-1}, {-1, 2} },
+	{ { 0, 0}, { 1, 0}, {-2, 0}, { 1, 2}, {-2,-1} }
 };
 
 void initialize(void);
@@ -181,6 +207,7 @@ enum FigureId getNextColor(enum FigureId id);
 enum FigureId getRandomColor(void);
 void rotateFigureCW(void);
 void rotateFigureCCW(void);
+bool rotateTest(int x, int y);
 
 static void softdrop_off(void);
 static void softdrop_on(void);
@@ -415,6 +442,7 @@ struct Shape *generateFromTemplate(const struct ShapeTemplate *template)
 
 	sh->cx = template->cx;
 	sh->cy = template->cy;
+	sh->phase = template->phase;
 	for (int i = 0; i < FIG_DIM * FIG_DIM; ++i)
 	{
 		if (template->blockmap[i])
@@ -798,22 +826,31 @@ static void right_on(void)
 
 static void rotate_cw(void)
 {
-	bool success = true;
+	if (NULL == figures[0])
+		return;
+
+	bool success = false;
+
+	int phase = figures[0]->shape.phase;
+	const int (*tests)[2] = (FIGID_I == figures[0]->id) ?
+				wallkick_data_figI[phase] :
+				wallkick_data[phase];
 	rotateFigureCW();
-	if (isFigureColliding())
+	for (int i = 0; i < TEST_NUM; ++i)
 	{
-		++figures[0]->x;
-		if (isFigureColliding())
+		if (rotateTest(tests[i][0], tests[i][1]))
 		{
-			figures[0]->x -= 2;
-			if (isFigureColliding())
-			{
-				rotateFigureCCW();
-				++figures[0]->x;
-				success = false;
-			}
+			figures[0]->x += tests[i][0];
+			figures[0]->y += tests[i][1];
+			success = true;
+			break;
 		}
 	}
+	if (!success)
+	{
+		rotateFigureCCW();
+	}
+
 	if (success && figures[0] && figures[0]->id != FIGID_O)
 	{
 		updateEasySpin();
@@ -827,22 +864,32 @@ static void rotate_cw(void)
 
 static void rotate_ccw(void)
 {
-	bool success = true;
+	if (NULL == figures[0])
+		return;
+
+	bool success = false;
+
 	rotateFigureCCW();
-	if (isFigureColliding())
+	int phase = figures[0]->shape.phase;
+	const int (*tests)[2] = (FIGID_I == figures[0]->id) ?
+				wallkick_data_figI[phase] :
+				wallkick_data[phase];
+
+	for (int i = 0; i < TEST_NUM; ++i)
 	{
-		++figures[0]->x;
-		if (isFigureColliding())
+		if (rotateTest(-tests[i][0], -tests[i][1]))
 		{
-			figures[0]->x -= 2;
-			if (isFigureColliding())
-			{
-				rotateFigureCW();
-				++figures[0]->x;
-				success = false;
-			}
+			figures[0]->x -= tests[i][0];
+			figures[0]->y -= tests[i][1];
+			success = true;
+			break;
 		}
 	}
+	if (!success)
+	{
+		rotateFigureCW();
+	}
+
 	if (success && figures[0] && figures[0]->id != FIGID_O)
 	{
 		updateEasySpin();
@@ -1017,8 +1064,8 @@ void spawnFigure(void)
 
 	if (figures[0] != NULL)
 	{
-		figures[0]->y = -FIG_DIM + 2;						// ...to gain a 'slide' effect from the top of screen
-		figures[0]->x = (BOARD_WIDTH - FIG_DIM) / 2;		// ...to center a figure
+		figures[0]->y = -FIG_DIM + 2;
+		figures[0]->x = (BOARD_WIDTH - FIG_DIM) / 2;	// center a figure
 		memcpy(&figures[0]->shape, getShape(figures[0]->id), sizeof(figures[0]->shape));
 		++statistics[figures[0]->id];
 	}
@@ -1183,6 +1230,8 @@ void rotateFigureCW(void)
 		int tcx = figures[0]->shape.cx;
 		figures[0]->shape.cx = -figures[0]->shape.cy;
 		figures[0]->shape.cy = tcx;
+
+		figures[0]->shape.phase = (figures[0]->shape.phase + 1) % PHASE_NUM;
 	}
 }
 
@@ -1191,6 +1240,16 @@ void rotateFigureCCW(void)
 	rotateFigureCW();
 	rotateFigureCW();
 	rotateFigureCW();
+}
+
+bool rotateTest(int x, int y)
+{
+	figures[0]->x += x;
+	figures[0]->y += y;
+	bool result = isFigureColliding();
+	figures[0]->x -= x;
+	figures[0]->y -= y;
+	return !result;
 }
 
 void incMod(int *var, int limit, bool sat)
