@@ -1071,6 +1071,10 @@ void spawnFigure(void)
 	}
 
 	hold_ready = true;
+	if (lockdelay)
+	{
+		checkForPrelocking();
+	}
 }
 
 struct Figure *getNextFigure(void)
