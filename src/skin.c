@@ -66,6 +66,8 @@ void skin_initSkin(struct Skin *skin)
 	skin->brickstyle = BS_SIMPLE;
 	skin->debriscolor = FIGID_END;
 	skin->ghost = 128;
+	skin->bricksize = 12;
+	skin->brickyoffset = 0;
 }
 
 void skin_destroySkin(struct Skin *skin)
@@ -168,10 +170,10 @@ void skin_updateScreen(struct Skin *skin, SDL_Surface *screen)
 	skin_executeScript(skin, true);
 
 	// display board
-	for (int i = BOARD_WIDTH * INVISIBLE_ROW_COUNT; i < (BOARD_WIDTH * BOARD_HEIGHT); ++i)
+	for (int i = BOARD_WIDTH * BOARD_HEIGHT - 1; i >= BOARD_WIDTH * INVISIBLE_ROW_COUNT; --i)
 	{
 		rect.x = (i % BOARD_WIDTH) * skin->bricksize + skin->boardx;
-		rect.y = (i / BOARD_WIDTH - INVISIBLE_ROW_COUNT) * skin->bricksize + skin->boardy;
+		rect.y = (i / BOARD_WIDTH - INVISIBLE_ROW_COUNT) * skin->bricksize + skin->boardy - skin->brickyoffset;
 		if (board[i].orientation != BO_EMPTY)
 		{
 			SDL_Rect srcrect;
@@ -189,7 +191,7 @@ void skin_updateScreen(struct Skin *skin, SDL_Surface *screen)
 	if (figures[0] != NULL)
 	{
 		int x = skin->boardx + skin->bricksize * figures[0]->x;
-		int y = skin->boardy + skin->bricksize * (figures[0]->y - INVISIBLE_ROW_COUNT);
+		int y = skin->boardy + skin->bricksize * (figures[0]->y - INVISIBLE_ROW_COUNT) - skin->brickyoffset;
 		if (smoothanim)
 		{
 			Uint32 ct = SDL_GetTicks();
@@ -217,7 +219,7 @@ void skin_updateScreen(struct Skin *skin, SDL_Surface *screen)
 		if ((figures[0]->y - tfy) >= FIG_DIM)
 		{
 			int x = skin->boardx + skin->bricksize * figures[0]->x;
-			int y = skin->boardy + skin->bricksize * (figures[0]->y - INVISIBLE_ROW_COUNT);
+			int y = skin->boardy + skin->bricksize * (figures[0]->y - INVISIBLE_ROW_COUNT) - skin->brickyoffset;
 			drawFigure(skin, figures[0], x, y, skin->ghost, true, false, false);
 		}
 		figures[0]->y = tfy;
@@ -387,8 +389,8 @@ static void skin_executeTC(struct Skin *skin, const char *statement)
 
 static void skin_executeBricksize(struct Skin *skin, const char *statement)
 {
-	sscanf(statement, "%*s %d", &skin->bricksize);
-	log("bricksize %d\n", skin->bricksize);
+	sscanf(statement, "%*s %d %d", &skin->bricksize, &skin->brickyoffset);
+	log("bricksize %d %d\n", skin->bricksize, skin->brickyoffset);
 	brick_size = skin->bricksize;
 	draw_delta_drop = -brick_size;
 }
@@ -397,17 +399,18 @@ static void skin_executeBricksprite(struct Skin *skin, const char *statement)
 {
 	skin_executeBFg(skin, statement, &skin->bricksprite[FIGID_GRAY]);
 	int s = skin->bricksize;
+	int oy = skin->brickyoffset;
 	if ((s == skin->bricksprite[FIGID_GRAY]->w) &&
-		(s == skin->bricksprite[FIGID_GRAY]->h))
+		((s + oy) == skin->bricksprite[FIGID_GRAY]->h))
 	{
 		skin->brickstyle = BS_SIMPLE;
 	}
-	else if ((s == skin->bricksprite[FIGID_GRAY]->h) &&
+	else if (((s + oy) == skin->bricksprite[FIGID_GRAY]->h) &&
 			(ORIENTATION_NUM * s == skin->bricksprite[FIGID_GRAY]->w))
 	{
 		skin->brickstyle = BS_ORIENTATION_BASED;
 	}
-	else if ((FIGID_GRAY * s == skin->bricksprite[FIGID_GRAY]->h) &&
+	else if ((FIGID_GRAY * (s + oy) == skin->bricksprite[FIGID_GRAY]->h) &&
 			(s == skin->bricksprite[FIGID_GRAY]->w))
 	{
 		skin->brickstyle = BS_FIGUREWISE;
@@ -661,26 +664,61 @@ static void drawShape(struct Skin *skin, SDL_Surface *target, const struct Shape
 		if (centerx)
 		{
 			w = maxx - minx + 1;
-			offset_x = (4 - w) * brick_size / 2 - minx * brick_size;
+			offset_x = (4 - w) * skin->bricksize / 2 - minx * skin->bricksize;
 		}
 		if (centery)
 		{
 			h = maxy - miny + 1;
-			offset_y = (2 - h) * brick_size / 2 - miny * brick_size;
+			offset_y = (2 - h) * skin->bricksize / 2 - miny * skin->bricksize;
 		}
 	}
 
-	for (int i = 0; i < (FIG_DIM * FIG_DIM); ++i)
+	if (255 == alpha || 0 == skin->brickyoffset)
 	{
+		for (int i = FIG_DIM * FIG_DIM - 1; i >= 0; --i)
+		{
+			SDL_Rect rect;
+			rect.x = (i % FIG_DIM) * skin->bricksize + x + offset_x;
+			rect.y = (i / FIG_DIM) * skin->bricksize + y + offset_y;
+
+			SDL_Surface *block = getBlock(skin, color, sh->blockmap[i], &srcrect);
+			SDL_SetAlpha(block, SDL_SRCALPHA, alpha);
+			if (sh->blockmap[i])
+				SDL_BlitSurface(block, &srcrect, target, &rect);
+		}
+	}
+	else
+	{
+		int w = skin->bricksize * FIG_DIM;
+		int h = skin->bricksize * FIG_DIM + skin->brickyoffset;
+		SDL_Surface *pixmap = SDL_CreateRGBSurface(0, w, h, 32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+		Uint32 full_transparent = SDL_MapRGBA(pixmap->format, 0, 0, 0, 0);
+		SDL_FillRect(pixmap, NULL, full_transparent);
+		Uint32 alpha_transparent = SDL_MapRGBA(pixmap->format, 0, 0, 0, alpha);
+		for (int i = FIG_DIM * FIG_DIM - 1; i >= 0; --i)
+		{
+			SDL_Rect rect;
+			rect.x = (i % FIG_DIM) * skin->bricksize;
+			rect.y = (i / FIG_DIM) * skin->bricksize;
+			rect.w = skin->bricksize;
+			rect.h = skin->bricksize + skin->brickyoffset;
+			SDL_Surface *block = getBlock(skin, color, sh->blockmap[i], &srcrect);
+			if (sh->blockmap[i])
+			{
+				SDL_Surface *block_rgba = SDL_CreateRGBSurface(0, skin->bricksize, skin->bricksize + skin->brickyoffset, 32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+				SDL_SetAlpha(block, 0, 0);
+				SDL_BlitSurface(block, &srcrect, block_rgba, NULL);
+				SDL_FillRect(pixmap, &rect, alpha_transparent);
+				SDL_SetAlpha(block_rgba, SDL_SRCALPHA, 0);
+				SDL_BlitSurface(block_rgba, &srcrect, pixmap, &rect);
+				SDL_FreeSurface(block_rgba);
+			}
+		}
 		SDL_Rect rect;
-		rect.x = (i % FIG_DIM) * brick_size + x + offset_x;
-		rect.y = (i / FIG_DIM) * brick_size + y + offset_y;
-
-		SDL_Surface *block = getBlock(skin, color, sh->blockmap[i], &srcrect);
-		SDL_SetAlpha(block, SDL_SRCALPHA, alpha);
-
-		if (sh->blockmap[i])
-			SDL_BlitSurface(block, &srcrect, target, &rect);
+		rect.x = x + offset_x;
+		rect.y = y + offset_y;
+		SDL_BlitSurface(pixmap, NULL, target, &rect);
+		SDL_FreeSurface(pixmap);
 	}
 }
 
@@ -690,8 +728,8 @@ static SDL_Surface *getBlock(struct Skin *skin, enum FigureId color, enum BlockO
 	{
 		srcrect->x = 0;
 		srcrect->y = 0;
-		srcrect->w = brick_size;
-		srcrect->h = brick_size;
+		srcrect->w = skin->bricksize;
+		srcrect->h = skin->bricksize + skin->brickyoffset;
 	}
 
 	SDL_Surface *s = NULL;
@@ -702,12 +740,12 @@ static SDL_Surface *getBlock(struct Skin *skin, enum FigureId color, enum BlockO
 			break;
 		case BS_ORIENTATION_BASED:
 			if (srcrect)
-				srcrect->x = orient * brick_size - brick_size;
+				srcrect->x = orient * srcrect->w - srcrect->w;
 			s = skin->bricksprite[color];
 			break;
 		case BS_FIGUREWISE:
 			if (srcrect)
-				srcrect->y = (color % FIGID_GRAY) * brick_size;
+				srcrect->y = (color % FIGID_GRAY) * srcrect->h;
 			s = skin->bricksprite[color];
 			break;
 		default:

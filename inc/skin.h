@@ -44,6 +44,7 @@ struct Skin
 	int boardx;
 	int boardy;
 	int bricksize;
+	int brickyoffset;
 	int ghost;
 	TTF_Font *fonts[FONT_NUM];
 };

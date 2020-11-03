@@ -38,4 +38,3 @@ For more, please refer to the source code.
 - ports for other platforms
 - introducing max speed level
 - skins loaded from user configuration directory
-- support for quasi-3D bricks
