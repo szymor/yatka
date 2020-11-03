@@ -208,6 +208,48 @@ void skin_updateScreen(struct Skin *skin, SDL_Surface *screen)
 		drawFigure(skin, figures[0], x, y, 255, true, false, false);
 	}
 
+	// fix brick display directly above the active figure
+	if (skin->brickyoffset > 0)
+	{
+		if (figures[0] != NULL)
+		{
+			for (int x = 0; x < FIG_DIM; ++x)
+			{
+				int top = FIG_DIM;
+				for (int y = 0; y < FIG_DIM; ++y)
+				{
+					if (BO_EMPTY != figures[0]->shape.blockmap[y * FIG_DIM + x])
+					{
+						top = y - 1;
+						break;
+					}
+				}
+				if (FIG_DIM != top)
+				{
+					// redraw the whole column
+					for (int bricky = top + figures[0]->y; bricky >= INVISIBLE_ROW_COUNT; --bricky)
+					{
+						int brickx = x + figures[0]->x;
+						int brick_index = bricky * BOARD_WIDTH + brickx;
+						if (brick_index >= 0 && board[brick_index].orientation != BO_EMPTY)
+						{
+							SDL_Rect srcrect;
+							SDL_Surface *block;
+							if (skin->debriscolor >= FIGID_END)
+								block = getBlock(skin, board[brick_index].color, board[brick_index].orientation, &srcrect);
+							else
+								block = getBlock(skin, skin->debriscolor, board[brick_index].orientation, &srcrect);
+							SDL_SetAlpha(block, SDL_SRCALPHA, 255);
+							rect.x = skin->boardx + skin->bricksize * brickx;
+							rect.y = skin->boardy + skin->bricksize * (bricky - INVISIBLE_ROW_COUNT) - skin->brickyoffset;
+							SDL_BlitSurface(block, &srcrect, screen, &rect);
+						}
+					}
+				}
+			}
+		}
+	}
+
 	// display the ghost figure
 	if (figures[0] != NULL && skin->ghost > 0)
 	{

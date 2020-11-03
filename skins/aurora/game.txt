@@ -5,13 +5,13 @@ fg null
 ; boardxy x y
 boardxy 100 0
 ; tc (tetromino color) id alpha r g b
-tc 0 144 215 64 0
-tc 1 144 59 52 255
-tc 2 144 115 121 0
-tc 3 144 0 132 96
-tc 4 144 75 160 255
-tc 5 144 255 174 10
-tc 6 144 255 109 247
+tc 0 128 0 159 218
+tc 1 128 254 203 0
+tc 2 128 149 45 152
+tc 3 128 105 190 40
+tc 4 128 237 41 57
+tc 5 128 0 101 189
+tc 6 128 255 121 0
 ; bricksize wh offy
 bricksize 12 3
 ; bricksprite filename
@@ -34,6 +34,7 @@ text 0 16 80 0 0 255 255 255 "$score"
 text 0 10 104 0 0 255 255 255 "Lines cleared"
 text 0 16 122 0 0 255 255 255 "$lines"
 text 0 246 10 0 0 255 255 255 "Next"
+text 0 0 228 0 0 255 255 255 "FPS: $fps"
 ; figure id x y centerx centery alpha
 figure 1 246 30 1 1 255
 figure 2 246 68 1 1 255
