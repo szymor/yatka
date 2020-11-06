@@ -25,6 +25,7 @@ static void skin_executeStatement(struct Skin *skin, const char *statement, bool
 static void skin_executeBFg(struct Skin *skin, const char *statement, SDL_Surface **sdls);
 static void skin_executeBg(struct Skin *skin, const char *statement);
 static void skin_executeFg(struct Skin *skin, const char *statement);
+static void skin_executeBganim(struct Skin *skin, const char *statement, bool dynamic);
 static void skin_executeBoardxy(struct Skin *skin, const char *statement);
 static void skin_executeTC(struct Skin *skin, const char *statement);
 static void skin_executeBricksize(struct Skin *skin, const char *statement);
@@ -40,6 +41,7 @@ static void skin_executeFigure(struct Skin *skin, const char *statement);
 
 void skin_initSkin(struct Skin *skin)
 {
+	skin->bgsheet = NULL;
 	skin->bg = NULL;
 	skin->fg = NULL;
 	skin->script = NULL;
@@ -68,13 +70,24 @@ void skin_initSkin(struct Skin *skin)
 	skin->ghost = 128;
 	skin->bricksize = 12;
 	skin->brickyoffset = 0;
+	skin->bgrect.x = 0;
+	skin->bgrect.y = 0;
+	skin->bgrect.w = SCREEN_WIDTH;
+	skin->bgrect.h = SCREEN_HEIGHT;
+	skin->bgmode = BAM_REPLACE;
 }
 
 void skin_destroySkin(struct Skin *skin)
 {
+	if (skin->bgsheet)
+	{
+		SDL_FreeSurface(skin->bgsheet);
+		skin->bgsheet = NULL;
+	}
 	if (skin->bg)
 	{
-		SDL_FreeSurface(skin->bg);
+		if (BAM_REPLACE != skin->bgmode)
+			SDL_FreeSurface(skin->bg);
 		skin->bg = NULL;
 	}
 	if (skin->fg)
@@ -162,14 +175,12 @@ void skin_updateScreen(struct Skin *skin, SDL_Surface *screen)
 	skin->screen = screen;
 
 	// display background
-	SDL_Rect rect;
-	rect.x = 0;
-	rect.y = 0;
-	SDL_BlitSurface(skin->bg, NULL, screen, &rect);
+	SDL_BlitSurface(skin->bg, &skin->bgrect, screen, NULL);
 
 	skin_executeScript(skin, true);
 
 	// display board
+	SDL_Rect rect;
 	for (int i = BOARD_WIDTH * BOARD_HEIGHT - 1; i >= BOARD_WIDTH * INVISIBLE_ROW_COUNT; --i)
 	{
 		rect.x = (i % BOARD_WIDTH) * skin->bricksize + skin->boardx;
@@ -314,6 +325,10 @@ static void skin_executeStatement(struct Skin *skin, const char *statement, bool
 		if (dynamic) return;
 		skin_executeFg(skin, statement);
 	}
+	else if (!strcmp(cmd, "bganim"))
+	{
+		skin_executeBganim(skin, statement, dynamic);
+	}
 	else if (!strcmp(cmd, "boardxy"))
 	{
 		if (dynamic) return;
@@ -405,12 +420,79 @@ static void skin_executeBFg(struct Skin *skin, const char *statement, SDL_Surfac
 
 static void skin_executeBg(struct Skin *skin, const char *statement)
 {
-	skin_executeBFg(skin, statement, &skin->bg);
+	skin_executeBFg(skin, statement, &skin->bgsheet);
+	skin->bg = skin->bgsheet;
 }
 
 static void skin_executeFg(struct Skin *skin, const char *statement)
 {
 	skin_executeBFg(skin, statement, &skin->fg);
+}
+
+static void skin_executeBganim(struct Skin *skin, const char *statement, bool dynamic)
+{
+	static int frame_duration = 1000;
+	static Uint32 last_redraw = 0;
+	static int index = 0;
+	static int bgsheet_w = 1;
+	static int bgsheet_h = 1;
+	char buff[256];
+	if (dynamic)
+	{
+		// executed each frame redraw
+		Uint32 ct = SDL_GetTicks();
+		Uint32 diff = ct - last_redraw;
+		if (diff > frame_duration)
+		{
+			last_redraw += frame_duration;
+			diff -= frame_duration;
+			index = (index + 1) % (bgsheet_w * bgsheet_h);
+			if (BAM_REPLACE == skin->bgmode)
+			{
+				skin->bgrect.x = (index % bgsheet_w) * SCREEN_WIDTH;
+				skin->bgrect.y = (index / bgsheet_w) * SCREEN_HEIGHT;
+			}
+		}
+		if (BAM_BLEND == skin->bgmode)
+		{
+			SDL_Rect r1, r2;
+			r1.w = r2.w = SCREEN_WIDTH;
+			r1.h = r2.h = SCREEN_HEIGHT;
+			r1.x = (index % bgsheet_w) * SCREEN_WIDTH;
+			r1.y = (index / bgsheet_w) * SCREEN_HEIGHT;
+			int index_next = (index + 1) % (bgsheet_w * bgsheet_h);
+			r2.x = (index_next % bgsheet_w) * SCREEN_WIDTH;
+			r2.y = (index_next / bgsheet_w) * SCREEN_HEIGHT;
+			SDL_SetAlpha(skin->bgsheet, 0, 255);
+			SDL_BlitSurface(skin->bgsheet, &r1, skin->bg, NULL);
+			SDL_SetAlpha(skin->bgsheet, SDL_SRCALPHA, (Uint8)(255 * diff / frame_duration));
+			SDL_BlitSurface(skin->bgsheet, &r2, skin->bg, NULL);
+		}
+	}
+	else
+	{
+		// initialization
+		frame_duration = 1000;
+		sscanf(statement, "%*s %s %d", buff, &frame_duration);
+		log("bganim %s %d\n", buff, frame_duration);
+		if (!strcmp(buff, "blend"))
+		{
+			skin->bgmode = BAM_BLEND;
+			Uint32 bpp = skin->bgsheet->format->BitsPerPixel;
+			Uint32 rm = skin->bgsheet->format->Rmask;
+			Uint32 bm = skin->bgsheet->format->Bmask;
+			Uint32 gm = skin->bgsheet->format->Gmask;
+			Uint32 am = skin->bgsheet->format->Amask;
+			skin->bg = SDL_CreateRGBSurface(0, SCREEN_WIDTH, SCREEN_HEIGHT, bpp, rm, gm, bm, am);
+		}
+		else
+		{
+			skin->bgmode = BAM_REPLACE;
+		}
+		last_redraw = SDL_GetTicks();
+		bgsheet_w = skin->bgsheet->w / SCREEN_WIDTH;
+		bgsheet_h = skin->bgsheet->h / SCREEN_HEIGHT;
+	}
 }
 
 static void skin_executeBoardxy(struct Skin *skin, const char *statement)
@@ -506,12 +588,19 @@ static void skin_executeBox(struct Skin *skin, const char *statement)
 	int x, y, w, h, alpha, r, g, b;
 	sscanf(statement, "%*s %d %d %d %d %d %d %d %d", &x, &y,
 			&w, &h, &alpha, &r, &g, &b);
-	SDL_Surface *bg = skin->bg;
+	SDL_Surface *bg = skin->bgsheet;
 	SDL_Surface *ph = SDL_CreateRGBSurface(0, w, h, bg->format->BitsPerPixel, bg->format->Rmask, bg->format->Gmask, bg->format->Bmask, 0);
 	SDL_FillRect(ph, NULL, SDL_MapRGB(ph->format, r, g, b));
 	SDL_SetAlpha(ph, SDL_SRCALPHA, alpha);
-	SDL_Rect rect = { .x = x, .y = y };
-	SDL_BlitSurface(ph, NULL, bg, &rect);
+	int bgw = bg->w / SCREEN_WIDTH;
+	int bgh = bg->h / SCREEN_HEIGHT;
+	for (int i = 0; i < bgw * bgh; ++i)
+	{
+		SDL_Rect rect;
+		rect.x = (i % bgw) * SCREEN_WIDTH + x;
+		rect.y = (i / bgw) * SCREEN_HEIGHT + y;
+		SDL_BlitSurface(ph, NULL, bg, &rect);
+	}
 	SDL_FreeSurface(ph);
 }
 
@@ -519,7 +608,15 @@ static void skin_executeShape(struct Skin *skin, const char *statement)
 {
 	int id, x, y, centerx, centery, alpha;
 	sscanf(statement, "%*s %d %d %d %d %d %d", &id, &x, &y, &centerx, &centery, &alpha);
-	drawShape(skin, skin->bg, getShape(id), x, y, FIGID_GRAY, alpha, centerx, centery);
+
+	int bgw = skin->bgsheet->w / SCREEN_WIDTH;
+	int bgh = skin->bgsheet->h / SCREEN_HEIGHT;
+	for (int i = 0; i < bgw * bgh; ++i)
+	{
+		int xx = (i % bgw) * SCREEN_WIDTH + x;
+		int yy = (i / bgw) * SCREEN_HEIGHT + y;
+		drawShape(skin, skin->bgsheet, getShape(id), xx, yy, FIGID_GRAY, alpha, centerx, centery);
+	}
 }
 
 static void skin_executeText(struct Skin *skin, const char *statement)

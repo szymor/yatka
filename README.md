@@ -31,7 +31,6 @@ For more, please refer to the source code.
 
 ### ideas / plans
 - animated mascot (becchi?) evolving while playing or saying random things during gameplay
-- animated background
 - better score system (combos, T-spins)
 - rumble support for Bittboy
 - line clear animation (TGM?)

@@ -1,5 +1,6 @@
 ; bg (background) filename
 bg "bg.png"
+bganim blend 15000
 ; fg (foreground) filename
 fg null
 ; boardxy x y

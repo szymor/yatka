@@ -29,10 +29,20 @@ enum BrickStyle
 	BS_END
 };
 
+enum BgAnimationMode
+{
+	BAM_REPLACE,
+	BAM_BLEND,
+	BAM_END
+};
+
 struct Skin
 {
 	SDL_Surface *screen;
+	enum BgAnimationMode bgmode;
+	SDL_Surface *bgsheet;
 	SDL_Surface *bg;
+	SDL_Rect bgrect;
 	SDL_Surface *fg;
 	SDL_Surface *bricksprite[FIGID_END];
 	Uint32 colors[FIGID_GRAY];
