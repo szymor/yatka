@@ -32,6 +32,7 @@ static void skin_executeBricksize(struct Skin *skin, const char *statement);
 static void skin_executeBricksprite(struct Skin *skin, const char *statement);
 static void skin_executeDebriscolor(struct Skin *skin, const char *statement);
 static void skin_executeGhost(struct Skin *skin, const char *statement);
+static void skin_executeShadow(struct Skin *skin, const char *statement);
 static void skin_executeFont(struct Skin *skin, const char *statement);
 static void skin_executeBox(struct Skin *skin, const char *statement);
 static void skin_executeShape(struct Skin *skin, const char *statement);
@@ -75,6 +76,9 @@ void skin_initSkin(struct Skin *skin)
 	skin->bgrect.w = SCREEN_WIDTH;
 	skin->bgrect.h = SCREEN_HEIGHT;
 	skin->bgmode = BAM_REPLACE;
+	skin->brick_shadow = NULL;
+	skin->shadowx = 0;
+	skin->shadowy = 0;
 }
 
 void skin_destroySkin(struct Skin *skin)
@@ -127,6 +131,11 @@ void skin_destroySkin(struct Skin *skin)
 	skin->brickstyle = BS_SIMPLE;
 	skin->debriscolor = FIGID_END;
 	skin->ghost = 128;
+	if (skin->brick_shadow)
+	{
+		SDL_FreeSurface(skin->brick_shadow);
+		skin->brick_shadow = NULL;
+	}
 }
 
 void skin_loadSkin(struct Skin *skin, const char *path)
@@ -172,15 +181,72 @@ void skin_loadSkin(struct Skin *skin, const char *path)
 
 void skin_updateScreen(struct Skin *skin, SDL_Surface *screen)
 {
+	SDL_Rect rect;
 	skin->screen = screen;
+
+	// draw delta drop update for smooth animation
+	if (smoothanim)
+	{
+		Uint32 ct = SDL_GetTicks();
+		double fraction = (double)(ct - last_drop_time) / (getNextDropTime() - last_drop_time);
+		int new_delta = skin->bricksize * fraction - skin->bricksize;
+		if (new_delta > draw_delta_drop)
+		{
+			draw_delta_drop = new_delta;
+			if (draw_delta_drop > 0)
+				draw_delta_drop = 0;
+		}
+	}
 
 	// display background
 	SDL_BlitSurface(skin->bg, &skin->bgrect, screen, NULL);
 
 	skin_executeScript(skin, true);
 
+	if (skin->brick_shadow)
+	{
+		// display shadow of board
+		for (int i = BOARD_WIDTH * BOARD_HEIGHT - 1; i >= BOARD_WIDTH * INVISIBLE_ROW_COUNT; --i)
+		{
+			rect.x = (i % BOARD_WIDTH) * skin->bricksize + skin->boardx + skin->shadowx;
+			rect.y = (i / BOARD_WIDTH - INVISIBLE_ROW_COUNT) * skin->bricksize + skin->boardy - skin->brickyoffset + skin->shadowy;
+			if (board[i].orientation != BO_EMPTY)
+			{
+				int sthAboveOffset = ((i - BOARD_WIDTH) >= 0 && (board[i - BOARD_WIDTH].orientation != BO_EMPTY)) ?
+										skin->brickyoffset : 0;
+				rect.y += sthAboveOffset;
+				SDL_Rect srcrect = {.x = 0, .y = 0};
+				srcrect.w = skin->bricksize;
+				srcrect.h = skin->bricksize + skin->brickyoffset - sthAboveOffset;
+				SDL_BlitSurface(skin->brick_shadow, &srcrect, screen, &rect);
+			}
+		}
+
+		// display shadow of active figure
+		if (figures[0] != NULL)
+		{
+			int x = skin->boardx + skin->bricksize * figures[0]->x + skin->shadowx;
+			int y = skin->boardy + skin->bricksize * (figures[0]->y - INVISIBLE_ROW_COUNT) - skin->brickyoffset + skin->shadowy;
+			if (smoothanim)
+				y += draw_delta_drop;
+			for (int i = FIG_DIM * FIG_DIM - 1; i >= 0; --i)
+			{
+				if (figures[0]->shape.blockmap[i])
+				{
+					int sthAboveOffset = ((i - FIG_DIM) >= 0 && figures[0]->shape.blockmap[i - FIG_DIM]) ?
+											skin->brickyoffset : 0;
+					rect.x = (i % FIG_DIM) * skin->bricksize + x;
+					rect.y = (i / FIG_DIM) * skin->bricksize + y + sthAboveOffset;
+					SDL_Rect srcrect = {.x = 0, .y = 0};
+					srcrect.w = skin->bricksize;
+					srcrect.h = skin->bricksize + skin->brickyoffset - sthAboveOffset;
+					SDL_BlitSurface(skin->brick_shadow, &srcrect, screen, &rect);
+				}
+			}
+		}
+	}
+
 	// display board
-	SDL_Rect rect;
 	for (int i = BOARD_WIDTH * BOARD_HEIGHT - 1; i >= BOARD_WIDTH * INVISIBLE_ROW_COUNT; --i)
 	{
 		rect.x = (i % BOARD_WIDTH) * skin->bricksize + skin->boardx;
@@ -204,18 +270,7 @@ void skin_updateScreen(struct Skin *skin, SDL_Surface *screen)
 		int x = skin->boardx + skin->bricksize * figures[0]->x;
 		int y = skin->boardy + skin->bricksize * (figures[0]->y - INVISIBLE_ROW_COUNT) - skin->brickyoffset;
 		if (smoothanim)
-		{
-			Uint32 ct = SDL_GetTicks();
-			double fraction = (double)(ct - last_drop_time) / (getNextDropTime() - last_drop_time);
-			int new_delta = skin->bricksize * fraction - skin->bricksize;
-			if (new_delta > draw_delta_drop)
-			{
-				draw_delta_drop = new_delta;
-				if (draw_delta_drop > 0)
-					draw_delta_drop = 0;
-			}
 			y += draw_delta_drop;
-		}
 		drawFigure(skin, figures[0], x, y, 255, true, false, false);
 	}
 
@@ -358,6 +413,11 @@ static void skin_executeStatement(struct Skin *skin, const char *statement, bool
 	{
 		if (dynamic) return;
 		skin_executeGhost(skin, statement);
+	}
+	else if (!strcmp(cmd, "shadow"))
+	{
+		if (dynamic) return;
+		skin_executeShadow(skin, statement);
 	}
 	else if (!strcmp(cmd, "font"))
 	{
@@ -566,6 +626,25 @@ static void skin_executeGhost(struct Skin *skin, const char *statement)
 {
 	sscanf(statement, "%*s %d", &skin->ghost);
 	log("ghost %d\n", skin->ghost);
+}
+
+static void skin_executeShadow(struct Skin *skin, const char *statement)
+{
+	int r, g, b, a;
+	sscanf(statement, "%*s %d %d %d %d %d %d", &skin->shadowx, &skin->shadowy, &r, &g, &b, &a);
+	log("shadow %d %d %d %d %d %d\n", skin->shadowx, skin->shadowy, r, g, b, a);
+
+	int bw = skin->bricksize;
+	int bh = skin->bricksize + skin->brickyoffset;
+	int bpp = skin->bg->format->BitsPerPixel;
+	Uint32 mr = skin->bg->format->Rmask;
+	Uint32 mg = skin->bg->format->Gmask;
+	Uint32 mb = skin->bg->format->Bmask;
+	Uint32 ma = skin->bg->format->Amask;
+	skin->brick_shadow = SDL_CreateRGBSurface(0, bw, bh, bpp, mr, mg, mb, ma);
+	Uint32 shadow_color = SDL_MapRGB(skin->brick_shadow->format, r, g, b);
+	SDL_FillRect(skin->brick_shadow, NULL, shadow_color);
+	SDL_SetAlpha(skin->brick_shadow, SDL_SRCALPHA, a);
 }
 
 static void skin_executeFont(struct Skin *skin, const char *statement)

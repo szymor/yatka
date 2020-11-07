@@ -56,6 +56,9 @@ struct Skin
 	int bricksize;
 	int brickyoffset;
 	int ghost;
+	SDL_Surface *brick_shadow;
+	int shadowx;
+	int shadowy;
 	TTF_Font *fonts[FONT_NUM];
 };
 

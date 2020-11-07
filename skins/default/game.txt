@@ -20,6 +20,8 @@ bricksprite "bricks.png"
 debriscolor 100
 ; ghost alpha
 ghost 64
+; shadow offsetx offsety r g b alpha
+shadow 4 4 48 0 0 192
 ; font id filename size
 font 0 "arcade.ttf" 7
 ; box x y w h alpha r g b

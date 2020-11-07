@@ -1,5 +1,6 @@
 ; bg (background) filename
 bg "bg.png"
+; bganim replace/blend frame_duration
 bganim blend 15000
 ; fg (foreground) filename
 fg null
@@ -14,17 +15,18 @@ tc 4 128 237 41 57
 tc 5 128 0 101 189
 tc 6 128 255 121 0
 ; bricksize wh offy
-bricksize 12 3
+bricksize 12 2
 ; bricksprite filename
 bricksprite "bricks.png"
 ; debriscolor colorid
 debriscolor 100
 ; ghost alpha
 ghost 48
+; shadow offsetx offsety r g b alpha
+shadow 2 2 0 0 0 64
 ; font id filename size
 font 0 "LiberationSans-Bold.ttf" 12
 ; box x y w h alpha r g b
-;box 100 0 120 240 12 255 255 255
 box 0 0 100 240 96 0 0 0
 box 220 0 100 240 96 0 0 0
 ; text fontid x y alignx aligny r g b string
