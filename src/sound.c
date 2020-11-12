@@ -90,10 +90,10 @@ void initSound(void)
 		printf("Mix_OpenAudio failed.\n");
 		exit(ERROR_OPENAUDIO);
 	}
-	hit = Mix_LoadWAV("sfx/hit.ogg");
+	hit = Mix_LoadWAV("sfx/hit.wav");
 	if (!hit)
 		exit(ERROR_NOSNDFILE);
-	clr = Mix_LoadWAV("sfx/clear.ogg");
+	clr = Mix_LoadWAV("sfx/clear.wav");
 	if (!clr)
 		exit(ERROR_NOSNDFILE);
 	click = Mix_LoadWAV("sfx/click.wav");
