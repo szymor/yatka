@@ -31,7 +31,7 @@ bool settings_changed = false;
 static bool redraw_bg = false;
 static int settings_pos = 0;
 static const char settings_text[][32] = {
-	"  track selection           %d",
+	"  track selection           %s",
 	"  music volume              %d",
 	"  repeat mode               %s",
 	"  smooth animation          %s",
@@ -76,7 +76,7 @@ void settings_updateScreen(void)
 	SDL_FreeSurface(text);
 
 	rect.y += text->h + spacing;
-	rect.x = (screen->w) / 10;
+	rect.x = 10;
 	for (int i = 0; i < SL_END; ++i)
 	{
 		rect.y += text->h + spacing;
@@ -104,8 +104,7 @@ static void left(void)
 	{
 		case SL_TRACK_SELECT:
 		{
-			decMod(&current_track, MUSIC_TRACK_NUM, false);
-			Mix_PlayMusic(music[current_track], 1);
+			playPrevTrack();
 		} break;
 		case SL_MUSIC_VOL:
 		{
@@ -158,8 +157,7 @@ static void right(void)
 	{
 		case SL_TRACK_SELECT:
 		{
-			incMod(&current_track, MUSIC_TRACK_NUM, false);
-			Mix_PlayMusic(music[current_track], 1);
+			playNextTrack();
 		} break;
 		case SL_MUSIC_VOL:
 		{
@@ -302,7 +300,7 @@ static char *generateSettingLine(char *buff, int pos)
 	{
 		case SL_TRACK_SELECT:
 		{
-			sprintf(buff, settings_text[pos], current_track + 1);
+			sprintf(buff, settings_text[pos], music_name);
 		} break;
 		case SL_MUSIC_VOL:
 		{

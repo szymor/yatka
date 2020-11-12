@@ -16,7 +16,7 @@
 #define HISCORE_FILE		"hiscore.dat"
 #define SETTINGS_FILE		"settings.txt"
 
-static char dirpath[256];
+char dirpath[256];
 static char hiscore_path[256];
 static char settings_path[256];
 
