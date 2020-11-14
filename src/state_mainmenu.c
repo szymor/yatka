@@ -12,10 +12,25 @@
 #include "main.h"
 #include "joystick.h"
 #include "video.h"
+#include "data_persistence.h"
 
 #define MAX_SKIN_NUM		32
 #define MAX_SKIN_NAME_LEN	16
-#define POSITION_NUM		4
+#define POSITION_NUM		5
+
+enum KeyId
+{
+	KI_LEFT,
+	KI_RIGHT,
+	KI_SOFTDROP,
+	KI_HARDDROP,
+	KI_ROTATE_CW,
+	KI_ROTATE_CCW,
+	KI_HOLD,
+	KI_PAUSE,
+	KI_QUIT,
+	KI_END
+};
 
 int menu_skinnum = 0;
 char menu_skinnames[MAX_SKIN_NUM][MAX_SKIN_NAME_LEN];
@@ -33,6 +48,20 @@ static void right(void);
 static void action(void);
 static void quit(void);
 static void text(int x, int y, const char *string, int alignx, int aligny);
+static SDLKey getKey(void);
+
+static SDLKey getKey(void)
+{
+	SDL_Event event;
+	while (SDL_WaitEvent(&event))
+	{
+		if (SDL_KEYDOWN == event.type)
+		{
+			return event.key.keysym.sym;
+		}
+	}
+	return SDLK_ESCAPE;
+}
 
 static void text(int x, int y, const char *string, int alignx, int aligny)
 {
@@ -116,6 +145,12 @@ void mainmenu_updateScreen(void)
 		sprintf(buff, "  %d  ", menu_debris_chance);
 	text(120, 96, buff, 0, 0);
 
+	if (4 == submenu_index)
+		sprintf(buff, "> KEY CONFIGURATION <", menu_debris_chance);
+	else
+		sprintf(buff, "  KEY CONFIGURATION  ", menu_debris_chance);
+	text(16, 128, buff, 0, 0);
+
 	flipScreenScaled();
 }
 
@@ -185,14 +220,65 @@ static void right(void)
 
 static void action(void)
 {
-	char path[256];
-	sprintf(path, "skins/%s/game.txt", menu_skinnames[menu_skin]);
-	skin_destroySkin(&gameskin);
-	skin_initSkin(&gameskin);
-	skin_loadSkin(&gameskin, path);
-	resetGame();
-	gamestate = GS_INGAME;
-	submenu_index = 0;
+	// key configuration
+	if (4 == submenu_index)
+	{
+		const int xpos = 16;
+		const int ypos = 144;
+		const int ydelta = 8;
+		SDLKey keys[KI_END];
+		char keyfunc[KI_END][32] = {
+			"  LEFT",
+			"  RIGHT",
+			"  SOFT DROP",
+			"  HARD DROP",
+			"  ROTATE CLOCKWISE",
+			"  ROTATE COUNTERCLOCKWISE",
+			"  HOLD",
+			"  PAUSE",
+			"  QUIT"
+		};
+
+		for (int i = 0; i < KI_END; ++i)
+		{
+			text(xpos, ypos + ydelta * i, keyfunc[i], 0, 0);
+			flipScreenScaled();
+			keys[i] = getKey();
+			text(xpos + 200, ypos + ydelta * i, SDL_GetKeyName(keys[i]), 0, 0);
+			flipScreenScaled();
+		}
+		text(xpos, ypos + ydelta * (KI_END + 1), "IS IT OK? (Y = UP, N = DOWN)", 0, 0);
+		flipScreenScaled();
+		SDLKey answer;
+		do
+		{
+			answer = getKey();
+		} while (SDLK_UP != answer && SDLK_DOWN != answer);
+		if (SDLK_UP == answer)
+		{
+			kleft = keys[KI_LEFT];
+			kright = keys[KI_RIGHT];
+			ksoftdrop = keys[KI_SOFTDROP];
+			kharddrop = keys[KI_HARDDROP];
+			krotatecw = keys[KI_ROTATE_CW];
+			krotateccw = keys[KI_ROTATE_CCW];
+			khold = keys[KI_HOLD];
+			kpause = keys[KI_PAUSE];
+			kquit = keys[KI_QUIT];
+			saveSettings();
+		}
+	}
+	else
+	{
+		char path[256];
+		sprintf(path, "skins/%s/game.txt", menu_skinnames[menu_skin]);
+		skin_destroySkin(&gameskin);
+		skin_initSkin(&gameskin);
+		skin_loadSkin(&gameskin, path);
+		resetGame();
+		gamestate = GS_INGAME;
+		submenu_index = 0;
+	}
 }
 
 static void quit(void)
