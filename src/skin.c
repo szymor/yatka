@@ -504,8 +504,9 @@ static void skin_executeBganim(struct Skin *skin, const char *statement, bool dy
 		Uint32 diff = ct - last_redraw;
 		if (diff > frame_duration)
 		{
-			last_redraw += frame_duration;
-			diff -= frame_duration;
+			Uint32 total_fd = (diff / frame_duration) * frame_duration;
+			last_redraw += total_fd;
+			diff -= total_fd;
 			index = (index + 1) % (bgsheet_w * bgsheet_h);
 			if (BAM_REPLACE == skin->bgmode)
 			{

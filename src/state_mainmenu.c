@@ -241,12 +241,16 @@ static void action(void)
 
 		for (int i = 0; i < KI_END; ++i)
 		{
+			// fiddling around with flip fixes display issues on some devices
+			flipScreenScaled();
 			text(xpos, ypos + ydelta * i, keyfunc[i], 0, 0);
 			flipScreenScaled();
 			keys[i] = getKey();
+			flipScreenScaled();
 			text(xpos + 200, ypos + ydelta * i, SDL_GetKeyName(keys[i]), 0, 0);
 			flipScreenScaled();
 		}
+		flipScreenScaled();
 		text(xpos, ypos + ydelta * (KI_END + 1), "IS IT OK? (Y = UP, N = DOWN)", 0, 0);
 		flipScreenScaled();
 		SDLKey answer;

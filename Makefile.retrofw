@@ -22,7 +22,8 @@ $(OPK_NAME): $(PROJECT) skins sfx icon.png README.md yatka.retrofw.desktop
 	rm -rf $(OPK_DIR)
 	mkdir -p $(OPK_DIR)
 	cp -R skins $(OPK_DIR)/
-	cp -R sfx_retrofw $(OPK_DIR)/sfx
+	cp -R sfx $(OPK_DIR)/
+	cp -R music $(OPK_DIR)/
 	cp icon.png $(OPK_DIR)/
 	cp README.md $(OPK_DIR)/readme.txt
 	cp yatka.retrofw.desktop $(OPK_DIR)/

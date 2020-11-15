@@ -7,6 +7,7 @@ yet another tetris klone in action
 - in-game music by Vomitron
 - some tetromino randomizers thanks to Simon Laroche ([link](https://simon.lc/the-history-of-tetris-randomizers))
 - SRS wall kicks thanks to [Tetris Wiki](https://tetris.fandom.com/wiki/SRS)
+- Elektronika60, Dotkom and Gamboi skins by GuineaSquiggle
 
 Feel free to report errors.
 
