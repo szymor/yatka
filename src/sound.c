@@ -73,17 +73,31 @@ static void loadNextTrack(void)
 
 void initSound(void)
 {
-#if defined(_RETROFW)
-	int mixflags = MIX_INIT_OGG | MIX_INIT_MOD;
-#elif defined(_BITTBOY)
-	int mixflags = MIX_INIT_OGG;
-#else
-	int mixflags = MIX_INIT_OGG | MIX_INIT_MOD | MIX_INIT_MP3;
-#endif
-	if (Mix_Init(mixflags) != mixflags)
+	int mixflags = -1;
+	int retflags = Mix_Init(mixflags);
+	if (retflags != mixflags)
 	{
-		printf("Mix_Init failed.\n");
-		exit(ERROR_MIXINIT);
+		retflags = Mix_Init(retflags);
+	}
+	if (retflags & MIX_INIT_FLAC)
+	{
+		printf("Mix_Init: FLAC supported.\n");
+	}
+	if (retflags & MIX_INIT_MOD)
+	{
+		printf("Mix_Init: MOD supported.\n");
+	}
+	if (retflags & MIX_INIT_MP3)
+	{
+		printf("Mix_Init: MP3 supported.\n");
+	}
+	if (retflags & MIX_INIT_OGG)
+	{
+		printf("Mix_Init: OGG supported.\n");
+	}
+	if (retflags & MIX_INIT_FLUIDSYNTH)
+	{
+		printf("Mix_Init: MIDI supported (FluidSynth?).\n");
 	}
 	if (Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, 1, 1024) < 0)
 	{

@@ -30,6 +30,9 @@ Feel free to report errors.
 
 For more, please refer to the source code.
 
+### custom music support
+The game supports custom music playback. In order to listen to your favourite songs, you need to copy them to $HOME/.yatka/music. If the folder does not exist, create it. Supported music formats depend on your platform, but usually MOD, MP3, OGG and WAV files are accepted.
+
 ### ideas / plans
 - animated mascot (becchi?) evolving while playing or saying random things during gameplay
 - better score system (combos, T-spins)

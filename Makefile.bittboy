@@ -8,7 +8,7 @@ SRC = src/main.c src/data_persistence.c src/video.c src/sound.c \
 OBJ = $(SRC:.c=.o)
 DEP = $(SRC:.c=.d)
 CFLAGS = -Iinc -D_BITTBOY -Ofast -march=armv5te -mtune=arm926ej-s
-LDFLAGS = -s $(shell $(BIN_BASE)pkg-config --libs sdl SDL_image SDL_ttf SDL_mixer) -ljpeg -logg -lfreetype -lpng -lz
+LDFLAGS = -s $(shell $(BIN_BASE)pkg-config --libs sdl SDL_image SDL_ttf SDL_mixer) -ljpeg -logg -lfreetype -lpng -lz -lbz2
 CC = arm-linux-gcc
 
 all: $(PROJECT)
