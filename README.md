@@ -1,6 +1,8 @@
 ## YATKA
 yet another tetris klone in action
 
+![screenshot](screenshot.png)
+
 ### description
 YATKA is one of many Tetris implementations available. Motivation behind this one was, on the one hand, to create a game that would conform to modern rules of the game, while, on the other, to make possible running it on resource-limited platforms (e.g. Bittboy or JZ4760-based handheld consoles). This is the reason I use SDL 1.2, which is considered outdated, or develop my own simplistic solutions instead of relying on third-party dependencies.
 
