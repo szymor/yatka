@@ -37,10 +37,12 @@ For more, please refer to the source code.
 
 ### custom skins
 The easiest way to start your journey with creating skins is as follows:
-1. Go to the folder 'skins' in the game folder. Note that if you use a packed version of the game (e.g. you use OPK), you cannot enter the game folder without extracting the archive.
-2. Copy one of existing skin folders and rename it, e.g. copy the folder 'default' in the folder 'skins' and rename it to 'myownskin'.
+1. Go to skins/ in the game directory. Note that if you use a packed version of the game (e.g. you use OPK), you cannot enter the game directory without extracting the archive.
+2. Copy one of existing skin directories and rename it, e.g. duplicate default/ in skins/ and rename it to 'myownskin'.
 3. Replace the background file (usually named 'bg.png') with your custom picture.
-4. Modify 'game.txt' in the skin folder according to your needs. You can customize many parameters of the skin in there, e.g. tetromino colors, ghost piece, text strings, display of statistics, etc. Look at existing skins for available options.
+4. Modify 'game.txt' in the skin directory according to your needs. You can customize many parameters of the skin in there, e.g. tetromino colors, ghost piece, text strings, display of statistics, etc. Look at the existing skins for available options.
+
+If you use a packed (OPK) version of the game, it may be easier for you to copy your custom skins to .yatka/skins/ in your home directory (instead of skins/ in the game directory). Create it if it does not exist.
 
 ### custom music support
 The game supports custom music playback. In order to listen to your favourite songs, you need to copy them to $HOME/.yatka/music. If the folder does not exist, create it. Supported music formats depend on your platform, but usually MOD, MP3, OGG and WAV files are accepted.
@@ -68,8 +70,9 @@ I do not cover the topic in detail because there are many better sources on that
 - Elektronika60, Dotkom and Gamboi skins by GuineaSquiggle
 
 ### ideas / plans
-- animated mascot (becchi?) evolving while playing or saying random things during gameplay
 - better score system (combos, T-spins)
 - line clear animation (TGM?)
 - ports for other platforms
-- skins loaded from user configuration directory
+- two modes of gameplay - Sprint (40 lines) and Marathon
+- notification of events during gameplay
+- better joystick support

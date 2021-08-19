@@ -16,6 +16,7 @@
 
 #define MAX_SKIN_NUM		32
 #define MAX_SKIN_NAME_LEN	16
+#define MAX_SKIN_PATH_LEN	256
 #define POSITION_NUM		5
 
 enum KeyId
@@ -32,13 +33,20 @@ enum KeyId
 	KI_END
 };
 
-int menu_skinnum = 0;
-char menu_skinnames[MAX_SKIN_NUM][MAX_SKIN_NAME_LEN];
-int menu_skin = 0;
+struct SkinEntry
+{
+	char name[MAX_SKIN_NAME_LEN];
+	char path[MAX_SKIN_PATH_LEN];
+};
+
+int menu_skinnum = 0;	// number of all detected skins
+struct SkinEntry menu_skinentries[MAX_SKIN_NUM];
+int menu_skin = 0;		// currently selected skin
 int menu_level = 0;
 int menu_debris = 0;
 int menu_debris_chance = 8;
 
+static char custom_skin_dir[256] = "";
 static int submenu_index = 0;
 
 static void up(void);
@@ -83,28 +91,44 @@ static void text(int x, int y, const char *string, int alignx, int aligny)
 	SDL_FreeSurface(ts);
 }
 
+static void mainmenu_init_skinload_helper(DIR *dp, const char *maindir)
+{
+	struct dirent *ep;
+	while (ep = readdir(dp))
+	{
+		if (strcmp(ep->d_name, ".") && strcmp(ep->d_name, ".."))
+		{
+			if (!strcmp(ep->d_name, "default"))
+				menu_skin = menu_skinnum;
+			strcpy(menu_skinentries[menu_skinnum].name, ep->d_name);
+			sprintf(menu_skinentries[menu_skinnum].path, "%s%s/game.txt", maindir, ep->d_name);
+			++menu_skinnum;
+		}
+	}
+}
+
 void mainmenu_init(void)
 {
 	DIR *dp;
-	struct dirent *ep;
+
+	menu_skinnum = 0;
+	sprintf(custom_skin_dir, "%s/skins/", dirpath);
+
+	dp = opendir(custom_skin_dir);
+	if (dp != NULL)
+	{
+		mainmenu_init_skinload_helper(dp, custom_skin_dir);
+		closedir(dp);
+	}
 
 	dp = opendir("skins/");
 	if (dp != NULL)
 	{
-		while (ep = readdir(dp))
-		{
-			if (strcmp(ep->d_name, ".") && strcmp(ep->d_name, ".."))
-			{
-				if (!strcmp(ep->d_name, "default"))
-					menu_skin = menu_skinnum;
-				strcpy(menu_skinnames[menu_skinnum], ep->d_name);
-				++menu_skinnum;
-			}
-		}
+		mainmenu_init_skinload_helper(dp, "skins/");
 		closedir(dp);
 	}
 	else
-		perror("Couldn't open the directory");
+		perror("Couldn't open the main skin directory.");
 }
 
 void mainmenu_updateScreen(void)
@@ -122,9 +146,9 @@ void mainmenu_updateScreen(void)
 	text(16, 96, "DEBRIS CHANCE", 0, 0);
 
 	if (0 == submenu_index)
-		sprintf(buff, "< %s >", menu_skinnames[menu_skin]);
+		sprintf(buff, "< %s >", menu_skinentries[menu_skin].name);
 	else
-		sprintf(buff, "  %s  ", menu_skinnames[menu_skin]);
+		sprintf(buff, "  %s  ", menu_skinentries[menu_skin].name);
 	text(120, 48, buff, 0, 0);
 
 	if (1 == submenu_index)
@@ -274,11 +298,9 @@ static void action(void)
 	}
 	else
 	{
-		char path[256];
-		sprintf(path, "skins/%s/game.txt", menu_skinnames[menu_skin]);
 		skin_destroySkin(&gameskin);
 		skin_initSkin(&gameskin);
-		skin_loadSkin(&gameskin, path);
+		skin_loadSkin(&gameskin, menu_skinentries[menu_skin].path);
 		resetGame();
 		gamestate = GS_INGAME;
 		submenu_index = 0;
