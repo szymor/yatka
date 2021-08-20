@@ -66,6 +66,8 @@ int lines = 0;
 int level = 0;
 int tetris_count = 0;
 int ttr = 0;
+int b2b = 0;	// back2back bonus
+int combo = 0;	// combo bonus
 static int lines_level_up = 0;
 static int old_hiscore = 0;
 
@@ -584,24 +586,55 @@ void onLineClear(int removed)
 	lines += removed;
 	lines_level_up += removed;
 
+	// remove b2b flag on easy clear
+	if (removed != 4)
+	{
+		b2b = 0;
+	}
+
+	// calculate score
 	switch (removed)
 	{
 		case 1:
-			score += 100;
+			score += 100 * (level + 1);
 			break;
 		case 2:
-			score += 300;
+			score += 300 * (level + 1);
 			break;
 		case 3:
-			score += 500;
+			score += 500 * (level + 1);
 			break;
 		case 4:
-			score += 800;
-			++tetris_count;
+			if (b2b)
+			{
+				score += 1200 * (level + 1);
+			}
+			else
+			{
+				score += 800 * (level + 1);
+			}
 			break;
+	}
+	if (combo)
+	{
+		score += removed * (level + 1) + 50 * (level + 1);
 	}
 	if (score > hiscore)
 		hiscore = score;
+
+	// notify a player about a special event
+	static char clear_text[4][12] = {
+		"single", "double", "triple", "Tetris"
+	};
+	printf("%s%s %s\n", b2b ? "B2B " : "", clear_text[removed-1], combo ? "combo" : "");
+
+	// update flags for future usage
+	++combo;
+	if (removed == 4)
+	{
+			++b2b;
+			++tetris_count;
+	}
 
 	int levelup = lines_level_up / 30;
 	level += levelup;
@@ -616,6 +649,7 @@ void onLineClear(int removed)
 	else
 		ttr = 0;
 
+	// play a clearing sound
 	Mix_PlayChannel(-1, clr, 0);
 }
 
@@ -634,9 +668,13 @@ void dropSoft(void)
 	else
 	{
 		++figures[0]->y;
+		if (softdrop_pressed)
+			++score;
 		if (isFigureColliding())
 		{
 			--figures[0]->y;
+			if (softdrop_pressed)
+				--score;
 			if (!lockdelay)
 			{
 				next_lock_time = getNextDropTime();
@@ -649,6 +687,8 @@ void dropSoft(void)
 				checkForPrelocking();
 			}
 		}
+		if (score > hiscore)
+			hiscore = score;
 		onDrop();
 	}
 }
@@ -677,8 +717,14 @@ void dropHard(void)
 	if (figures[0] != NULL)
 	{
 		while (!isFigureColliding())
+		{
 			++figures[0]->y;
+			score += 2;
+		}
 		--figures[0]->y;
+		score -= 2;
+		if (score > hiscore)
+			hiscore = score;
 		lockFigure();
 		onDrop();
 	}
@@ -711,7 +757,10 @@ void lockFigure(void)
 	softdrop_pressed = false;
 	softdrop_press_time = 0;
 	if (!removed)
+	{
+		combo = 0;
 		Mix_PlayChannel(-1, hit, 0);
+	}
 
 	next_lock_time = 0;
 	easyspin_counter = 0;
@@ -1285,6 +1334,8 @@ void resetGame(void)
 	score = 0;
 	tetris_count = 0;
 	ttr = 0;
+	b2b = 0;
+	combo = 0;
 	left_move = false;
 	right_move = false;
 

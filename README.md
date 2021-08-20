@@ -73,6 +73,6 @@ I do not cover the topic in detail because there are many better sources on that
 - better score system (combos, T-spins)
 - line clear animation (TGM?)
 - ports for other platforms
-- two modes of gameplay - Sprint (40 lines) and Marathon
+- two modes of gameplay - Sprint (40 lines, 2 minutes) and Marathon
 - notification of events during gameplay
 - better joystick support
