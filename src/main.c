@@ -39,6 +39,13 @@ struct ShapeTemplate
 	int phase;
 };
 
+enum TSpinType
+{
+	TST_NONE,
+	TST_REGULAR,
+	TST_MINI,
+	TST_END
+};
 
 struct Skin gameskin;
 
@@ -196,6 +203,7 @@ void holdFigure(void);
 void updateLockTime(void);
 void updateEasySpin(void);
 int removeFullLines(void);
+enum TSpinType getTSpinType(void);
 bool checkGameEnd(void);
 void onDrop(void);
 void onLineClear(int removed);
@@ -583,59 +591,100 @@ void onDrop(void)
 
 void onLineClear(int removed)
 {
+	enum TSpinType tst = getTSpinType();
 	lines += removed;
 	lines_level_up += removed;
 
 	// remove b2b flag on easy clear
-	if (removed != 4)
+	if (removed != 4 && TST_NONE == tst)
 	{
 		b2b = 0;
 	}
 
 	// calculate score
+	int extra = 0;
 	switch (removed)
 	{
 		case 1:
-			score += 100 * (level + 1);
+			switch (tst)
+			{
+				case TST_REGULAR:
+					extra = 800 * (level + 1);
+					break;
+				case TST_MINI:
+					extra = 200 * (level + 1);
+					break;
+				case TST_NONE:
+				default:
+					extra = 100 * (level + 1);
+			}
 			break;
 		case 2:
-			score += 300 * (level + 1);
+			switch (tst)
+			{
+				case TST_REGULAR:
+					extra = 1200 * (level + 1);
+					break;
+				case TST_MINI:
+					extra = 400 * (level + 1);
+					break;
+				case TST_NONE:
+				default:
+					extra = 300 * (level + 1);
+			}
 			break;
 		case 3:
-			score += 500 * (level + 1);
+			switch (tst)
+			{
+				case TST_REGULAR:
+					extra = 1600 * (level + 1);
+					break;
+				case TST_MINI:
+					// not possible
+					break;
+				case TST_NONE:
+				default:
+					extra = 500 * (level + 1);
+			}
 			break;
 		case 4:
-			if (b2b)
-			{
-				score += 1200 * (level + 1);
-			}
-			else
-			{
-				score += 800 * (level + 1);
-			}
+			extra = 800 * (level + 1);
 			break;
+	}
+	if (b2b)
+	{
+		extra += extra / 2;
 	}
 	if (combo)
 	{
-		score += removed * (level + 1) + 50 * (level + 1);
+		extra += 50 * (level + 1) * combo;
 	}
+	score += extra;
 	if (score > hiscore)
 		hiscore = score;
 
 	// notify a player about a special event
 	static char clear_text[4][12] = {
-		"single", "double", "triple", "Tetris"
+		"Single", "Double", "Triple", "Tetris"
 	};
-	printf("%s%s %s\n", b2b ? "B2B " : "", clear_text[removed-1], combo ? "combo" : "");
+	static char tspin_text[TST_END][12] = {
+		"", "T-Spin", "Mini T-Spin"
+	};
+	printf("%s%s%s%s: %d pts\n", b2b ? "B2B " : "", tspin_text[tst], clear_text[removed-1], combo ? " combo" : "", extra);
 
 	// update flags for future usage
 	++combo;
-	if (removed == 4)
+	if (4 == removed)
 	{
 			++b2b;
 			++tetris_count;
 	}
+	if (TST_NONE != tst)
+	{
+		++b2b;
+	}
 
+	// adjust level if needed
 	int levelup = lines_level_up / 30;
 	level += levelup;
 	if (levelup)
@@ -644,6 +693,7 @@ void onLineClear(int removed)
 	}
 	lines_level_up %= 30;
 
+	// calculate tetris percentage
 	if (lines != 0)
 		ttr = 4 * tetris_count * 100 / lines;
 	else
@@ -835,9 +885,52 @@ int removeFullLines(void)
 	}
 
 	if (removed_lines > 0)
+	{
 		onLineClear(removed_lines);
+	}
+	else
+	{
+		// check for T-Spins clearing no lines
+		switch (getTSpinType())
+		{
+			case TST_REGULAR:
+				score += 400 * (level + 1);
+				printf("T-Spin\n");
+				break;
+			case TST_MINI:
+				score += 100 * (level + 1);
+				printf("Mini T-Spin\n");
+				break;
+			case TST_NONE:
+			default:
+		}
+		if (score > hiscore)
+			hiscore = score;
+	}
 
 	return removed_lines;
+}
+
+enum TSpinType getTSpinType(void)
+{
+	/*
+	 * T-spins are detected and rewarded upon the locking of
+	 * a T tetrimino. The mechanism can be described as follows:
+	 * 1. The last maneuver of the T tetrimino must be a rotation.
+	 * 2. If there are two minoes in the front corners of the 3 by 3
+	 * square occupied by the T (the front corners are ones next to
+	 * the sticking out mino of the T) and at least one mino in the
+	 * two other corners (to the back), it is a "proper" T-spin.
+	 * 3. Otherwise, if there is only one mino in two front corners
+	 * and two minoes to the back corners, it is a Mini T-spin.
+	 * However, if the last rotation that kicked the T moves its
+	 * center 1 by 2 blocks (the last rotation offset of SRS), it is
+	 * still a proper T-spin.
+	 *
+	 * source: https://tetris.wiki/T-Spin
+	 *
+	 */
+	 return TST_NONE;
 }
 
 static void softdrop_off(void)
