@@ -165,4 +165,8 @@ void getShapeDimensions(const struct Shape *shape, int *minx, int *maxx, int *mi
 struct Shape* getShape(enum FigureId id);
 bool isFigureColliding(void);
 
+#ifdef DEV
+void setBlockAtScreenXY(int x, int y, enum BlockOrientation bo);
+#endif
+
 #endif

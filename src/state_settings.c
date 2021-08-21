@@ -286,6 +286,32 @@ void settings_processInputEvents(void)
 					}
 				}
 				break;
+#ifdef DEV
+			case SDL_MOUSEBUTTONDOWN:
+				if (SDL_BUTTON_LEFT == event.button.button)
+				{
+					setBlockAtScreenXY(event.button.x, event.button.y, BO_FULL);
+				}
+				else if (SDL_BUTTON_RIGHT == event.button.button)
+				{
+					setBlockAtScreenXY(event.button.x, event.button.y, BO_EMPTY);
+				}
+				skin_updateScreen(&gameskin, last_game_screen);
+				break;
+			case SDL_MOUSEMOTION:
+				// workaround for an apparent SDL bug
+				event.button.state = SDL_GetMouseState(NULL, NULL);
+				if (SDL_BUTTON_LMASK & event.button.state)
+				{
+					setBlockAtScreenXY(event.button.x, event.button.y, BO_FULL);
+				}
+				else if (SDL_BUTTON_RMASK & event.button.state)
+				{
+					setBlockAtScreenXY(event.button.x, event.button.y, BO_EMPTY);
+				}
+				skin_updateScreen(&gameskin, last_game_screen);
+				break;
+#endif
 			case SDL_QUIT:
 				exit(0);
 				break;

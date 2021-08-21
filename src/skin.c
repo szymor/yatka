@@ -808,7 +808,7 @@ static void skin_executeBar(struct Skin *skin, const char *statement)
 	rect.y = y;
 	rect.w = w;
 	rect.h = h;
-	SDL_BlitSurface(bar, NULL, screen, &rect);
+	SDL_BlitSurface(bar, NULL, skin->screen, &rect);
 	SDL_FreeSurface(bar);
 }
 

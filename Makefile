@@ -6,7 +6,7 @@ SRC = src/main.c src/data_persistence.c src/video.c src/sound.c \
 	src/state_mainmenu.c src/skin.c
 OBJ = $(SRC:.c=.o)
 DEP = $(SRC:.c=.d)
-CFLAGS = -g -Iinc
+CFLAGS = -g -Iinc -DDEV
 LDFLAGS = $(shell pkg-config --libs sdl SDL_image SDL_ttf SDL_mixer)
 CC = gcc
 

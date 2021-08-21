@@ -380,7 +380,11 @@ void initialize(void)
 	}
 	screen = scale > 1 ? SDL_CreateRGBSurface(SDL_SWSURFACE, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BPP, 0, 0, 0, 0) : screen_scaled;
 	SDL_WM_SetCaption("Y A T K A", NULL);
+#ifdef DEV
+	SDL_ShowCursor(SDL_ENABLE);
+#else
 	SDL_ShowCursor(SDL_DISABLE);
+#endif
 
 	arcade_font = TTF_OpenFont("skins/default/arcade.ttf", FONT_SIZE);
 	if (arcade_font == NULL)
@@ -664,13 +668,16 @@ void onLineClear(int removed)
 		hiscore = score;
 
 	// notify a player about a special event
-	static char clear_text[4][12] = {
-		"Single", "Double", "Triple", "Tetris"
+	static char clear_text[5][12] = {
+		"Single", "Double", "Triple", "Tetris", "Cheatris"
 	};
 	static char tspin_text[TST_END][12] = {
 		"", "T-Spin", "Mini T-Spin"
 	};
-	printf("%s%s%s%s: %d pts\n", b2b ? "B2B " : "", tspin_text[tst], clear_text[removed-1], combo ? " combo" : "", extra);
+	int rmvd = removed - 1;
+	if (rmvd > 4)
+		rmvd = 4;
+	printf("%s%s%s%s: %d pts\n", b2b ? "B2B " : "", tspin_text[tst], clear_text[rmvd], combo ? " combo" : "", extra);
 
 	// update flags for future usage
 	++combo;
@@ -1182,6 +1189,30 @@ void ingame_processInputEvents(void)
 					quit();
 				}
 				break;
+#ifdef DEV
+			case SDL_MOUSEBUTTONDOWN:
+				if (SDL_BUTTON_LEFT == event.button.button)
+				{
+					setBlockAtScreenXY(event.button.x, event.button.y, BO_FULL);
+				}
+				else if (SDL_BUTTON_RIGHT == event.button.button)
+				{
+					setBlockAtScreenXY(event.button.x, event.button.y, BO_EMPTY);
+				}
+				break;
+			case SDL_MOUSEMOTION:
+				// workaround for an apparent SDL bug
+				event.button.state = SDL_GetMouseState(NULL, NULL);
+				if (SDL_BUTTON_LMASK & event.button.state)
+				{
+					setBlockAtScreenXY(event.button.x, event.button.y, BO_FULL);
+				}
+				else if (SDL_BUTTON_RMASK & event.button.state)
+				{
+					setBlockAtScreenXY(event.button.x, event.button.y, BO_EMPTY);
+				}
+				break;
+#endif
 			case SDL_QUIT:
 				exit(0);
 				break;
@@ -1490,3 +1521,23 @@ void updateEasySpin(void)
 		++easyspin_counter;
 	}
 }
+
+#ifdef DEV
+void setBlockAtScreenXY(int x, int y, enum BlockOrientation bo)
+{
+	// adjust coordinates to the screenscale
+	int scale = screenscale == 0 ? 1 : screenscale;
+	int px = x / scale;
+	int py = y / scale;
+	// discard the click if out of bounds
+	if (px < gameskin.boardx || py < gameskin.boardy ||
+		px >= gameskin.boardx + BOARD_WIDTH * gameskin.bricksize ||
+		py >= gameskin.boardy + (BOARD_HEIGHT - INVISIBLE_ROW_COUNT) * gameskin.bricksize)
+		return;
+	// convert screen coords to board coords
+	int bx = (px - gameskin.boardx) / gameskin.bricksize;
+	int by = (py - gameskin.boardy) / gameskin.bricksize + INVISIBLE_ROW_COUNT;
+	board[by * BOARD_WIDTH + bx].orientation = bo;
+	board[by * BOARD_WIDTH + bx].color = FIGID_GRAY;
+}
+#endif
