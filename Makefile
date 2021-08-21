@@ -1,4 +1,4 @@
-.PHONY: all clean
+.PHONY: all clean purge
 
 PROJECT = yatka
 SRC = src/main.c src/data_persistence.c src/video.c src/sound.c \
@@ -26,6 +26,9 @@ src/%.d: src/%.c
 	rm -f $@.$$$$
 
 clean:
-	rm -rf $(PROJECT) $(OBJ) $(DEP) src/*.d.*
+	rm -rf $(PROJECT) $(OBJ) src/*.d.*
+
+purge: clean
+	rm -rf $(DEP)
 
 -include $(DEP)
