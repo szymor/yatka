@@ -82,7 +82,7 @@ static int old_hiscore = 0;
 // test variables for T-Spin detection
 bool tst_tetromino_t = false;
 bool tst_rotation_last = false;
-bool tst_2front_1back = false;
+bool tst_2front_12back = false;
 bool tst_1front_2back = false;
 bool tst_rotation_12 = false;
 
@@ -851,7 +851,7 @@ void lockFigure(void)
 				}
 			}
 		}
-		tst_2front_1back = (2 == front_num) && (1 == back_num);
+		tst_2front_12back = (2 == front_num) && (back_num >= 1);
 		tst_1front_2back = (1 == front_num) && (2 == back_num);
 	}
 
@@ -1003,7 +1003,7 @@ enum TSpinType getTSpinType(void)
 	 */
 	if (!tst_tetromino_t || !tst_rotation_last)
 		return TST_NONE;
-	if (tst_2front_1back || (tst_1front_2back && tst_rotation_12))
+	if (tst_2front_12back || (tst_1front_2back && tst_rotation_12))
 		return TST_REGULAR;
 	if (tst_1front_2back)
 		return TST_MINI;
