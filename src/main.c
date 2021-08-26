@@ -31,6 +31,7 @@
 
 #define TEST_NUM					(5)
 #define PHASE_NUM					(4)
+#define TST_PTS_NUM					(4)
 
 struct ShapeTemplate
 {
@@ -77,6 +78,13 @@ int b2b = 0;	// back2back bonus
 int combo = 0;	// combo bonus
 static int lines_level_up = 0;
 static int old_hiscore = 0;
+
+// test variables for T-Spin detection
+bool tst_tetromino_t = false;
+bool tst_rotation_last = false;
+bool tst_2front_1back = false;
+bool tst_1front_2back = false;
+bool tst_rotation_12 = false;
 
 int kleft = KEY_LEFT;
 int kright = KEY_RIGHT;
@@ -550,6 +558,7 @@ void moveLeft(int delay)
 			++figures[0]->x;
 		else
 		{
+			tst_rotation_last = false;
 			Mix_PlayChannel(-1, click, 0);
 			updateEasySpin();
 			updateLockTime();
@@ -573,6 +582,7 @@ void moveRight(int delay)
 			--figures[0]->x;
 		else
 		{
+			tst_rotation_last = false;
 			Mix_PlayChannel(-1, click, 0);
 			updateEasySpin();
 			updateLockTime();
@@ -672,7 +682,7 @@ void onLineClear(int removed)
 		"Single", "Double", "Triple", "Tetris", "Cheatris"
 	};
 	static char tspin_text[TST_END][12] = {
-		"", "T-Spin", "Mini T-Spin"
+		"", "T-Spin ", "Mini T-Spin "
 	};
 	int rmvd = removed - 1;
 	if (rmvd > 4)
@@ -739,6 +749,7 @@ void dropSoft(void)
 		}
 		else
 		{
+			tst_rotation_last = false;
 			if (lockdelay)
 			{
 				checkForPrelocking();
@@ -773,6 +784,7 @@ void dropHard(void)
 {
 	if (figures[0] != NULL)
 	{
+		tst_rotation_last = false;
 		while (!isFigureColliding())
 		{
 			++figures[0]->y;
@@ -791,7 +803,59 @@ void lockFigure(void)
 {
 	if (figures[0] == NULL)
 		return;
+	tst_tetromino_t = figures[0]->id == FIGID_T;
+	if (tst_tetromino_t)
+	{
+		// calculation of front and back bricks
+		// first two are front bricks, last two are back ones
+		// it could be refactored to 4x 4x 2x const array instead
+		int tst_coords_x[TST_PTS_NUM] = { 0, 2, 0, 2 };
+		int tst_coords_y[TST_PTS_NUM] = { 1, 1, 3, 3 };
+		int tst_phase = 0;
+		while (tst_phase != figures[0]->shape.phase)
+		{
+			for (int i = 0; i < TST_PTS_NUM; ++i)
+			{
+				int old_x = tst_coords_x[i];
+				tst_coords_x[i] = FIG_DIM - 1 - tst_coords_y[i];
+				tst_coords_y[i] = old_x;
+			}
+			tst_phase = (tst_phase + 1) % PHASE_NUM;
+		}
 
+		// calculation of tst_*front_*back conditions for T-Spin detection
+		int front_num = 0, back_num = 0;
+		// translation to the board coordinate system and counting
+		for (int i = 0; i < TST_PTS_NUM; ++i)
+		{
+			tst_coords_x[i] += figures[0]->x;
+			tst_coords_y[i] += figures[0]->y;
+			int x = tst_coords_x[i];
+			int y = tst_coords_y[i];
+			bool x_out_of_board = (x < 0) || (x >= BOARD_WIDTH);
+			bool y_out_of_board = (y < 0) || (y >= BOARD_HEIGHT);
+			bool xy_not_empty = false;
+			if (!x_out_of_board && !y_out_of_board)
+			{
+				xy_not_empty = BO_EMPTY != board[y*BOARD_WIDTH + x].orientation;
+			}
+			if (x_out_of_board || y_out_of_board || xy_not_empty)
+			{
+				if (i < 2)
+				{
+					++front_num;
+				}
+				else
+				{
+					++back_num;
+				}
+			}
+		}
+		tst_2front_1back = (2 == front_num) && (1 == back_num);
+		tst_1front_2back = (1 == front_num) && (2 == back_num);
+	}
+
+	// storing the figure in the board
 	for (int i = 0; i < (FIG_DIM*FIG_DIM); ++i)
 		if (figures[0]->shape.blockmap[i] != BO_EMPTY)
 		{
@@ -937,7 +1001,12 @@ enum TSpinType getTSpinType(void)
 	 * source: https://tetris.wiki/T-Spin
 	 *
 	 */
-	 return TST_NONE;
+	if (!tst_tetromino_t || !tst_rotation_last)
+		return TST_NONE;
+	if (tst_2front_1back || (tst_1front_2back && tst_rotation_12))
+		return TST_REGULAR;
+	if (tst_1front_2back)
+		return TST_MINI;
 }
 
 static void softdrop_off(void)
@@ -985,6 +1054,7 @@ static void rotate_cw(void)
 				wallkick_data_figI[phase] :
 				wallkick_data[phase];
 	rotateFigureCW();
+	int whichTestSucceeded = -1;
 	for (int i = 0; i < TEST_NUM; ++i)
 	{
 		if (rotateTest(tests[i][0], tests[i][1]))
@@ -992,6 +1062,7 @@ static void rotate_cw(void)
 			figures[0]->x += tests[i][0];
 			figures[0]->y += tests[i][1];
 			success = true;
+			whichTestSucceeded = i;
 			break;
 		}
 	}
@@ -1008,6 +1079,8 @@ static void rotate_cw(void)
 		{
 			checkForPrelocking();
 		}
+		tst_rotation_last = true;
+		tst_rotation_12 = 4 == whichTestSucceeded;
 	}
 }
 
@@ -1023,7 +1096,7 @@ static void rotate_ccw(void)
 	const int (*tests)[2] = (FIGID_I == figures[0]->id) ?
 				wallkick_data_figI[phase] :
 				wallkick_data[phase];
-
+	int whichTestSucceeded = -1;
 	for (int i = 0; i < TEST_NUM; ++i)
 	{
 		if (rotateTest(-tests[i][0], -tests[i][1]))
@@ -1031,6 +1104,7 @@ static void rotate_ccw(void)
 			figures[0]->x -= tests[i][0];
 			figures[0]->y -= tests[i][1];
 			success = true;
+			whichTestSucceeded = i;
 			break;
 		}
 	}
@@ -1047,6 +1121,8 @@ static void rotate_ccw(void)
 		{
 			checkForPrelocking();
 		}
+		tst_rotation_last = true;
+		tst_rotation_12 = 4 == whichTestSucceeded;
 	}
 }
 

@@ -70,7 +70,6 @@ I do not cover the topic in detail because there are many better sources on that
 - Elektronika60, Dotkom and Gamboi skins by GuineaSquiggle
 
 ### ideas / plans
-- better score system (combos, T-spins)
 - line clear animation (TGM?)
 - ports for other platforms
 - three modes of gameplay - Sprint (40 lines), Ultra (2 minutes) and Marathon
