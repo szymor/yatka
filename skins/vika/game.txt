@@ -34,7 +34,7 @@ shape 5 6 179 1 1 180
 shape 6 6 208 1 1 180
 ; text fontid x y alignx aligny r g b string
 text 0 227 0 0 0 255 255 48 "Next:"
-text 0 4 0 0 0 255 255 48 "Hiscore: $hiscore"
+text 0 4 0 0 0 255 255 48 "Top: $hiscore"
 text 0 4 9 0 0 255 255 48 "Score: $score"
 text 0 4 18 0 0 255 255 48 "Level: $level"
 text 0 4 27 0 0 255 255 48 "Lines: $lines"
