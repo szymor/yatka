@@ -47,6 +47,9 @@ text 0 0 7 0 0 255 255 255 "Score: $score"
 text 0 0 14 0 0 255 255 255 "Level: $level"
 text 0 0 21 0 0 255 255 255 "Lines: $lines"
 text 1 320 0 2 0 255 255 255 "$fps"
+text 1 160 8 1 0 255 255 255 "$lcttop"
+text 1 160 16 1 0 255 255 255 "$lctmid"
+text 1 160 24 1 0 255 255 255 "$lctbot"
 ; bar x y w h var limit dir rl gl bl al rr gr br ar
 bar 64 38 28 7 $stat0 56 0 255 192 192 255 255 255 255 64
 bar 64 68 28 7 $stat1 56 0 255 192 192 255 255 255 255 64
@@ -69,6 +72,3 @@ figure 3 246 82 1 1 255
 figure 4 246 112 1 1 255
 figure 5 246 142 1 1 255
 figure 6 246 172 1 1 255
-; combotext effectid fontid x y alignx aligny r g b string
-; linecleartext effectid fontid x y alignx aligny r g b string
-; b2btext effectid fontid x y alignx aligny r g b string

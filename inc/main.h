@@ -46,6 +46,8 @@
 
 #define FIG_NUM				7
 #define MAX_NEXTBLOCKS		(FIG_NUM - 1)
+#define LCT_LEN				(64)
+#define LCT_DEADLINE		(1500)
 
 enum Error
 {
@@ -140,6 +142,11 @@ extern int level;
 extern int tetris_count;
 extern int ttr;
 extern int statistics[FIGID_GRAY];
+
+// LC - line clear
+extern char lctext_top[LCT_LEN];
+extern char lctext_mid[LCT_LEN];
+extern char lctext_bot[LCT_LEN];
 
 // key settings
 extern int kleft;

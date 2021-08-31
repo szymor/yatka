@@ -79,6 +79,11 @@ int combo = 0;	// combo bonus
 static int lines_level_up = 0;
 static int old_hiscore = 0;
 
+char lctext_top[LCT_LEN];
+char lctext_mid[LCT_LEN];
+char lctext_bot[LCT_LEN];
+Uint32 lct_deadline = 0;
+
 // test variables for T-Spin detection
 bool tst_tetromino_t = false;
 bool tst_rotation_last = false;
@@ -217,6 +222,7 @@ void onDrop(void);
 void onLineClear(int removed);
 void onGameOver(void);
 void checkForPrelocking(void);
+void updateLCT(char *top, char *mid, char *bot, Uint32 ms);
 
 void initFigures(void);
 void spawnFigure(void);
@@ -322,6 +328,10 @@ int main(int argc, char *argv[])
 							{
 								moveRight(SIDE_MOVE_DELAY);
 							}
+						}
+						if (ct > lct_deadline)
+						{
+							updateLCT("", "", "", 0);
 						}
 					}
 				}
@@ -678,16 +688,27 @@ void onLineClear(int removed)
 		hiscore = score;
 
 	// notify a player about a special event
-	static char clear_text[5][12] = {
+	static char clear_text[5][16] = {
 		"Single", "Double", "Triple", "Tetris", "Cheatris"
 	};
-	static char tspin_text[TST_END][12] = {
+	static char tspin_text[TST_END][16] = {
 		"", "T-Spin ", "Mini T-Spin "
 	};
 	int rmvd = removed - 1;
 	if (rmvd > 4)
 		rmvd = 4;
-	printf("%s%s%s%s: %d pts\n", b2b ? "B2B " : "", tspin_text[tst], clear_text[rmvd], combo ? " combo" : "", extra);
+	char lctmid[LCT_LEN];
+	char lctbot[LCT_LEN];
+	sprintf(lctmid, "%s%s", tspin_text[tst], clear_text[rmvd]);
+	if (combo)
+	{
+		sprintf(lctbot, "combo %dx", combo);
+	}
+	else
+	{
+		lctbot[0] = '\0';
+	}
+	updateLCT(b2b ? "Back-2-Back" : "", lctmid, lctbot, LCT_DEADLINE);
 
 	// update flags for future usage
 	++combo;
@@ -966,11 +987,11 @@ int removeFullLines(void)
 		{
 			case TST_REGULAR:
 				score += 400 * (level + 1);
-				printf("T-Spin\n");
+				updateLCT("", "T-Spin", "", LCT_DEADLINE);
 				break;
 			case TST_MINI:
 				score += 100 * (level + 1);
-				printf("Mini T-Spin\n");
+				updateLCT("", "Mini T-Spin", "", LCT_DEADLINE);
 				break;
 			case TST_NONE:
 			default:
@@ -1596,6 +1617,15 @@ void updateEasySpin(void)
 	{
 		++easyspin_counter;
 	}
+}
+
+void updateLCT(char *top, char *mid, char *bot, Uint32 ms)
+{
+	strcpy(lctext_top, top);
+	strcpy(lctext_mid, mid);
+	strcpy(lctext_bot, bot);
+	if (0 != ms)
+		lct_deadline = SDL_GetTicks() + ms;
 }
 
 #ifdef DEV

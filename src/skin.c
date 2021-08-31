@@ -712,16 +712,19 @@ static void skin_executeText(struct Skin *skin, const char *statement)
 	SDL_Surface *text = NULL;
 	SDL_Rect rect = {.x = x, .y = y};
 	text = TTF_RenderUTF8_Blended(skin->fonts[fontid], string, col);
-	if (1 == alignx)	// to the center
-		rect.x -= text->w / 2;
-	else if (2 == alignx)	// to the right hand side
-		rect.x -= text->w;
-	if (1 == aligny)
-		rect.y -= text->h / 2;
-	else if (2 == aligny)
-		rect.y -= text->h;
-	SDL_BlitSurface(text, NULL, skin->screen, &rect);
-	SDL_FreeSurface(text);
+	if (text)
+	{
+		if (1 == alignx)	// to the center
+			rect.x -= text->w / 2;
+		else if (2 == alignx)	// to the right hand side
+			rect.x -= text->w;
+		if (1 == aligny)
+			rect.y -= text->h / 2;
+		else if (2 == aligny)
+			rect.y -= text->h;
+		SDL_BlitSurface(text, NULL, skin->screen, &rect);
+		SDL_FreeSurface(text);
+	}
 }
 
 static void skin_executeBar(struct Skin *skin, const char *statement)
@@ -855,6 +858,9 @@ static void replace_all_vars(char *where)
 	int_replace(where, "$stat4", statistics[4]);
 	int_replace(where, "$stat5", statistics[5]);
 	int_replace(where, "$stat6", statistics[6]);
+	str_replace(where, "$lcttop", lctext_top);
+	str_replace(where, "$lctmid", lctext_mid);
+	str_replace(where, "$lctbot", lctext_bot);
 }
 
 static void drawFigure(struct Skin *skin, const struct Figure *fig, int x, int y, Uint8 alpha, bool active, bool centerx, bool centery)
