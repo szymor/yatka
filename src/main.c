@@ -574,7 +574,7 @@ void moveLeft(int delay)
 		else
 		{
 			tst_rotation_last = false;
-			Mix_PlayChannel(-1, click, 0);
+			playEffect(SE_CLICK);
 			updateEasySpin();
 			updateLockTime();
 			if (lockdelay)
@@ -598,7 +598,7 @@ void moveRight(int delay)
 		else
 		{
 			tst_rotation_last = false;
-			Mix_PlayChannel(-1, click, 0);
+			playEffect(SE_CLICK);
 			updateEasySpin();
 			updateLockTime();
 			if (lockdelay)
@@ -715,6 +715,32 @@ void onLineClear(int removed)
 	}
 	updateLCT(b2b ? "Back-2-Back" : "", lctmid, lctbot, LCT_DEADLINE);
 
+	enum SfxSpeech ssflags = b2b ? SS_B2B : 0;
+	switch (tst)
+	{
+		case TST_REGULAR:
+			ssflags |= SS_TSPIN;
+			break;
+		case TST_MINI:
+			ssflags |= SS_MINITSPIN;
+	}
+	switch (removed)
+	{
+		case 1:
+			ssflags |= SS_SINGLE;
+			break;
+		case 2:
+			ssflags |= SS_DOUBLE;
+			break;
+		case 3:
+			ssflags |= SS_TRIPLE;
+			break;
+		case 4:
+			ssflags |= SS_TETRIS;
+			break;
+	}
+	playSpeech(ssflags);
+
 	// update flags for future usage
 	++combo;
 	if (4 == removed)
@@ -743,7 +769,7 @@ void onLineClear(int removed)
 		ttr = 0;
 
 	// play a clearing sound
-	Mix_PlayChannel(-1, clr, 0);
+	playEffect(SE_CLEAR);
 }
 
 void onGameOver(void)
@@ -906,7 +932,7 @@ void lockFigure(void)
 	if (!removed)
 	{
 		combo = 0;
-		Mix_PlayChannel(-1, hit, 0);
+		playEffect(SE_HIT);
 	}
 
 	next_lock_time = 0;

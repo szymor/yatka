@@ -7,12 +7,23 @@
 #include "main.h"
 #include "data_persistence.h"
 
-int initmusvol = MIX_MAX_VOLUME / 2;
+#define SFXEFFECT_CHANNEL	(2)
+#define SFXSPEECH_CHANNEL	(3)
+
+int initmusvol = MIX_MAX_VOLUME / 4;
 Mix_Music *music = NULL;
 char music_name[32] = "<none>";
-Mix_Chunk *hit = NULL;
-Mix_Chunk *clr = NULL;
-Mix_Chunk *click = NULL;
+Mix_Chunk *sfx_hit = NULL;
+Mix_Chunk *sfx_clr = NULL;
+Mix_Chunk *sfx_click = NULL;
+Mix_Chunk *sfx_b2b = NULL;
+Mix_Chunk *sfx_single = NULL;
+Mix_Chunk *sfx_double = NULL;
+Mix_Chunk *sfx_triple = NULL;
+Mix_Chunk *sfx_tetris = NULL;
+Mix_Chunk *sfx_tspin = NULL;
+Mix_Chunk *sfx_minitspin = NULL;
+int ssflags_planned = 0;
 
 static DIR *music_dp;
 static const char default_music_dir[] = "music/";
@@ -21,6 +32,7 @@ static const char *music_dir = NULL;
 
 static struct dirent *getNextDirEntry(void);
 static void loadNextTrack(void);
+static void channelDone(int channel);
 
 static struct dirent *getNextDirEntry(void)
 {
@@ -71,6 +83,14 @@ static void loadNextTrack(void)
 	}
 }
 
+static void channelDone(int channel)
+{
+	if (SFXSPEECH_CHANNEL == channel)
+	{
+		playSpeech(ssflags_planned);
+	}
+}
+
 void initSound(void)
 {
 	int mixflags = -1;
@@ -104,17 +124,40 @@ void initSound(void)
 		printf("Mix_OpenAudio failed.\n");
 		exit(ERROR_OPENAUDIO);
 	}
-	hit = Mix_LoadWAV("sfx/hit.wav");
-	if (!hit)
+	sfx_hit = Mix_LoadWAV("sfx/hit.wav");
+	if (!sfx_hit)
 		exit(ERROR_NOSNDFILE);
-	clr = Mix_LoadWAV("sfx/clear.wav");
-	if (!clr)
+	sfx_clr = Mix_LoadWAV("sfx/clear.wav");
+	if (!sfx_clr)
 		exit(ERROR_NOSNDFILE);
-	click = Mix_LoadWAV("sfx/click.wav");
-	if (!click)
+	sfx_click = Mix_LoadWAV("sfx/click.wav");
+	if (!sfx_click)
+		exit(ERROR_NOSNDFILE);
+	sfx_b2b = Mix_LoadWAV("sfx/b2b.wav");
+	if (!sfx_b2b)
+		exit(ERROR_NOSNDFILE);
+	sfx_single = Mix_LoadWAV("sfx/single.wav");
+	if (!sfx_single)
+		exit(ERROR_NOSNDFILE);
+	sfx_double = Mix_LoadWAV("sfx/double.wav");
+	if (!sfx_double)
+		exit(ERROR_NOSNDFILE);
+	sfx_triple = Mix_LoadWAV("sfx/triple.wav");
+	if (!sfx_triple)
+		exit(ERROR_NOSNDFILE);
+	sfx_tetris = Mix_LoadWAV("sfx/tetris.wav");
+	if (!sfx_tetris)
+		exit(ERROR_NOSNDFILE);
+	sfx_tspin = Mix_LoadWAV("sfx/tspin.wav");
+	if (!sfx_tspin)
+		exit(ERROR_NOSNDFILE);
+	sfx_minitspin = Mix_LoadWAV("sfx/minitspin.wav");
+	if (!sfx_minitspin)
 		exit(ERROR_NOSNDFILE);
 
 	Mix_VolumeMusic(initmusvol);
+	printf("Number of channels: %d\n", Mix_AllocateChannels(-1));
+	Mix_ChannelFinished(channelDone);
 
 	sprintf(custom_music_dir, "%s/%s", dirpath, default_music_dir);
 	music_dp = opendir(custom_music_dir);
@@ -208,4 +251,59 @@ void playNextTrack(void)
 void playPrevTrack(void)
 {
 	playNextTrack();
+}
+
+void playSpeech(int ssflags)
+{
+	if (0 == ssflags)
+		return;
+	int shift = 0;
+	int sstemp = ssflags;
+	while (!(sstemp & 1))
+	{
+		++shift;
+		sstemp >>= 1;
+	}
+	Mix_Chunk *chunk = NULL;
+	int toplay = 1 << shift;
+	switch (toplay)
+	{
+		case SS_B2B:
+			chunk = sfx_b2b;
+			break;
+		case SS_TSPIN:
+			chunk = sfx_tspin;
+			break;
+		case SS_MINITSPIN:
+			chunk = sfx_minitspin;
+			break;
+		case SS_SINGLE:
+			chunk = sfx_single;
+			break;
+		case SS_DOUBLE:
+			chunk = sfx_double;
+			break;
+		case SS_TRIPLE:
+			chunk = sfx_triple;
+			break;
+		case SS_TETRIS:
+			chunk = sfx_tetris;
+	}
+	Mix_PlayChannel(SFXSPEECH_CHANNEL, chunk, 0);
+	ssflags_planned = ssflags & ~toplay;
+}
+
+void playEffect(enum SfxEffect se)
+{
+	switch (se)
+	{
+		case SE_HIT:
+			Mix_PlayChannel(SFXEFFECT_CHANNEL, sfx_hit, 0);
+			break;
+		case SE_CLEAR:
+			Mix_PlayChannel(SFXEFFECT_CHANNEL, sfx_clr, 0);
+			break;
+		case SE_CLICK:
+			Mix_PlayChannel(SFXEFFECT_CHANNEL, sfx_click, 0);
+	}
 }
