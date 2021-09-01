@@ -44,10 +44,11 @@
 #define INVISIBLE_ROW_COUNT			1
 #define FIG_DIM						4
 
-#define FIG_NUM				7
+#define FIG_NUM				(7)
 #define MAX_NEXTBLOCKS		(FIG_NUM - 1)
 #define LCT_LEN				(64)
 #define LCT_DEADLINE		(1500)
+#define GAMETIMER_STRLEN	(16)
 
 enum Error
 {
@@ -147,6 +148,8 @@ extern int statistics[FIGID_GRAY];
 extern char lctext_top[LCT_LEN];
 extern char lctext_mid[LCT_LEN];
 extern char lctext_bot[LCT_LEN];
+
+extern char gametimer[GAMETIMER_STRLEN];
 
 // key settings
 extern int kleft;

@@ -25,6 +25,7 @@ shadow 4 4 48 0 0 192
 ; font id filename size
 font 0 "arcade.ttf" 7
 font 1 "arcade.ttf" 6
+font 2 "arcade.ttf" 8
 ; box x y w h alpha r g b
 box 100 0 120 240 48 255 255 255
 box 246 22 48 24 48 255 255 255
@@ -47,9 +48,10 @@ text 0 0 7 0 0 255 255 255 "Score: $score"
 text 0 0 14 0 0 255 255 255 "Level: $level"
 text 0 0 21 0 0 255 255 255 "Lines: $lines"
 text 1 320 0 2 0 255 255 255 "$fps"
-text 1 160 8 1 0 255 255 255 "$lcttop"
-text 1 160 16 1 0 255 255 255 "$lctmid"
-text 1 160 24 1 0 255 255 255 "$lctbot"
+text 0 320 240 2 2 255 255 255 "$timer"
+text 2 160 8 1 0 255 255 255 "$lcttop"
+text 2 160 16 1 0 255 255 255 "$lctmid"
+text 2 160 24 1 0 255 255 255 "$lctbot"
 ; bar x y w h var limit dir rl gl bl al rr gr br ar
 bar 64 38 28 7 $stat0 56 0 255 192 192 255 255 255 255 64
 bar 64 68 28 7 $stat1 56 0 255 192 192 255 255 255 255 64

@@ -84,6 +84,9 @@ char lctext_mid[LCT_LEN];
 char lctext_bot[LCT_LEN];
 Uint32 lct_deadline = 0;
 
+Uint32 game_starttime = 0;
+char gametimer[GAMETIMER_STRLEN];
+
 // test variables for T-Spin detection
 bool tst_tetromino_t = false;
 bool tst_rotation_last = false;
@@ -223,6 +226,7 @@ void onLineClear(int removed);
 void onGameOver(void);
 void checkForPrelocking(void);
 void updateLCT(char *top, char *mid, char *bot, Uint32 ms);
+void updateGTimer(Uint32 ms);
 
 void initFigures(void);
 void spawnFigure(void);
@@ -333,6 +337,7 @@ int main(int argc, char *argv[])
 						{
 							updateLCT("", "", "", 0);
 						}
+						updateGTimer(ct - game_starttime);
 					}
 				}
 				saveLastGameScreen();
@@ -1559,7 +1564,9 @@ void resetGame(void)
 	combo = 0;
 	left_move = false;
 	right_move = false;
+	lct_deadline = 0;
 
+	updateLCT("", "", "", 0);
 	randomizer_reset();
 
 	for (int i = 0; i < FIG_NUM - 1; ++i)
@@ -1601,6 +1608,8 @@ void resetGame(void)
 			filled = 0;
 		}
 	}
+
+	game_starttime = SDL_GetTicks();
 }
 
 void updateLockTime(void)
@@ -1626,6 +1635,19 @@ void updateLCT(char *top, char *mid, char *bot, Uint32 ms)
 	strcpy(lctext_bot, bot);
 	if (0 != ms)
 		lct_deadline = SDL_GetTicks() + ms;
+}
+
+void updateGTimer(Uint32 ms)
+{
+	int hh, mm, ss, cs;
+	hh = ms / (1000 * 60 * 60);
+	ms = ms % (1000 * 60 * 60);
+	mm = ms / (1000 * 60);
+	ms = ms % (1000 * 60);
+	ss = ms / 1000;
+	ms = ms % 1000;
+	cs = ms / 10;
+	sprintf(gametimer, "%02d:%02d:%02d.%02d", hh, mm, ss, cs);
 }
 
 #ifdef DEV

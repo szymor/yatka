@@ -861,6 +861,7 @@ static void replace_all_vars(char *where)
 	str_replace(where, "$lcttop", lctext_top);
 	str_replace(where, "$lctmid", lctext_mid);
 	str_replace(where, "$lctbot", lctext_bot);
+	str_replace(where, "$timer", gametimer);
 }
 
 static void drawFigure(struct Skin *skin, const struct Figure *fig, int x, int y, Uint8 alpha, bool active, bool centerx, bool centery)
