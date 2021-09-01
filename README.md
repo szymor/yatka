@@ -1,7 +1,11 @@
 ## YATKA
 yet another tetris klone in action
 
-![screenshot](screenshot.png)
+![screenshot1](screenshot1.png)
+
+![screenshot2](screenshot2.png)
+
+![screenshot3](screenshot3.png)
 
 ### description
 YATKA is one of many Tetris implementations available. Motivation behind this one was, on the one hand, to create a game that would conform to modern rules of the game, while, on the other, to make possible running it on resource-limited platforms (e.g. Bittboy or JZ4760-based handheld consoles). This is the reason I use SDL 1.2, which is considered outdated, or develop my own simplistic solutions instead of relying on third-party dependencies.
@@ -73,5 +77,11 @@ I do not cover the topic in detail because there are many better sources on that
 - line clear animation (TGM?)
 - ports for other platforms
 - three modes of gameplay - Sprint (40 lines), Ultra (2 minutes) and Marathon
-- notification of events during gameplay
 - better joystick support
+- advanced hiscore system (best score in Marathon/Ultra, best time in Sprint, best lines in Ultra)
+- another implementation of hold (as an option) with a separate slot for a tetromino
+- new KiCAD skin with no tetromino stats (I got bored with them)
+- some kind of system promoting sponsoring the project (sponsor-defined wishes shown during gameplay?)
+
+### sponsors
+- Saikazu
