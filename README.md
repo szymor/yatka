@@ -82,6 +82,8 @@ I do not cover the topic in detail because there are many better sources on that
 - another implementation of hold (as an option) with a separate slot for a tetromino
 - new KiCAD skin with no tetromino stats (I got bored with them)
 - some kind of system promoting sponsoring the project (sponsor-defined wishes shown during gameplay?)
+- new algorithm for debris generation
+- new sound effects
 
 ### sponsors
 - Saikazu

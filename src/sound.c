@@ -289,6 +289,12 @@ void playSpeech(int ssflags)
 		case SS_TETRIS:
 			chunk = sfx_tetris;
 	}
+	if (Mix_Playing(SFXSPEECH_CHANNEL))
+	{
+		Mix_ChannelFinished(NULL);
+		Mix_HaltChannel(SFXSPEECH_CHANNEL);
+		Mix_ChannelFinished(channelDone);
+	}
 	Mix_PlayChannel(SFXSPEECH_CHANNEL, chunk, 0);
 	ssflags_planned = ssflags & ~toplay;
 }
