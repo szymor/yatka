@@ -7,5 +7,5 @@ Type=Game
 StartupNotify=true
 Icon=icon
 Categories=games;
-Version=20200706
-X-OD-Manual=readme.txt
+Version=20210906
+X-OD-Manual=README.md

@@ -1040,6 +1040,7 @@ int removeFullLines(void)
 				break;
 			case TST_NONE:
 			default:
+				; // no action
 		}
 		if (score > hiscore)
 			hiscore = score;
