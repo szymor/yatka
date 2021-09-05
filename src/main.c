@@ -246,6 +246,8 @@ void rotateFigureCW(void);
 void rotateFigureCCW(void);
 bool rotateTest(int x, int y);
 
+static void generateDebris(void);
+
 static void softdrop_off(void);
 static void softdrop_on(void);
 static void left_off(void);
@@ -1605,6 +1607,25 @@ void decMod(int *var, int limit, bool sat)
 	*var = (*var + limit - 1) % limit;
 }
 
+static void generateDebris(void)
+{
+	for (int yy = 0; yy < menu_debris; ++yy)
+	{
+		int bricks_per_row = 0;
+		while (bricks_per_row != menu_debris_chance)
+		{
+			int x = rand() % BOARD_WIDTH;
+			int y = BOARD_HEIGHT - INVISIBLE_ROW_COUNT - yy;
+			int i = y * BOARD_WIDTH + x;
+			if (BO_FULL == board[i].orientation)
+				continue;
+			board[i].orientation = BO_FULL;
+			board[i].color = FIGID_GRAY;
+			++bricks_per_row;
+		}
+	}
+}
+
 void resetGame(void)
 {
 	for (int i = 0; i < (BOARD_WIDTH*BOARD_HEIGHT); ++i)
@@ -1640,35 +1661,7 @@ void resetGame(void)
 	}
 
 	spawnFigure();
-
-	// debris
-	int filled = 0;
-	for (int i = 0; i < (BOARD_WIDTH * BOARD_HEIGHT); ++i)
-	{
-		int y = i / BOARD_WIDTH;
-		int x = i % BOARD_WIDTH;
-
-		y = BOARD_HEIGHT - INVISIBLE_ROW_COUNT - y;
-		if ((y < menu_debris) && ((rand() % 128) < (menu_debris_chance * 128 / 10)))
-		{
-			board[i].color = FIGID_GRAY;
-			board[i].orientation = BO_FULL;
-			++filled;
-		}
-
-		if ((BOARD_WIDTH - 1) == x)
-		{
-			if (BOARD_WIDTH == filled)
-			{
-				int ind = rand() % BOARD_WIDTH;
-				ind = i - ind;
-				board[ind].color = FIGID_END;
-				board[ind].orientation = BO_EMPTY;
-			}
-			filled = 0;
-		}
-	}
-
+	generateDebris();
 	game_starttime = SDL_GetTicks();
 }
 
