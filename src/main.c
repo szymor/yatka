@@ -48,6 +48,15 @@ enum TSpinType
 	TST_END
 };
 
+enum GameOverType
+{
+	GOT_PLAYING,
+	GOT_FULLWELL,
+	GOT_LINECLEAR,
+	GOT_TIMEUP,
+	GOT_END
+};
+
 struct Skin gameskin;
 
 SDL_Surface *bg = NULL;
@@ -220,7 +229,7 @@ void updateLockTime(void);
 void updateEasySpin(void);
 int removeFullLines(void);
 enum TSpinType getTSpinType(void);
-bool checkGameEnd(void);
+enum GameOverType checkGameEnd(void);
 void onDrop(void);
 void onLineClear(int removed);
 void onGameOver(void);
@@ -753,14 +762,17 @@ void onLineClear(int removed)
 		++b2b;
 	}
 
-	// adjust level if needed
-	int levelup = lines_level_up / 30;
-	level += levelup;
-	if (levelup)
+	// adjust level if needed (Marathon only)
+	if (GM_MARATHON == menu_gamemode)
 	{
-		drop_rate *= drop_rate_ratio_per_level;
+		int levelup = lines_level_up / 30;
+		level += levelup;
+		if (levelup)
+		{
+			drop_rate *= drop_rate_ratio_per_level;
+		}
+		lines_level_up %= 30;
 	}
-	lines_level_up %= 30;
 
 	// calculate tetris percentage
 	if (lines != 0)
@@ -924,7 +936,7 @@ void lockFigure(void)
 	figures[0] = NULL;
 
 	int removed = removeFullLines();
-	if (checkGameEnd())
+	if (checkGameEnd() != GOT_PLAYING)
 		onGameOver();
 
 	softdrop_pressed = false;
@@ -1347,12 +1359,34 @@ void ingame_processInputEvents(void)
 		}
 }
 
-bool checkGameEnd(void)
+enum GameOverType checkGameEnd(void)
 {
+	enum GameOverType ret = GOT_PLAYING;
+	// filling up the well
 	for (int i = 0; i < BOARD_WIDTH; ++i)
 		if (board[i].orientation != BO_EMPTY)
-			return true;
-	return false;
+		{
+			ret = GOT_FULLWELL;
+			break;
+		}
+	// target number of lines cleared (Sprint only)
+	if (GM_SPRINT == menu_gamemode)
+	{
+		if (lines >= SPRINT_LINE_COUNT)
+		{
+			ret = GOT_LINECLEAR;
+		}
+	}
+	// time is up (Ultra only)
+	if (GM_ULTRA == menu_gamemode)
+	{
+		Uint32 now = SDL_GetTicks();
+		if ((now - game_starttime) > ULTRA_MS_LEN)
+		{
+			ret = GOT_TIMEUP;
+		}
+	}
+	return ret;
 }
 
 void spawnFigure(void)
@@ -1665,6 +1699,18 @@ void updateLCT(char *top, char *mid, char *bot, Uint32 ms)
 
 void updateGTimer(Uint32 ms)
 {
+	if (GM_ULTRA == menu_gamemode)
+	{
+		if (ms < ULTRA_MS_LEN)
+		{
+			ms = ULTRA_MS_LEN - ms;
+		}
+		else
+		{
+			ms = 0;
+		}
+	}
+
 	int hh, mm, ss, cs;
 	hh = ms / (1000 * 60 * 60);
 	ms = ms % (1000 * 60 * 60);

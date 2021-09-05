@@ -1,6 +1,9 @@
 #ifndef _H_STATE_MAINMENU
 #define _H_STATE_MAINMENU
 
+#include "main.h"
+
+extern int menu_gamemode;
 extern int menu_level;
 extern int menu_debris;
 extern int menu_debris_chance;

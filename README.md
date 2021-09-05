@@ -76,7 +76,6 @@ I do not cover the topic in detail because there are many better sources on that
 ### ideas / plans
 - line clear animation (TGM?)
 - ports for other platforms
-- three modes of gameplay - Sprint (40 lines), Ultra (2 minutes) and Marathon
 - better joystick support
 - advanced hiscore system (best score in Marathon/Ultra, best time in Sprint, best lines in Ultra)
 - another implementation of hold (as an option) with a separate slot for a tetromino
@@ -84,6 +83,7 @@ I do not cover the topic in detail because there are many better sources on that
 - some kind of system promoting sponsoring the project (sponsor-defined wishes shown during gameplay?)
 - new algorithm for debris generation
 - new sound effects
+- option to imitate playing multiplayer mode (dynamic debris generation during gameplay)
 
 ### sponsors
 - Saikazu

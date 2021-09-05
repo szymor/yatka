@@ -847,7 +847,15 @@ static void replace_all_vars(char *where)
 	int_replace(where, "$hiscore", hiscore);
 	int_replace(where, "$score", score);
 	int_replace(where, "$level", level);
-	int_replace(where, "$lines", lines);
+	int showlines = lines;
+	if (GM_SPRINT == menu_gamemode)
+	{
+		if (lines < SPRINT_LINE_COUNT)
+			showlines = SPRINT_LINE_COUNT - lines;
+		else
+			showlines = 0;
+	}
+	int_replace(where, "$lines", showlines);
 	int_replace(where, "$tetris", ttr);
 	int_replace(where, "$fps", fps);
 	int_replace(where, "$debris", menu_debris);

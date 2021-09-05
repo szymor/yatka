@@ -17,7 +17,7 @@
 #define MAX_SKIN_NUM		32
 #define MAX_SKIN_NAME_LEN	16
 #define MAX_SKIN_PATH_LEN	256
-#define POSITION_NUM		5
+#define POSITION_NUM		6
 
 enum KeyId
 {
@@ -41,6 +41,7 @@ struct SkinEntry
 
 int menu_skinnum = 0;	// number of all detected skins
 struct SkinEntry menu_skinentries[MAX_SKIN_NUM];
+int menu_gamemode = GM_MARATHON;
 int menu_skin = 0;		// currently selected skin
 int menu_level = 0;
 int menu_debris = 0;
@@ -140,36 +141,48 @@ void mainmenu_updateScreen(void)
 	text(16, 16, "YATKA", 0, 0);
 	text(320, 240, "build " __DATE__ " " __TIME__, 2, 2);
 
-	text(16, 48, "SKIN", 0, 0);
-	text(16, 64, "LEVEL", 0, 0);
-	text(16, 80, "DEBRIS", 0, 0);
-	text(16, 96, "DEBRIS CHANCE", 0, 0);
+	text(16, 40, "MODE", 0, 0);
+	text(16, 56, "SKIN", 0, 0);
+	text(16, 72, "LEVEL", 0, 0);
+	text(16, 88, "DEBRIS", 0, 0);
+	text(16, 104, "DEBRIS CHANCE", 0, 0);
 
+	static const char menu_modenames[GM_END][16] = {
+		"MARATHON",
+		"SPRINT",
+		"ULTRA"
+	};
 	if (0 == submenu_index)
+		sprintf(buff, "< %s >", menu_modenames[menu_gamemode]);
+	else
+		sprintf(buff, "  %s  ", menu_modenames[menu_gamemode]);
+	text(120, 40, buff, 0, 0);
+
+	if (1 == submenu_index)
 		sprintf(buff, "< %s >", menu_skinentries[menu_skin].name);
 	else
 		sprintf(buff, "  %s  ", menu_skinentries[menu_skin].name);
-	text(120, 48, buff, 0, 0);
+	text(120, 56, buff, 0, 0);
 
-	if (1 == submenu_index)
+	if (2 == submenu_index)
 		sprintf(buff, "< %d >", menu_level);
 	else
 		sprintf(buff, "  %d  ", menu_level);
-	text(120, 64, buff, 0, 0);
+	text(120, 72, buff, 0, 0);
 
-	if (2 == submenu_index)
+	if (3 == submenu_index)
 		sprintf(buff, "< %d >", menu_debris);
 	else
 		sprintf(buff, "  %d  ", menu_debris);
-	text(120, 80, buff, 0, 0);
+	text(120, 88, buff, 0, 0);
 
-	if (3 == submenu_index)
+	if (4 == submenu_index)
 		sprintf(buff, "< %d >", menu_debris_chance);
 	else
 		sprintf(buff, "  %d  ", menu_debris_chance);
-	text(120, 96, buff, 0, 0);
+	text(120, 104, buff, 0, 0);
 
-	if (4 == submenu_index)
+	if (5 == submenu_index)
 		sprintf(buff, "> KEY CONFIGURATION <", menu_debris_chance);
 	else
 		sprintf(buff, "  KEY CONFIGURATION  ", menu_debris_chance);
@@ -195,20 +208,25 @@ static void left(void)
 	switch (submenu_index)
 	{
 		case 0:
+			option = &menu_gamemode;
+			limit = GM_END;
+			decMod(option, limit, false);
+			break;
+		case 1:
 			option = &menu_skin;
 			limit = menu_skinnum;
 			decMod(option, limit, false);
 			break;
-		case 1:
+		case 2:
 			option = &menu_level;
 			decMod(option, limit, true);
 			break;
-		case 2:
+		case 3:
 			option = &menu_debris;
 			limit = 16;
 			decMod(option, limit, true);
 			break;
-		case 3:
+		case 4:
 			option = &menu_debris_chance;
 			decMod(option, limit, true);
 			break;
@@ -222,20 +240,25 @@ static void right(void)
 	switch (submenu_index)
 	{
 		case 0:
+			option = &menu_gamemode;
+			limit = GM_END;
+			incMod(option, limit, false);
+			break;
+		case 1:
 			option = &menu_skin;
 			limit = menu_skinnum;
 			incMod(option, limit, false);
 			break;
-		case 1:
+		case 2:
 			option = &menu_level;
 			incMod(option, limit, true);
 			break;
-		case 2:
+		case 3:
 			option = &menu_debris;
 			limit = 16;
 			incMod(option, limit, true);
 			break;
-		case 3:
+		case 4:
 			option = &menu_debris_chance;
 			incMod(option, limit, true);
 			break;
@@ -245,7 +268,7 @@ static void right(void)
 static void action(void)
 {
 	// key configuration
-	if (4 == submenu_index)
+	if (5 == submenu_index)
 	{
 		const int xpos = 16;
 		const int ypos = 144;

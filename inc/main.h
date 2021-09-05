@@ -50,6 +50,17 @@
 #define LCT_DEADLINE		(1500)
 #define GAMETIMER_STRLEN	(16)
 
+#define ULTRA_MS_LEN				(3*60*1000)
+#define SPRINT_LINE_COUNT			(40)
+
+enum GameMode
+{
+	GM_MARATHON,
+	GM_SPRINT,
+	GM_ULTRA,
+	GM_END
+};
+
 enum Error
 {
 	ERROR_NONE,
