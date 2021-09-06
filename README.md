@@ -13,9 +13,10 @@ YATKA is one of many Tetris implementations available. Motivation behind this on
 The game is in constant development. Feel free to report errors as it helps to improve the game. There are no full-time testers working on it so I appreciate any feedback.
 
 ### features
-* skin system - you can choose a visual style according to your taste from a set of predefined skins or create your own,
-* music playback - you can listen to the tracks included in the game or provide your own songs,
-* Super Rotation System - you can use sophisticated tactics known from the modern versions of Tetris,
+* three game modes - play Marathon (classic survival), Sprint (play as fast as possible until you clear 40 or more lines) or Ultra (play for 3 minutes to get the high score),
+* skin system - choose a visual style according to your taste from a set of predefined skins or create your own,
+* music playback - listen to the tracks included in the game or provide your own songs,
+* Super Rotation System - use sophisticated tactics known from the modern versions of Tetris,
 * low hardware requirements - the game can run on devices without accelerated graphics as it was developed using SDL 1.2, a time-proven multimedia library,
 * multi-platform design - the game can be easily ported to any operating system supporting a limited set of dependencies required by YATKA,
 * customizable rules - you can change parameters affecting the tetromino generator, lock delay or easy spin, even during the game.

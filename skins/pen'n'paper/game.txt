@@ -33,6 +33,11 @@ box 246 172 48 24 48 255 255 255
 ; text fontid x y alignx aligny r g b string
 text 0 47 25 0 0 58 56 73 "$hiscore"
 text 0 47 60 0 0 58 56 73 "$score"
+text 0 122 4 0 0 58 56 73 "$timer"
+text 0 154 20 1 0 58 56 73 "LINE(S): $lines"
+text 0 154 88 1 0 58 56 73 "$lcttop"
+text 0 154 104 1 0 58 56 73 "$lctmid"
+text 0 154 120 1 0 58 56 73 "$lctbot"
 text 0 36 75 0 0 58 56 73 "$stat0"
 text 0 36 99 0 0 58 56 73 "$stat1"
 text 0 36 123 0 0 58 56 73 "$stat2"

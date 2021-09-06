@@ -36,8 +36,12 @@ text 0 10 62 0 0 255 255 255 "Your score"
 text 0 16 80 0 0 255 255 255 "$score"
 text 0 10 104 0 0 255 255 255 "Lines cleared"
 text 0 16 122 0 0 255 255 255 "$lines"
+text 0 16 146 0 0 255 255 255 "$lcttop"
+text 0 16 164 0 0 255 255 255 "$lctmid"
+text 0 16 182 0 0 255 255 255 "$lctbot"
 text 0 246 10 0 0 255 255 255 "Next"
 text 0 0 228 0 0 255 255 255 "FPS: $fps"
+text 0 160 4 1 0 255 255 255 "$timer"
 ; figure id x y centerx centery alpha
 figure 1 246 30 1 1 255
 figure 2 246 68 1 1 255

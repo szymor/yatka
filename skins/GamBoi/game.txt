@@ -23,6 +23,7 @@ debriscolor 7
 ghost 0
 ; font id filename size
 font 0 "arcade.ttf" 12
+font 1 "arcade.ttf" 9
 
 ; text fontid x y alignx aligny r g b string
 text 0 222 18 0 0 65 65 65 "SCORE"
@@ -31,6 +32,7 @@ text 0 222 96 0 0 65 65 65 "LEVEL"
 text 0 222 108 0 0 65 65 65 "$level"
 text 0 222 135 0 0 65 65 65 "LINES"
 text 0 222 148 0 0 65 65 65 "$lines"
+text 1 100 18 1 1 65 65 65 "$timer"
 
 ; figure id x y centerx centery alpha
 figure 1 228 192 1 1 255

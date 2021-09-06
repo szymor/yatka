@@ -50,6 +50,7 @@ text 0 277 16 1 0 153 153 153 "NEXT"
 text 0 277 15 1 0 153 153 153 "NEXT"
 text 0 276 15 1 0 100 100 100 "NEXT"
 
+text 0 160 4 1 0 100 100 100 "$timer"
 
 ; figure id x y centerx centery alpha
 figure 1 251 35 1 1 255

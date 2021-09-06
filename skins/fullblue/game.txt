@@ -22,11 +22,13 @@ bricksprite "bricks.png"
 debriscolor 100
 ; ghost alpha
 ghost 64
+; shadow offsetx offsety r g b alpha
+shadow 2 2 24 24 48 128
 ; font id filename size
 font 0 "LiberationSans-Bold.ttf" 9
 font 1 "LiberationSans-Bold.ttf" 7
 ; box x y w h alpha r g b
-box 100 0 120 240 16 255 255 255
+box 100 0 120 240 32 255 255 255
 box 240 16 60 186 16 255 255 255
 ;box 246 52 48 24 48 255 255 255
 ;box 246 82 48 24 48 255 255 255
