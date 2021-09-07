@@ -19,6 +19,8 @@
 char dirpath[256];
 static char hiscore_path[256];
 static char settings_path[256];
+static int records[RT_END] = { 0 };
+static bool records_need_save = false;
 
 static void createGameDir(void)
 {
@@ -33,28 +35,49 @@ void initPaths(void)
 	sprintf(settings_path, "%s/%s", dirpath, SETTINGS_FILE);
 }
 
-int loadHiscore(void)
+int getRecord(enum RecordType rt)
+{
+	return records[rt];
+}
+
+void setRecord(enum RecordType rt, int record)
+{
+	records_need_save = records[rt] != record;
+	records[rt] = record;
+}
+
+void loadRecords(void)
 {
 	FILE *hifile = fopen(hiscore_path, "r");
 	if (hifile)
 	{
-		int hi = 0;
-		fscanf(hifile, "%d", &hi);
+		for (int i = 0; i < RT_END; ++i)
+		{
+			int value = 0;
+			if (1 == fscanf(hifile, "%d", &value))
+			{
+				setRecord(i, value);
+			}
+		}
 		fclose(hifile);
-		return hi;
+		records_need_save = false;
 	}
-	else
-		return 0;
 }
 
-void saveHiscore(int hi)
+void saveRecords(void)
 {
+	if (!records_need_save)
+		return;
 	createGameDir();
 	FILE *hifile = fopen(hiscore_path, "w");
 	if (hifile)
 	{
-		fprintf(hifile, "%d", hi);
+		for (int i = 0; i < RT_END; ++i)
+		{
+			fprintf(hifile, "%d\n", getRecord(i));
+		}
 		fclose(hifile);
+		records_need_save = false;
 	}
 }
 

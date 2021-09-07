@@ -78,12 +78,12 @@ I do not cover the topic in detail because there are many better sources on that
 - line clear animation (TGM?)
 - ports for other platforms
 - better joystick support
-- advanced hiscore system (best score in Marathon/Ultra, best time in Sprint, best lines in Ultra)
 - another implementation of hold (as an option) with a separate slot for a tetromino
 - new KiCAD skin with no tetromino stats (I got bored with them)
 - some kind of system promoting sponsoring the project (sponsor-defined wishes shown during gameplay?)
 - new sound effects
 - option to imitate playing multiplayer mode (dynamic debris generation during gameplay)
+- skin redesign to make them more consistent with implemented game modes
 
 ### sponsors
 - Saikazu

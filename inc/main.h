@@ -147,7 +147,6 @@ extern Uint32 last_drop_time;
 extern int draw_delta_drop;
 extern int brick_size;
 
-extern int hiscore;
 extern int score;
 extern int lines;
 extern int level;
@@ -181,6 +180,7 @@ void markDrop(void);
 Uint32 getNextDropTime(void);
 void setDropRate(int level);
 void softDropTimeCounter(void);
+void convertMsToStr(Uint32 ms, char *dest);
 
 void getShapeDimensions(const struct Shape *shape, int *minx, int *maxx, int *miny, int *maxy);
 struct Shape* getShape(enum FigureId id);

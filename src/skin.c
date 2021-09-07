@@ -9,6 +9,7 @@
 #include "main.h"
 #include "video.h"
 #include "state_mainmenu.h"
+#include "data_persistence.h"
 
 #define log		/*printf*/
 
@@ -844,17 +845,32 @@ static void int_replace(char *where, const char *what, int with)
 
 static void replace_all_vars(char *where)
 {
-	int_replace(where, "$hiscore", hiscore);
+	enum RecordType rt;
+	int showlines = lines;
+	switch (menu_gamemode)
+	{
+		case GM_MARATHON:
+			rt = RT_MARATHON_SCORE;
+			int_replace(where, "$hiscore", getRecord(rt));
+			break;
+		case GM_SPRINT:
+			// TODO: format time properly
+			rt = RT_SPRINT_TIME;
+			if (lines < SPRINT_LINE_COUNT)
+				showlines = SPRINT_LINE_COUNT - lines;
+			else
+				showlines = 0;
+			char buff[GAMETIMER_STRLEN];
+			convertMsToStr(getRecord(rt), buff);
+			str_replace(where, "$hiscore", buff);
+			break;
+		case GM_ULTRA:
+			rt = RT_ULTRA_SCORE;
+			int_replace(where, "$hiscore", getRecord(rt));
+			break;
+	}
 	int_replace(where, "$score", score);
 	int_replace(where, "$level", level);
-	int showlines = lines;
-	if (GM_SPRINT == menu_gamemode)
-	{
-		if (lines < SPRINT_LINE_COUNT)
-			showlines = SPRINT_LINE_COUNT - lines;
-		else
-			showlines = 0;
-	}
 	int_replace(where, "$lines", showlines);
 	int_replace(where, "$tetris", ttr);
 	int_replace(where, "$fps", fps);

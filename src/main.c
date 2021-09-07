@@ -77,7 +77,6 @@ enum TetrominoColor tetrominocolor = TC_STANDARD;
 enum GameState gamestate = GS_MAINMENU;
 static bool hold_ready = true;
 
-int hiscore = 0;
 int score = 0;
 int lines = 0;
 int level = 0;
@@ -86,7 +85,6 @@ int ttr = 0;
 int b2b = 0;	// back2back bonus
 int combo = 0;	// combo bonus
 static int lines_level_up = 0;
-static int old_hiscore = 0;
 
 char lctext_top[LCT_LEN];
 char lctext_mid[LCT_LEN];
@@ -94,6 +92,7 @@ char lctext_bot[LCT_LEN];
 Uint32 lct_deadline = 0;
 
 Uint32 game_starttime = 0;
+Uint32 game_totaltime = 0;
 char gametimer[GAMETIMER_STRLEN];
 
 // test variables for T-Spin detection
@@ -232,10 +231,11 @@ enum TSpinType getTSpinType(void);
 enum GameOverType checkGameEnd(void);
 void onDrop(void);
 void onLineClear(int removed);
-void onGameOver(void);
+void onGameOver(enum GameOverType reason);
 void checkForPrelocking(void);
 void updateLCT(char *top, char *mid, char *bot, Uint32 ms);
 void updateGTimer(Uint32 ms);
+void updateHiscores(enum GameMode gm, enum GameOverType got);
 
 void initFigures(void);
 void spawnFigure(void);
@@ -385,8 +385,7 @@ void initialize(void)
 {
 	SDL_Surface *ts = NULL;
 
-	hiscore = loadHiscore();
-	old_hiscore = hiscore;
+	loadRecords();
 
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) < 0)
 	{
@@ -459,10 +458,9 @@ void initialize(void)
 
 void finalize(void)
 {
-	if (hiscore > old_hiscore)
-		saveHiscore(hiscore);
 	if (settings_changed)
 		saveSettings();
+	saveRecords();
 
 	skin_destroySkin(&gameskin);
 
@@ -700,8 +698,6 @@ void onLineClear(int removed)
 		extra += 50 * (level + 1) * combo;
 	}
 	score += extra;
-	if (score > hiscore)
-		hiscore = score;
 
 	// notify a player about a special event
 	static char clear_text[5][16] = {
@@ -786,9 +782,11 @@ void onLineClear(int removed)
 	playEffect(SE_CLEAR);
 }
 
-void onGameOver(void)
+void onGameOver(enum GameOverType reason)
 {
 	stopMusic();
+	game_totaltime = SDL_GetTicks() - game_starttime;
+	updateHiscores(menu_gamemode, reason);
 	gamestate = GS_GAMEOVER;
 }
 
@@ -821,8 +819,6 @@ void dropSoft(void)
 				checkForPrelocking();
 			}
 		}
-		if (score > hiscore)
-			hiscore = score;
 		onDrop();
 	}
 }
@@ -858,8 +854,6 @@ void dropHard(void)
 		}
 		--figures[0]->y;
 		score -= 2;
-		if (score > hiscore)
-			hiscore = score;
 		lockFigure();
 		onDrop();
 	}
@@ -938,8 +932,9 @@ void lockFigure(void)
 	figures[0] = NULL;
 
 	int removed = removeFullLines();
-	if (checkGameEnd() != GOT_PLAYING)
-		onGameOver();
+	enum GameOverType goreason = checkGameEnd();
+	if (goreason != GOT_PLAYING)
+		onGameOver(goreason);
 
 	softdrop_pressed = false;
 	softdrop_press_time = 0;
@@ -1042,8 +1037,6 @@ int removeFullLines(void)
 			default:
 				; // no action
 		}
-		if (score > hiscore)
-			hiscore = score;
 	}
 
 	return removed_lines;
@@ -1201,11 +1194,6 @@ static void pause(void)
 static void quit(void)
 {
 	gamestate = GS_MAINMENU;
-	if (hiscore > old_hiscore)
-	{
-		saveHiscore(hiscore);
-		old_hiscore = hiscore;
-	}
 }
 
 void ingame_processInputEvents(void)
@@ -1691,6 +1679,26 @@ void updateLCT(char *top, char *mid, char *bot, Uint32 ms)
 		lct_deadline = SDL_GetTicks() + ms;
 }
 
+void convertMsToStr(Uint32 ms, char *dest)
+{
+	int hh, mm, ss, cs;
+	hh = ms / (1000 * 60 * 60);
+	ms = ms % (1000 * 60 * 60);
+	mm = ms / (1000 * 60);
+	ms = ms % (1000 * 60);
+	ss = ms / 1000;
+	ms = ms % 1000;
+	cs = ms / 10;
+	if (hh)
+	{
+		sprintf(dest, "%02d:%02d:%02d.%02d", hh, mm, ss, cs);
+	}
+	else
+	{
+		sprintf(dest, "%02d:%02d.%02d", mm, ss, cs);
+	}
+}
+
 void updateGTimer(Uint32 ms)
 {
 	if (GM_ULTRA == menu_gamemode)
@@ -1704,16 +1712,43 @@ void updateGTimer(Uint32 ms)
 			ms = 0;
 		}
 	}
+	convertMsToStr(ms, gametimer);
+}
 
-	int hh, mm, ss, cs;
-	hh = ms / (1000 * 60 * 60);
-	ms = ms % (1000 * 60 * 60);
-	mm = ms / (1000 * 60);
-	ms = ms % (1000 * 60);
-	ss = ms / 1000;
-	ms = ms % 1000;
-	cs = ms / 10;
-	sprintf(gametimer, "%02d:%02d:%02d.%02d", hh, mm, ss, cs);
+void updateHiscores(enum GameMode gm, enum GameOverType got)
+{
+	switch (gm)
+	{
+		case GM_MARATHON:
+			if (score > getRecord(RT_MARATHON_SCORE))
+			{
+				setRecord(RT_MARATHON_SCORE, score);
+			}
+			if (lines > getRecord(RT_MARATHON_LINES))
+			{
+				setRecord(RT_MARATHON_LINES, lines);
+			}
+			break;
+		case GM_SPRINT:
+			if (getRecord(RT_SPRINT_TIME) == 0 ||
+				(game_totaltime < getRecord(RT_SPRINT_TIME) &&
+				GOT_LINECLEAR == got))
+			{
+				setRecord(RT_SPRINT_TIME, game_totaltime);
+			}
+			break;
+		case GM_ULTRA:
+			if (score > getRecord(RT_ULTRA_SCORE))
+			{
+				setRecord(RT_ULTRA_SCORE, score);
+			}
+			if (lines > getRecord(RT_ULTRA_LINES))
+			{
+				setRecord(RT_ULTRA_LINES, lines);
+			}
+			break;
+	}
+	saveRecords();
 }
 
 #ifdef DEV
