@@ -1,11 +1,34 @@
-.PHONY: all clean
+.PHONY: all clean purge
 
 PROJECT = yatka.exe
-
-$(PROJECT): main.c
-	gcc -mwindows -o $(PROJECT) main.c -lmingw32 -lSDLmain -lSDL -lSDL_image
+SRC = src/main.c src/data_persistence.c src/video.c src/sound.c \
+	src/state_gameover.c src/state_settings.c src/randomizer.c \
+	src/state_mainmenu.c src/skin.c
+OBJ = $(SRC:.c=.o)
+DEP = $(SRC:.c=.d)
+CFLAGS = -std=c99 -g -Iinc -DDEV
+LDFLAGS = -lmingw32 -lSDLmain -lSDL -lSDL_image -lSDL_ttf -lSDL_mixer
+CC = gcc
 
 all: $(PROJECT)
 
+$(PROJECT): $(OBJ)
+	$(CC) -o $(PROJECT) $(OBJ) $(LDFLAGS)
+
+src/%.o: src/%.c
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+src/%.d: src/%.c
+	@set -e; \
+	rm -f $@; \
+	$(CC) -MM $(CFLAGS) $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,src/\1.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
+
 clean:
-	rm -rf $(PROJECT)
+	rm -rf $(PROJECT) $(OBJ) src/*.d.*
+
+purge: clean
+	rm -rf $(DEP)
+
+-include $(DEP)
