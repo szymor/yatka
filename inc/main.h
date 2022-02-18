@@ -139,6 +139,7 @@ extern bool repeattrack;
 extern bool easyspin;
 extern bool lockdelay;
 extern bool smoothanim;
+extern bool speechon;
 
 extern enum TetrominoColor tetrominocolor;
 extern int ghostalpha;

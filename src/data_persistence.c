@@ -113,6 +113,8 @@ void loadSettings(void)
 			screenscale = 4;
 		else if (!strcmp(buff, "holdoff"))
 			holdoff = true;
+		else if (!strcmp(buff, "speechon"))
+			speechon = true;
 		else if (!strcmp(buff, "musicvol"))
 		{
 			fscanf(settingsFile, "%d", &initmusvol);
@@ -199,6 +201,8 @@ void saveSettings(void)
 		fprintf(settingsFile, "scale4x\n");
 	if (holdoff)
 		fprintf(settingsFile, "holdoff\n");
+	if (speechon)
+		fprintf(settingsFile, "speechon\n");
 	if (!nosound)
 		fprintf(settingsFile, "musicvol %d\n", Mix_VolumeMusic(-1));
 	fprintf(settingsFile, "tetrominocolor %d\n", tetrominocolor);

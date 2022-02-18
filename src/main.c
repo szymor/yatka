@@ -65,12 +65,15 @@ struct Block *board = NULL;
 struct Figure *figures[FIG_NUM];
 int statistics[FIGID_GRAY];
 
+/* all settings need to be false in order to
+ * be properly read from settings file */
 bool nosound = false;
 bool holdoff = false;
 bool repeattrack = false;
 bool easyspin = false;
 bool lockdelay = false;
 bool smoothanim = false;
+bool speechon = false;
 
 enum TetrominoColor tetrominocolor = TC_STANDARD;
 
@@ -722,31 +725,34 @@ void onLineClear(int removed)
 	}
 	updateLCT(b2b ? "Back-2-Back" : "", lctmid, lctbot, LCT_DEADLINE);
 
-	enum SfxSpeech ssflags = b2b ? SS_B2B : 0;
-	switch (tst)
+	if (speechon)
 	{
-		case TST_REGULAR:
-			ssflags |= SS_TSPIN;
-			break;
-		case TST_MINI:
-			ssflags |= SS_MINITSPIN;
+		enum SfxSpeech ssflags = b2b ? SS_B2B : 0;
+		switch (tst)
+		{
+			case TST_REGULAR:
+				ssflags |= SS_TSPIN;
+				break;
+			case TST_MINI:
+				ssflags |= SS_MINITSPIN;
+		}
+		switch (removed)
+		{
+			case 1:
+				ssflags |= SS_SINGLE;
+				break;
+			case 2:
+				ssflags |= SS_DOUBLE;
+				break;
+			case 3:
+				ssflags |= SS_TRIPLE;
+				break;
+			case 4:
+				ssflags |= SS_TETRIS;
+				break;
+		}
+		playSpeech(ssflags);
 	}
-	switch (removed)
-	{
-		case 1:
-			ssflags |= SS_SINGLE;
-			break;
-		case 2:
-			ssflags |= SS_DOUBLE;
-			break;
-		case 3:
-			ssflags |= SS_TRIPLE;
-			break;
-		case 4:
-			ssflags |= SS_TETRIS;
-			break;
-	}
-	playSpeech(ssflags);
 
 	// update flags for future usage
 	++combo;
