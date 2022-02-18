@@ -1,4 +1,4 @@
-## YATKA
+# YATKA
 yet another tetris klone in action
 
 ![screenshot1](screenshot1.png)
@@ -7,12 +7,12 @@ yet another tetris klone in action
 
 ![screenshot3](screenshot3.png)
 
-### description
+## description
 YATKA is one of many Tetris implementations available. Motivation behind this one was, on the one hand, to create a game that would conform to modern rules of the game, while, on the other, to make possible running it on resource-limited platforms (e.g. Bittboy or JZ4760-based handheld consoles). This is the reason I use SDL 1.2, which is considered outdated, or develop my own simplistic solutions instead of relying on third-party dependencies.
 
 The game is in constant development. Feel free to report errors as it helps to improve the game. There are no full-time testers working on it so I appreciate any feedback.
 
-### features
+## features
 * three game modes - play Marathon (classic survival), Sprint (play as fast as possible until you clear 40 or more lines) or Ultra (play for 3 minutes to get the high score),
 * skin system - choose a visual style according to your taste from a set of predefined skins or create your own,
 * music playback - listen to the tracks included in the game or provide your own songs,
@@ -21,14 +21,14 @@ The game is in constant development. Feel free to report errors as it helps to i
 * multi-platform design - the game can be easily ported to any operating system supporting a limited set of dependencies required by YATKA,
 * customizable rules - you can change parameters affecting the tetromino generator, lock delay or easy spin, even during the game.
 
-### how to build (Ubuntu)
+## how to build (Ubuntu)
     apt update
     apt install libsdl-image1.2-dev libsdl-mixer1.2-dev libsdl-ttf2.0-dev libsdl1.2-dev
     git clone https://github.com/szymor/yatka.git
     cd yatka
     make
 
-### command line parameters
+## command line parameters
 - --nosound - disable music and sound effects
 - --sound - enable music and sound effects if disabled
 - --fullscreen - full screen mode
@@ -40,7 +40,7 @@ The game is in constant development. Feel free to report errors as it helps to i
 
 For more, please refer to the source code.
 
-### custom skins
+## custom skins
 The easiest way to start your journey with creating skins is as follows:
 1. Go to skins/ in the game directory. Note that if you use a packed version of the game (e.g. you use OPK), you cannot enter the game directory without extracting the archive.
 2. Copy one of existing skin directories and rename it, e.g. duplicate default/ in skins/ and rename it to 'myownskin'.
@@ -49,10 +49,10 @@ The easiest way to start your journey with creating skins is as follows:
 
 If you use a packed (OPK) version of the game, it may be easier for you to copy your custom skins to .yatka/skins/ in your home directory (instead of skins/ in the game directory). Create it if it does not exist.
 
-### custom music support
+## custom music support
 The game supports custom music playback. In order to listen to your favourite songs, you need to copy them to $HOME/.yatka/music. If the folder does not exist, create it. Supported music formats depend on your platform, but usually MOD, MP3, OGG and WAV files are accepted.
 
-### randomizers
+## randomizers
 As noted before, YATKA offers several randomizers to choose among. Selection of a randomizer affects gameplay as some randomizers tend to generate tetromino sequences difficult to play with. On the contrary, others may generate predictable patterns and therefore offer no challenge to the player.
 
 Currently the following randomizers are supported:
@@ -66,7 +66,7 @@ Currently the following randomizers are supported:
 
 I do not cover the topic in detail because there are many better sources on that.
 
-### about authors/contributors
+## about authors/contributors
 - gfx and code (mostly) by me (vamastah a.k.a. szymor)
 - frame limiting, counting and upscaling code by Artur 'zear' Rojek
 - in-game music by Vomitron
@@ -74,7 +74,7 @@ I do not cover the topic in detail because there are many better sources on that
 - SRS wall kicks thanks to [Tetris Wiki](https://tetris.fandom.com/wiki/SRS)
 - Elektronika60, Dotkom and Gamboi skins by GuineaSquiggle
 
-### ideas / plans
+## ideas / plans
 - line clear animation (TGM?)
 - ports for other platforms
 - better joystick support
@@ -85,5 +85,5 @@ I do not cover the topic in detail because there are many better sources on that
 - option to imitate playing multiplayer mode (dynamic debris generation during gameplay)
 - skin redesign to make them more consistent with implemented game modes
 
-### sponsors
+## sponsors
 - Saikazu

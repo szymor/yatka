@@ -57,24 +57,32 @@ enum GameOverType
 	GOT_END
 };
 
+enum HoldMode
+{
+	HM_OFF,
+	HM_EXCHANGE,
+	HM_PRESERVE
+};
+
 struct Skin gameskin;
 
 SDL_Surface *bg = NULL;
 
 struct Block *board = NULL;
 struct Figure *figures[FIG_NUM];
+struct Figure preserved = { .id = FIGID_END };
 int statistics[FIGID_GRAY];
 
 /* all settings need to be false in order to
  * be properly read from settings file */
 bool nosound = false;
-bool holdoff = false;
 bool repeattrack = false;
 bool easyspin = false;
 bool lockdelay = false;
 bool smoothanim = false;
 bool speechon = false;
 
+enum HoldMode holdmode = HM_PRESERVE;
 enum TetrominoColor tetrominocolor = TC_STANDARD;
 
 enum GameState gamestate = GS_MAINMENU;
@@ -956,20 +964,56 @@ void lockFigure(void)
 
 void holdFigure(void)
 {
-	if (hold_ready && !holdoff && figures[0])
+	switch (holdmode)
 	{
-		--statistics[figures[0]->id];
-		struct Figure temp = *figures[0];
-		*figures[0] = *figures[1];
-		*figures[1] = temp;
-		++statistics[figures[0]->id];
+		case HM_OFF:
+			break;	// do nothing
+		case HM_EXCHANGE:
+		{
+			if (hold_ready && figures[0])
+			{
+				--statistics[figures[0]->id];
+				struct Figure temp = *figures[0];
+				*figures[0] = *figures[1];
+				*figures[1] = temp;
+				++statistics[figures[0]->id];
 
-		figures[0]->y = -FIG_DIM + 2;						// ...to gain a 'slide' effect from the top of screen
-		figures[0]->x = (BOARD_WIDTH - FIG_DIM) / 2;		// ...to center a figure
+				figures[0]->y = -FIG_DIM + 2;						// ...to gain a 'slide' effect from the top of screen
+				figures[0]->x = (BOARD_WIDTH - FIG_DIM) / 2;		// ...to center a figure
 
-		memcpy(&figures[0]->shape, getShape(figures[0]->id), sizeof(figures[0]->shape));
+				memcpy(&figures[0]->shape, getShape(figures[0]->id), sizeof(figures[0]->shape));
 
-		hold_ready = false;
+				hold_ready = false;
+			}
+		} break;
+		case HM_PRESERVE:
+		{
+			if (hold_ready && figures[0])
+			{
+				if (preserved.id != FIGID_END)
+				{
+					struct Figure temp = *figures[0];
+					// restore the preserved figure
+					--statistics[figures[0]->id];
+					*figures[0] = preserved;
+					figures[0]->y = -FIG_DIM + 2;
+					figures[0]->x = (BOARD_WIDTH - FIG_DIM) / 2;	// center a figure
+					memcpy(&figures[0]->shape, getShape(figures[0]->id), sizeof(figures[0]->shape));
+					++statistics[figures[0]->id];
+					// preserve the current figure
+					preserved = temp;
+				}
+				else
+				{
+					// preserve the current figure
+					--statistics[figures[0]->id];
+					preserved = *figures[0];
+					// take the next figure
+					spawnFigure();
+				}
+				hold_ready = false;
+			}
+		} break;
 	}
 }
 
@@ -1655,6 +1699,7 @@ void resetGame(void)
 		statistics[i] = 0;
 	}
 
+	preserved.id = FIGID_END;
 	spawnFigure();
 	generateDebris();
 	game_starttime = SDL_GetTicks();

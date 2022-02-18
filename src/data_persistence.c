@@ -111,8 +111,6 @@ void loadSettings(void)
 			screenscale = 3;
 		else if (!strcmp(buff, "scale4x"))
 			screenscale = 4;
-		else if (!strcmp(buff, "holdoff"))
-			holdoff = true;
 		else if (!strcmp(buff, "speechon"))
 			speechon = true;
 		else if (!strcmp(buff, "musicvol"))
@@ -199,8 +197,6 @@ void saveSettings(void)
 		fprintf(settingsFile, "scale3x\n");
 	if (4 == screenscale)
 		fprintf(settingsFile, "scale4x\n");
-	if (holdoff)
-		fprintf(settingsFile, "holdoff\n");
 	if (speechon)
 		fprintf(settingsFile, "speechon\n");
 	if (!nosound)

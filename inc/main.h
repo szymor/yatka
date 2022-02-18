@@ -134,13 +134,13 @@ extern struct Block *board;
 extern enum GameState gamestate;
 
 extern bool nosound;
-extern bool holdoff;
 extern bool repeattrack;
 extern bool easyspin;
 extern bool lockdelay;
 extern bool smoothanim;
 extern bool speechon;
 
+extern enum HoldMode holdmode;
 extern enum TetrominoColor tetrominocolor;
 extern int ghostalpha;
 
