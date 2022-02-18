@@ -30,9 +30,9 @@ static void createGameDir(void)
 void initPaths(void)
 {
 	const char *home = getenv("HOME");
-	sprintf(dirpath, "%s/%s", home, GAMEDIR);
-	sprintf(hiscore_path, "%s/%s", dirpath, HISCORE_FILE);
-	sprintf(settings_path, "%s/%s", dirpath, SETTINGS_FILE);
+	sprintf(dirpath, "%s/" GAMEDIR, home);
+	sprintf(hiscore_path, "%.240s/" HISCORE_FILE, dirpath);
+	sprintf(settings_path, "%.240s/" SETTINGS_FILE, dirpath);
 }
 
 int getRecord(enum RecordType rt)
@@ -119,7 +119,7 @@ void loadSettings(void)
 		}
 		else if (!strcmp(buff, "tetrominocolor"))
 		{
-			fscanf(settingsFile, "%d", &tetrominocolor);
+			fscanf(settingsFile, "%d", (int *)&tetrominocolor);
 		}
 		else if (!strcmp(buff, "rng"))
 		{

@@ -183,9 +183,9 @@ void mainmenu_updateScreen(void)
 	text(120, 104, buff, 0, 0);
 
 	if (5 == submenu_index)
-		sprintf(buff, "> KEY CONFIGURATION <", menu_debris_chance);
+		sprintf(buff, "> KEY CONFIGURATION <");
 	else
-		sprintf(buff, "  KEY CONFIGURATION  ", menu_debris_chance);
+		sprintf(buff, "  KEY CONFIGURATION  ");
 	text(16, 128, buff, 0, 0);
 
 	flipScreenScaled();

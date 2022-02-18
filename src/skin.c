@@ -620,7 +620,7 @@ static void skin_executeBricksprite(struct Skin *skin, const char *statement)
 
 static void skin_executeDebriscolor(struct Skin *skin, const char *statement)
 {
-	sscanf(statement, "%*s %d", &skin->debriscolor);
+	sscanf(statement, "%*s %d", (int *)&skin->debriscolor);
 	log("debriscolor %d\n", skin->debriscolor);
 }
 
