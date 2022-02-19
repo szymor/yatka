@@ -4,6 +4,8 @@ bg "bg.png"
 bganim replace 300000
 ; fg (foreground) filename
 fg null
+; holdmode off/exchange/preserve
+holdmode preserve
 ; boardxy x y
 boardxy 100 0
 ; tc (tetromino color) id alpha r g b

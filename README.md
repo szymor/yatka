@@ -77,7 +77,6 @@ I do not cover the topic in detail because there are many better sources on that
 ## ideas / plans
 - [v0.9] ports for other platforms
 - [v0.9] better joystick support
-- [v0.9] another implementation of hold (as an option) with a separate slot for a tetromino
 - [v0.9] brick overlapping fix when smooth animation enabled
 - [v0.9] new sound effects
 - line clear animation (TGM?)

@@ -36,10 +36,18 @@ enum BgAnimationMode
 	BAM_END
 };
 
+enum HoldMode
+{
+	HM_OFF,
+	HM_EXCHANGE,
+	HM_PRESERVE
+};
+
 struct Skin
 {
 	SDL_Surface *screen;
 	enum BgAnimationMode bgmode;
+	enum HoldMode holdmode;
 	SDL_Surface *bgsheet;
 	SDL_Surface *bg;
 	SDL_Rect bgrect;

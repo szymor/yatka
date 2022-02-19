@@ -57,13 +57,6 @@ enum GameOverType
 	GOT_END
 };
 
-enum HoldMode
-{
-	HM_OFF,
-	HM_EXCHANGE,
-	HM_PRESERVE
-};
-
 struct Skin gameskin;
 
 SDL_Surface *bg = NULL;
@@ -82,7 +75,6 @@ bool lockdelay = false;
 bool smoothanim = false;
 bool speechon = false;
 
-enum HoldMode holdmode = HM_PRESERVE;
 enum TetrominoColor tetrominocolor = TC_STANDARD;
 
 enum GameState gamestate = GS_MAINMENU;
@@ -964,7 +956,7 @@ void lockFigure(void)
 
 void holdFigure(void)
 {
-	switch (holdmode)
+	switch (gameskin.holdmode)
 	{
 		case HM_OFF:
 			break;	// do nothing

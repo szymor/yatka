@@ -41,6 +41,7 @@ static void skin_executeText(struct Skin *skin, const char *statement);
 static void skin_executeBar(struct Skin *skin, const char *statement);
 static void skin_executeFigure(struct Skin *skin, const char *statement);
 static void skin_executeHold(struct Skin *skin, const char *statement);
+static void skin_executeHoldmode(struct Skin *skin, const char *statement);
 
 void skin_initSkin(struct Skin *skin)
 {
@@ -81,6 +82,7 @@ void skin_initSkin(struct Skin *skin)
 	skin->brick_shadow = NULL;
 	skin->shadowx = 0;
 	skin->shadowy = 0;
+	skin->holdmode = HM_EXCHANGE;
 }
 
 void skin_destroySkin(struct Skin *skin)
@@ -410,6 +412,11 @@ static void skin_executeStatement(struct Skin *skin, const char *statement, bool
 	{
 		if (dynamic) return;
 		skin_executeDebriscolor(skin, statement);
+	}
+	else if (!strcmp(cmd, "holdmode"))
+	{
+		if (dynamic) return;
+		skin_executeHoldmode(skin, statement);
 	}
 	else if (!strcmp(cmd, "ghost"))
 	{
@@ -834,6 +841,18 @@ static void skin_executeHold(struct Skin *skin, const char *statement)
 	int x, y, centerx, centery, alpha;
 	sscanf(statement, "%*s %d %d %d %d %d", &x, &y, &centerx, &centery, &alpha);
 	drawFigure(skin, &preserved, x, y, alpha, false, centerx, centery);
+}
+
+static void skin_executeHoldmode(struct Skin *skin, const char *statement)
+{
+	char hmtext[256];
+	sscanf(statement, "%*s %s", hmtext);
+	if (!strcmp(hmtext, "off"))
+		skin->holdmode = HM_OFF;
+	else if (!strcmp(hmtext, "exchange"))
+		skin->holdmode = HM_EXCHANGE;
+	else if (!strcmp(hmtext, "preserve"))
+		skin->holdmode = HM_PRESERVE;
 }
 
 static void str_replace(char *where, const char *what, const char *with)

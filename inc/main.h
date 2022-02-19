@@ -141,7 +141,6 @@ extern bool lockdelay;
 extern bool smoothanim;
 extern bool speechon;
 
-extern enum HoldMode holdmode;
 extern enum TetrominoColor tetrominocolor;
 extern int ghostalpha;
 
