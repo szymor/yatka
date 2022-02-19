@@ -40,6 +40,7 @@ static void skin_executeShape(struct Skin *skin, const char *statement);
 static void skin_executeText(struct Skin *skin, const char *statement);
 static void skin_executeBar(struct Skin *skin, const char *statement);
 static void skin_executeFigure(struct Skin *skin, const char *statement);
+static void skin_executeHold(struct Skin *skin, const char *statement);
 
 void skin_initSkin(struct Skin *skin)
 {
@@ -450,6 +451,11 @@ static void skin_executeStatement(struct Skin *skin, const char *statement, bool
 		if (!dynamic) return;
 		skin_executeFigure(skin, statement);
 	}
+	else if (!strcmp(cmd, "hold"))
+	{
+		if (!dynamic) return;
+		skin_executeHold(skin, statement);
+	}
 }
 
 static void skin_executeBFg(struct Skin *skin, const char *statement, SDL_Surface **sdls)
@@ -823,6 +829,13 @@ static void skin_executeFigure(struct Skin *skin, const char *statement)
 	drawFigure(skin, figures[id], x, y, alpha, false, centerx, centery);
 }
 
+static void skin_executeHold(struct Skin *skin, const char *statement)
+{
+	int x, y, centerx, centery, alpha;
+	sscanf(statement, "%*s %d %d %d %d %d", &x, &y, &centerx, &centery, &alpha);
+	drawFigure(skin, &preserved, x, y, alpha, false, centerx, centery);
+}
+
 static void str_replace(char *where, const char *what, const char *with)
 {
 	char buff[256];
@@ -890,7 +903,7 @@ static void replace_all_vars(char *where)
 
 static void drawFigure(struct Skin *skin, const struct Figure *fig, int x, int y, Uint8 alpha, bool active, bool centerx, bool centery)
 {
-	if (fig != NULL)
+	if (fig != NULL && fig->id < FIGID_GRAY)
 	{
 		const struct Shape *shape = NULL;
 		if (active)

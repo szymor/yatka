@@ -129,6 +129,7 @@ struct Figure
 };
 
 extern struct Figure *figures[FIG_NUM];
+extern struct Figure preserved;
 extern struct Skin gameskin;
 extern struct Block *board;
 extern enum GameState gamestate;
