@@ -78,7 +78,6 @@ I do not cover the topic in detail because there are many better sources on that
 - [v0.9] ports for other platforms
 - [v0.9] better joystick support
 - [v0.9] brick overlapping fix when smooth animation enabled
-- [v0.9] new sound effects
 - line clear animation (TGM?)
 - new KiCAD skin with no tetromino stats (I got bored with them)
 - some kind of system promoting sponsoring the project (sponsor-defined wishes shown during gameplay?)
