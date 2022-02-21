@@ -192,7 +192,15 @@ void skin_updateScreen(struct Skin *skin, SDL_Surface *screen)
 	if (smoothanim)
 	{
 		Uint32 ct = SDL_GetTicks();
-		double fraction = (double)(ct - last_drop_time) / (getNextDropTime() - last_drop_time);
+		double fraction;
+		if (next_lock_time)
+		{
+			fraction = (double)(ct - last_drop_time) / (next_lock_time - last_drop_time);
+		}
+		else
+		{
+			fraction = (double)(ct - last_drop_time) / (getNextDropTime() - last_drop_time);
+		}
 		int new_delta = skin->bricksize * fraction - skin->bricksize;
 		if (new_delta > draw_delta_drop)
 		{

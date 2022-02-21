@@ -121,7 +121,7 @@ Uint32 last_drop_time;
 static int easyspin_counter = 0;
 static bool softdrop_pressed = false;
 static Uint32 softdrop_press_time = 0;
-static Uint32 next_lock_time = 0;
+Uint32 next_lock_time = 0;
 
 int brick_size;
 int draw_delta_drop;
@@ -250,6 +250,7 @@ void rotateFigureCCW(void);
 bool rotateTest(int x, int y);
 
 static void generateDebris(void);
+static void checkForSmoothAnimationCollisions(void);
 
 static void softdrop_off(void);
 static void softdrop_on(void);
@@ -319,7 +320,7 @@ int main(int argc, char *argv[])
 						softDropTimeCounter();
 
 						Uint32 ct = SDL_GetTicks();
-						if (ct > getNextDropTime())
+						if (ct > getNextDropTime() && !next_lock_time)
 						{
 							dropSoft();
 						}
@@ -593,6 +594,7 @@ void moveLeft(int delay)
 			{
 				checkForPrelocking();
 			}
+			checkForSmoothAnimationCollisions();
 		}
 
 		next_side_move_time = ct + delay;
@@ -617,6 +619,7 @@ void moveRight(int delay)
 			{
 				checkForPrelocking();
 			}
+			checkForSmoothAnimationCollisions();
 		}
 
 		next_side_move_time = ct + delay;
@@ -626,7 +629,7 @@ void moveRight(int delay)
 void onDrop(void)
 {
 	markDrop();
-	if (!next_lock_time && smoothanim)
+	if (smoothanim)
 		draw_delta_drop = -brick_size;
 }
 
@@ -846,6 +849,32 @@ void checkForPrelocking(void)
 		next_lock_time = 0;
 	}
 	--figures[0]->y;
+}
+
+static void checkForSmoothAnimationCollisions(void)
+{
+	if (figures[0] != NULL)
+	{
+		bool collide = false;
+		int fx = figures[0]->x;
+		int fy = figures[0]->y - 1;
+		for (int y = 0; y < FIG_DIM; ++y)
+			for (int x = 0; x < FIG_DIM; ++x)
+			{
+				if ((fy + y) < 0)
+					continue;
+				if (figures[0]->shape.blockmap[y * FIG_DIM + x] != BO_EMPTY &&
+					board[BOARD_WIDTH * (fy + y) + (fx + x)].orientation != BO_EMPTY)
+				{
+					collide = true;
+					break;
+				}
+			}
+		if (collide)
+		{
+			draw_delta_drop = 0;
+		}
+	}
 }
 
 void dropHard(void)
@@ -1181,6 +1210,7 @@ static void rotate_cw(void)
 		{
 			checkForPrelocking();
 		}
+		checkForSmoothAnimationCollisions();
 		tst_rotation_last = true;
 		tst_rotation_12 = 4 == whichTestSucceeded;
 	}
@@ -1223,6 +1253,7 @@ static void rotate_ccw(void)
 		{
 			checkForPrelocking();
 		}
+		checkForSmoothAnimationCollisions();
 		tst_rotation_last = true;
 		tst_rotation_12 = 4 == whichTestSucceeded;
 	}

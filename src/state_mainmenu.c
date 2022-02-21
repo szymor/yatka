@@ -68,6 +68,13 @@ static SDLKey getKey(void)
 		{
 			return event.key.keysym.sym;
 		}
+		else if (SDL_QUIT == event.type)
+		{
+			/* quick and dirty solution, but it allows to
+			 * exit during key configuration, e.g. via pressing
+			 * window close button or sending a terminate signal */
+			exit(0);
+		}
 	}
 	return SDLK_ESCAPE;
 }

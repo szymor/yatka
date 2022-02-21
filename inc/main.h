@@ -144,6 +144,7 @@ extern bool speechon;
 extern enum TetrominoColor tetrominocolor;
 extern int ghostalpha;
 
+extern Uint32 next_lock_time;
 extern Uint32 last_drop_time;
 extern int draw_delta_drop;
 extern int brick_size;
