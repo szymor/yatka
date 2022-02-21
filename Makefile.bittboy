@@ -1,7 +1,8 @@
-.PHONY: all clean
+.PHONY: all clean zip
 
 BIN_BASE = /opt/miyoo/bin/
 PROJECT = yatka
+ZIPNAME = $(PROJECT).zip
 SRC = src/main.c src/data_persistence.c src/video.c src/sound.c \
 	src/state_gameover.c src/state_settings.c src/randomizer.c \
 	src/state_mainmenu.c src/skin.c
@@ -12,6 +13,11 @@ LDFLAGS = -s $(shell $(BIN_BASE)pkg-config --libs sdl SDL_image SDL_ttf SDL_mixe
 CC = arm-linux-gcc
 
 all: $(PROJECT)
+
+zip: $(ZIPNAME)
+
+$(ZIPNAME): $(PROJECT) skins sfx music icon.png yatka.png README.md LICENSE.md
+	zip -r $(ZIPNAME) $^
 
 $(PROJECT): $(OBJ)
 	$(CC) -o $(PROJECT) $(OBJ) $(LDFLAGS)
@@ -27,6 +33,6 @@ src/%.d: src/%.c
 	rm -f $@.$$$$
 
 clean:
-	rm -rf $(PROJECT) $(OBJ) $(DEP) src/*.d.*
+	rm -rf $(PROJECT) $(OBJ) $(DEP) src/*.d.* $(ZIPNAME)
 
 -include $(DEP)

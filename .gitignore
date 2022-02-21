@@ -11,5 +11,5 @@ libwebp-2.dll
 zlib1.dll
 *.o
 *.d
-opkg/
 yatka.opk
+yatka.zip

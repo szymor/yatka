@@ -3,7 +3,6 @@
 BIN_BASE = /opt/retrofw/bin/
 PROJECT = yatka
 OPK_NAME = yatka.opk
-OPK_DIR = opkg
 SRC = src/main.c src/data_persistence.c src/video.c src/sound.c \
 	src/state_gameover.c src/state_settings.c src/randomizer.c \
 	src/state_mainmenu.c src/skin.c
@@ -20,7 +19,7 @@ opk: $(OPK_NAME)
 $(PROJECT): $(OBJ)
 	$(CC) -o $(PROJECT) $(OBJ) $(LDFLAGS)
 
-$(OPK_NAME): $(PROJECT) skins sfx music icon.png README.md yatka.retrofw.desktop
+$(OPK_NAME): $(PROJECT) skins sfx music icon.png README.md LICENSE.md yatka.retrofw.desktop
 	mksquashfs $^ $@ -noappend -no-xattrs
 
 src/%.o: src/%.c
@@ -34,6 +33,6 @@ src/%.d: src/%.c
 	rm -f $@.$$$$
 
 clean:
-	rm -rf $(PROJECT) $(OBJ) $(DEP) src/*.d.* $(OPK_DIR)
+	rm -rf $(PROJECT) $(OBJ) $(DEP) src/*.d.* $(OPK_NAME)
 
 -include $(DEP)
