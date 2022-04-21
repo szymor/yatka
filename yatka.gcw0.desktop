@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=YATKA
 Comment=Yet Another Tetris Klone in Action
-Exec=yatka-retrofw
+Exec=yatka-gcw0
 Terminal=false
 Type=Game
 StartupNotify=true

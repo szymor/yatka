@@ -1,7 +1,7 @@
 .PHONY: all clean opk
 
-BIN_BASE = /opt/retrofw/bin/
-PROJECT = yatka-retrofw
+BIN_BASE = /opt/gcw0/bin/
+PROJECT = yatka-gcw0
 OPK_NAME = yatka.opk
 SRC = src/main.c src/data_persistence.c src/video.c src/sound.c \
 	src/state_gameover.c src/state_settings.c src/randomizer.c \
@@ -19,7 +19,7 @@ opk: $(OPK_NAME)
 $(PROJECT): $(OBJ)
 	$(CC) -o $(PROJECT) $(OBJ) $(LDFLAGS)
 
-$(OPK_NAME): $(PROJECT) skins sfx music icon.png README.md LICENSE.md yatka.retrofw.desktop
+$(OPK_NAME): $(PROJECT) skins sfx music icon.png README.md LICENSE.md yatka.gcw0.desktop
 	mksquashfs $^ $@ -noappend -no-xattrs
 
 src/%.o: src/%.c

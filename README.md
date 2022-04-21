@@ -73,10 +73,10 @@ I do not cover the topic in detail because there are many better sources on that
 - some tetromino randomizers thanks to Simon Laroche ([link](https://simon.lc/the-history-of-tetris-randomizers))
 - SRS wall kicks thanks to [Tetris Wiki](https://tetris.fandom.com/wiki/SRS)
 - Elektronika60, Dotkom and Gamboi skins by GuineaSquiggle
+- bug reporting by Apacz
 
 ## ideas / plans
-- [v0.9] ports for other platforms
-- [v0.9] better joystick support
+- better joystick support (menu navigation, tetromino speed proportional to knob angle, on/off option, etc.)
 - line clear animation (TGM?)
 - new KiCAD skin with no tetromino stats (I got bored with them)
 - some kind of system promoting sponsoring the project (sponsor-defined wishes shown during gameplay?)
@@ -85,3 +85,4 @@ I do not cover the topic in detail because there are many better sources on that
 
 ## sponsors
 - Saikazu
+- Loaderrr
