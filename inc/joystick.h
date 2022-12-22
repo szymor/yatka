@@ -1,6 +1,8 @@
 #ifndef _H_JOYSTICK
 #define _H_JOYSTICK
 
+//#define JOY_SUPPORT
+
 #define JOY_THRESHOLD		3200
 
 #define JOY_ROTATE_CW		1

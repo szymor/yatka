@@ -101,23 +101,23 @@ void initSound(void)
 	}
 	if (retflags & MIX_INIT_FLAC)
 	{
-		printf("Mix_Init: FLAC supported.\n");
+		log("Mix_Init: FLAC supported.\n");
 	}
 	if (retflags & MIX_INIT_MOD)
 	{
-		printf("Mix_Init: MOD supported.\n");
+		log("Mix_Init: MOD supported.\n");
 	}
 	if (retflags & MIX_INIT_MP3)
 	{
-		printf("Mix_Init: MP3 supported.\n");
+		log("Mix_Init: MP3 supported.\n");
 	}
 	if (retflags & MIX_INIT_OGG)
 	{
-		printf("Mix_Init: OGG supported.\n");
+		log("Mix_Init: OGG supported.\n");
 	}
 	if (retflags & MIX_INIT_FLUIDSYNTH)
 	{
-		printf("Mix_Init: MIDI supported (FluidSynth?).\n");
+		log("Mix_Init: MIDI supported (FluidSynth?).\n");
 	}
 	if (Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, 1, 1024) < 0)
 	{
@@ -156,7 +156,7 @@ void initSound(void)
 		exit(ERROR_NOSNDFILE);
 
 	Mix_VolumeMusic(initmusvol);
-	printf("Number of channels: %d\n", Mix_AllocateChannels(-1));
+	log("Number of channels: %d\n", Mix_AllocateChannels(-1));
 	Mix_ChannelFinished(channelDone);
 
 	sprintf(custom_music_dir, "%s/%s", dirpath, default_music_dir);

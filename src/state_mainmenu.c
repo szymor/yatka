@@ -146,7 +146,7 @@ void mainmenu_updateScreen(void)
 	SDL_FillRect(screen, NULL, 0);
 
 	text(16, 16, "YATKA", 0, 0);
-	text(320, 240, "build " __DATE__ " " __TIME__, 2, 2);
+	text(320, 240, xstr(COMMIT_HASH), 2, 2);
 
 	text(16, 40, "MODE", 0, 0);
 	text(16, 56, "SKIN", 0, 0);

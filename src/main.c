@@ -130,7 +130,9 @@ static bool left_move = false;
 static bool right_move = false;
 static Uint32 next_side_move_time;
 
+#ifdef JOY_SUPPORT
 static SDL_Joystick *joystick = NULL;
+#endif
 
 static struct Shape *shapes[FIGID_GRAY];
 static const struct ShapeTemplate templates[] = {
@@ -391,7 +393,12 @@ void initialize(void)
 
 	loadRecords();
 
-	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) < 0)
+	Uint32 sdl_init_flags = SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO;
+#ifdef JOY_SUPPORT
+	sdl_init_flags |= SDL_INIT_JOYSTICK;
+#endif
+
+	if (SDL_Init(sdl_init_flags) < 0)
 	{
 		printf("SDL_Init failed.\n");
 		exit(ERROR_SDLINIT);
@@ -402,7 +409,8 @@ void initialize(void)
 		exit(ERROR_TTFINIT);
 	}
 	atexit(finalize);
-	int video_flags = VIDEO_MODE_FLAGS;
+
+	Uint32 video_flags = VIDEO_MODE_FLAGS;
 	int scale = screenscale;
 	if (0 == screenscale)
 	{
@@ -435,12 +443,13 @@ void initialize(void)
 		initSound();
 	}
 
-	// joystick support
+#ifdef JOY_SUPPORT
 	if (SDL_NumJoysticks() > 0)
 	{
 		SDL_JoystickEventState(SDL_ENABLE);
 		joystick = SDL_JoystickOpen(0);
 	}
+#endif
 
 	// shape init
 	for (int i = 0; i < FIGID_GRAY; ++i)
@@ -471,8 +480,10 @@ void finalize(void)
 	TTF_CloseFont(arcade_font);
 	TTF_Quit();
 
+#ifdef JOY_SUPPORT
 	if (joystick != NULL)
 		SDL_JoystickClose(joystick);
+#endif
 
 	if (!nosound)
 		deinitSound();
@@ -481,7 +492,7 @@ void finalize(void)
 		free(board);
 	for (int i = 0; i < FIG_NUM; ++i)
 		free(figures[i]);
-	printf("Quit successfully.\n");
+	log("Quit successfully.\n");
 }
 
 struct Shape *generateFromTemplate(const struct ShapeTemplate *template)

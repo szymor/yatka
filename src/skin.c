@@ -11,8 +11,6 @@
 #include "state_mainmenu.h"
 #include "data_persistence.h"
 
-#define log		/*printf*/
-
 static void str_replace(char *where, const char *what, const char *with);
 static void int_replace(char *where, const char *what, int with);
 static void replace_all_vars(char *where);

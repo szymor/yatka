@@ -6,6 +6,15 @@
 
 #include "skin.h"
 
+#define xstr(s) str(s)
+#define str(s) #s
+
+#define log		/*printf*/
+
+#ifndef COMMIT_HASH
+#define COMMIT_HASH		unofficial build
+#endif
+
 // default keys
 #if defined _BITTBOY
 #define KEY_LEFT			SDLK_LEFT
