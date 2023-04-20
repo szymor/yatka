@@ -61,7 +61,14 @@ static void loadNextTrack(void)
 	ep = getNextDirEntry();
 	while (ep && (!invalidINodeOccured || (invalidINodeOccured && (ep->d_ino != invalidINode))))
 	{
+		if (!strcmp(ep->d_name, ".") || !strcmp(ep->d_name, ".."))
+		{
+			ep = getNextDirEntry();
+			continue;
+		}
+
 		sprintf(buff, "%s%.63s", music_dir, ep->d_name);
+		log("Track: %s\n", buff);
 		music = Mix_LoadMUS(buff);
 		if (!music)
 		{

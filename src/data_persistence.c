@@ -24,7 +24,11 @@ static bool records_need_save = false;
 
 static void createGameDir(void)
 {
+#ifdef __MINGW32__
+	mkdir(dirpath);
+#else
 	mkdir(dirpath, 0744);
+#endif
 }
 
 void initPaths(void)

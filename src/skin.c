@@ -475,7 +475,7 @@ static void skin_executeBFg(struct Skin *skin, const char *statement, SDL_Surfac
 {
 	SDL_Surface *s = *sdls;
 	char filename[256];
-	sscanf(statement, "%*s %[^\n]", filename);
+	sscanf(statement, "%*s %[^\r\n]", filename);
 	log("filename: <%s>\n", filename);
 	if (!strcmp(filename, "null"))
 	{

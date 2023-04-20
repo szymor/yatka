@@ -8,6 +8,10 @@
 #include <SDL/SDL_ttf.h>
 #include <SDL/SDL_mixer.h>
 
+#ifdef __MINGW32__
+#undef main
+#endif
+
 #include "joystick.h"
 #include "main.h"
 #include "data_persistence.h"
