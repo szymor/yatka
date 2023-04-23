@@ -8,10 +8,6 @@
 #include <SDL/SDL_ttf.h>
 #include <SDL/SDL_mixer.h>
 
-#ifdef __MINGW32__
-#undef main
-#endif
-
 #include "joystick.h"
 #include "main.h"
 #include "data_persistence.h"
@@ -803,7 +799,8 @@ void onLineClear(int removed)
 		ttr = 0;
 
 	// play a clearing sound
-	playEffect(SE_CLEAR);
+	//playEffect(SE_CLEAR);
+	playcombo(combo);
 }
 
 void onGameOver(enum GameOverType reason)
