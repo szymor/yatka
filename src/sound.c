@@ -23,6 +23,14 @@ Mix_Chunk *sfx_triple = NULL;
 Mix_Chunk *sfx_tetris = NULL;
 Mix_Chunk *sfx_tspin = NULL;
 Mix_Chunk *sfx_minitspin = NULL;
+Mix_Chunk *sfx_combo1x = NULL;
+Mix_Chunk *sfx_combo2x = NULL;
+Mix_Chunk *sfx_combo3x = NULL;
+Mix_Chunk *sfx_combo4x = NULL;
+Mix_Chunk *sfx_combo5x = NULL;
+Mix_Chunk *sfx_combo6x = NULL;
+Mix_Chunk *sfx_combo7x = NULL;
+
 int ssflags_planned = 0;
 
 static DIR *music_dp;
@@ -161,6 +169,28 @@ void initSound(void)
 	sfx_minitspin = Mix_LoadWAV("sfx/minitspin.wav");
 	if (!sfx_minitspin)
 		exit(ERROR_NOSNDFILE);
+	sfx_combo1x = Mix_LoadWAV("sfx/combo_1.wav");
+	if (!sfx_combo1x)
+		exit(ERROR_NOSNDFILE);
+	sfx_combo2x = Mix_LoadWAV("sfx/combo_2.wav");
+	if (!sfx_combo2x)
+		exit(ERROR_NOSNDFILE);
+	sfx_combo3x = Mix_LoadWAV("sfx/combo_3.wav");
+	if (!sfx_combo3x)
+		exit(ERROR_NOSNDFILE);
+	sfx_combo4x = Mix_LoadWAV("sfx/combo_4.wav");
+	if (!sfx_combo4x)
+		exit(ERROR_NOSNDFILE);
+	sfx_combo5x = Mix_LoadWAV("sfx/combo_5.wav");
+	if (!sfx_combo5x)
+		exit(ERROR_NOSNDFILE);
+	sfx_combo6x = Mix_LoadWAV("sfx/combo_6.wav");
+	if (!sfx_combo6x)
+		exit(ERROR_NOSNDFILE);
+	sfx_combo7x = Mix_LoadWAV("sfx/combo_7.wav");
+	if (!sfx_combo7x)
+		exit(ERROR_NOSNDFILE);
+
 
 	Mix_VolumeMusic(initmusvol);
 	log("Number of channels: %d\n", Mix_AllocateChannels(-1));
@@ -319,4 +349,41 @@ void playEffect(enum SfxEffect se)
 		case SE_CLICK:
 			Mix_PlayChannel(SFXEFFECT_CHANNEL, sfx_click, 0);
 	}
+}
+
+void playcombo(int combo)
+{
+		switch (combo)
+	{
+		case 0:
+			break;
+		case 1:
+			Mix_PlayChannel(SFXEFFECT_CHANNEL, sfx_clr, 0);
+			break;
+		case 2:
+			Mix_PlayChannel(SFXEFFECT_CHANNEL, sfx_combo1x, 0);
+			break;
+		case 3:
+			Mix_PlayChannel(SFXEFFECT_CHANNEL, sfx_combo2x, 0);
+			break;
+		case 4:
+			Mix_PlayChannel(SFXEFFECT_CHANNEL, sfx_combo3x, 0);
+			break;
+		case 5:
+			Mix_PlayChannel(SFXEFFECT_CHANNEL, sfx_combo4x, 0);
+			break;
+		case 6:
+			Mix_PlayChannel(SFXEFFECT_CHANNEL, sfx_combo5x, 0);
+			break;
+		case 7:
+			Mix_PlayChannel(SFXEFFECT_CHANNEL, sfx_combo6x, 0);
+			break;
+		case 8:
+			Mix_PlayChannel(SFXEFFECT_CHANNEL, sfx_combo7x, 0);
+			break;
+		default:
+			Mix_PlayChannel(SFXEFFECT_CHANNEL, sfx_combo7x, 0);
+			break;
+	}
+
 }
