@@ -803,7 +803,8 @@ void onLineClear(int removed)
 		ttr = 0;
 
 	// play a clearing sound
-	playEffect(SE_CLEAR);
+	//playEffect(SE_CLEAR);
+	playcombo(combo);
 }
 
 void onGameOver(enum GameOverType reason)
