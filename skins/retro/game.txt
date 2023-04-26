@@ -33,7 +33,7 @@ box 220 0 120 240 20 255 255 255
 box 36 55 55 48 60 255 255 255
 box 242 55 55 140 60 255 255 255
 ; text fontid x y alignx aligny r g b string
-text 0 228 -5 0 0 255 255 255 "HI-SCORE
+text 0 228 -5 0 0 255 255 255 "HI-SCORE"
 text 0 228 10 0 0 255 255 255 "$hiscore"
 text 0 5 -5 0 0 255 255 255 "SCORE"
 text 0 5 10 0 0 255 255 255 "$score"
