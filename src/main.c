@@ -745,28 +745,28 @@ void onLineClear(int removed)
 
 	if (speechon)
 	{
-		enum SfxSpeech ssflags = b2b ? SS_B2B : 0;
+		enum SfxSpeech ssflags = b2b ? 1 << SS_B2B : 0;
 		switch (tst)
 		{
 			case TST_REGULAR:
-				ssflags |= SS_TSPIN;
+				ssflags |= 1 << SS_TSPIN;
 				break;
 			case TST_MINI:
-				ssflags |= SS_MINITSPIN;
+				ssflags |= 1 << SS_MINITSPIN;
 		}
 		switch (removed)
 		{
 			case 1:
-				ssflags |= SS_SINGLE;
+				ssflags |= 1 << SS_SINGLE;
 				break;
 			case 2:
-				ssflags |= SS_DOUBLE;
+				ssflags |= 1 << SS_DOUBLE;
 				break;
 			case 3:
-				ssflags |= SS_TRIPLE;
+				ssflags |= 1 << SS_TRIPLE;
 				break;
 			case 4:
-				ssflags |= SS_TETRIS;
+				ssflags |= 1 << SS_TETRIS;
 				break;
 		}
 		playSpeech(ssflags);

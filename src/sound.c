@@ -14,17 +14,11 @@ int initmusvol = MIX_MAX_VOLUME / 4;
 Mix_Music *music = NULL;
 char music_name[32] = "<none>";
 Mix_Chunk *sfx_effects[SE_END] = { NULL };
-Mix_Chunk *sfx_b2b = NULL;
-Mix_Chunk *sfx_single = NULL;
-Mix_Chunk *sfx_double = NULL;
-Mix_Chunk *sfx_triple = NULL;
-Mix_Chunk *sfx_tetris = NULL;
-Mix_Chunk *sfx_tspin = NULL;
-Mix_Chunk *sfx_minitspin = NULL;
+Mix_Chunk *sfx_speech[SS_END] = { NULL };
 
 int ssflags_planned = 0;
 
-static char sfx_effect_paths[SE_END][32] = {
+static const char sfx_effect_paths[SE_END][32] = {
 	"none",
 	"sfx/clear.wav",
 	"sfx/combo_1.wav",
@@ -36,6 +30,16 @@ static char sfx_effect_paths[SE_END][32] = {
 	"sfx/combo_7.wav",
 	"sfx/hit.wav",
 	"sfx/click.wav"
+};
+
+static const char sfx_speech_paths[SS_END][32] = {
+	"sfx/b2b.wav",
+	"sfx/tspin.wav",
+	"sfx/minitspin.wav",
+	"sfx/single.wav",
+	"sfx/double.wav",
+	"sfx/triple.wav",
+	"sfx/tetris.wav"
 };
 
 static DIR *music_dp;
@@ -152,27 +156,12 @@ void initSound(void)
 			exit(ERROR_NOSNDFILE);
 	}
 
-	sfx_b2b = Mix_LoadWAV("sfx/b2b.wav");
-	if (!sfx_b2b)
-		exit(ERROR_NOSNDFILE);
-	sfx_single = Mix_LoadWAV("sfx/single.wav");
-	if (!sfx_single)
-		exit(ERROR_NOSNDFILE);
-	sfx_double = Mix_LoadWAV("sfx/double.wav");
-	if (!sfx_double)
-		exit(ERROR_NOSNDFILE);
-	sfx_triple = Mix_LoadWAV("sfx/triple.wav");
-	if (!sfx_triple)
-		exit(ERROR_NOSNDFILE);
-	sfx_tetris = Mix_LoadWAV("sfx/tetris.wav");
-	if (!sfx_tetris)
-		exit(ERROR_NOSNDFILE);
-	sfx_tspin = Mix_LoadWAV("sfx/tspin.wav");
-	if (!sfx_tspin)
-		exit(ERROR_NOSNDFILE);
-	sfx_minitspin = Mix_LoadWAV("sfx/minitspin.wav");
-	if (!sfx_minitspin)
-		exit(ERROR_NOSNDFILE);
+	for (int i = SS_B2B; i < SS_END; ++i)
+	{
+		sfx_speech[i] = Mix_LoadWAV(sfx_speech_paths[i]);
+		if (!sfx_speech[i])
+			exit(ERROR_NOSNDFILE);
+	}
 
 	Mix_VolumeMusic(initmusvol);
 	log("Number of channels: %d\n", Mix_AllocateChannels(-1));
@@ -283,39 +272,15 @@ void playSpeech(int ssflags)
 		++shift;
 		sstemp >>= 1;
 	}
-	Mix_Chunk *chunk = NULL;
-	int toplay = 1 << shift;
-	switch (toplay)
-	{
-		case SS_B2B:
-			chunk = sfx_b2b;
-			break;
-		case SS_TSPIN:
-			chunk = sfx_tspin;
-			break;
-		case SS_MINITSPIN:
-			chunk = sfx_minitspin;
-			break;
-		case SS_SINGLE:
-			chunk = sfx_single;
-			break;
-		case SS_DOUBLE:
-			chunk = sfx_double;
-			break;
-		case SS_TRIPLE:
-			chunk = sfx_triple;
-			break;
-		case SS_TETRIS:
-			chunk = sfx_tetris;
-	}
+
 	if (Mix_Playing(SFXSPEECH_CHANNEL))
 	{
 		Mix_ChannelFinished(NULL);
 		Mix_HaltChannel(SFXSPEECH_CHANNEL);
 		Mix_ChannelFinished(channelDone);
 	}
-	Mix_PlayChannel(SFXSPEECH_CHANNEL, chunk, 0);
-	ssflags_planned = ssflags & ~toplay;
+	Mix_PlayChannel(SFXSPEECH_CHANNEL, sfx_speech[shift], 0);
+	ssflags_planned = ssflags & ~(1 << shift);
 }
 
 void playEffect(enum SfxEffect se)

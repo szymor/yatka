@@ -5,13 +5,14 @@
 
 enum SfxSpeech
 {
-	SS_B2B = 1,
-	SS_TSPIN = 2,
-	SS_MINITSPIN = 4,
-	SS_SINGLE = 8,
-	SS_DOUBLE = 16,
-	SS_TRIPLE = 32,
-	SS_TETRIS = 64
+	SS_B2B,
+	SS_TSPIN,
+	SS_MINITSPIN,
+	SS_SINGLE,
+	SS_DOUBLE,
+	SS_TRIPLE,
+	SS_TETRIS,
+	SS_END
 };
 
 // clear and combo order matters!
