@@ -492,7 +492,7 @@ void finalize(void)
 	if (!nosound)
 		deinitSound();
 	SDL_Quit();
-	if(board != NULL)
+	if (board != NULL)
 		free(board);
 	for (int i = 0; i < FIG_NUM; ++i)
 		free(figures[i]);
@@ -803,8 +803,7 @@ void onLineClear(int removed)
 		ttr = 0;
 
 	// play a clearing sound
-	//playEffect(SE_CLEAR);
-	playcombo(combo);
+	playEffect(combo > SE_COMBO_7X ? SE_COMBO_7X : combo);
 }
 
 void onGameOver(enum GameOverType reason)

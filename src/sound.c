@@ -13,9 +13,7 @@
 int initmusvol = MIX_MAX_VOLUME / 4;
 Mix_Music *music = NULL;
 char music_name[32] = "<none>";
-Mix_Chunk *sfx_hit = NULL;
-Mix_Chunk *sfx_clr = NULL;
-Mix_Chunk *sfx_click = NULL;
+Mix_Chunk *sfx_effects[SE_END] = { NULL };
 Mix_Chunk *sfx_b2b = NULL;
 Mix_Chunk *sfx_single = NULL;
 Mix_Chunk *sfx_double = NULL;
@@ -23,15 +21,22 @@ Mix_Chunk *sfx_triple = NULL;
 Mix_Chunk *sfx_tetris = NULL;
 Mix_Chunk *sfx_tspin = NULL;
 Mix_Chunk *sfx_minitspin = NULL;
-Mix_Chunk *sfx_combo1x = NULL;
-Mix_Chunk *sfx_combo2x = NULL;
-Mix_Chunk *sfx_combo3x = NULL;
-Mix_Chunk *sfx_combo4x = NULL;
-Mix_Chunk *sfx_combo5x = NULL;
-Mix_Chunk *sfx_combo6x = NULL;
-Mix_Chunk *sfx_combo7x = NULL;
 
 int ssflags_planned = 0;
+
+static char sfx_effect_paths[SE_END][32] = {
+	"none",
+	"sfx/clear.wav",
+	"sfx/combo_1.wav",
+	"sfx/combo_2.wav",
+	"sfx/combo_3.wav",
+	"sfx/combo_4.wav",
+	"sfx/combo_5.wav",
+	"sfx/combo_6.wav",
+	"sfx/combo_7.wav",
+	"sfx/hit.wav",
+	"sfx/click.wav"
+};
 
 static DIR *music_dp;
 static const char default_music_dir[] = "music/";
@@ -139,15 +144,14 @@ void initSound(void)
 		printf("Mix_OpenAudio failed.\n");
 		exit(ERROR_OPENAUDIO);
 	}
-	sfx_hit = Mix_LoadWAV("sfx/hit.wav");
-	if (!sfx_hit)
-		exit(ERROR_NOSNDFILE);
-	sfx_clr = Mix_LoadWAV("sfx/clear.wav");
-	if (!sfx_clr)
-		exit(ERROR_NOSNDFILE);
-	sfx_click = Mix_LoadWAV("sfx/click.wav");
-	if (!sfx_click)
-		exit(ERROR_NOSNDFILE);
+
+	for (int i = SE_CLEAR; i < SE_END; ++i)
+	{
+		sfx_effects[i] = Mix_LoadWAV(sfx_effect_paths[i]);
+		if (!sfx_effects[i])
+			exit(ERROR_NOSNDFILE);
+	}
+
 	sfx_b2b = Mix_LoadWAV("sfx/b2b.wav");
 	if (!sfx_b2b)
 		exit(ERROR_NOSNDFILE);
@@ -169,28 +173,6 @@ void initSound(void)
 	sfx_minitspin = Mix_LoadWAV("sfx/minitspin.wav");
 	if (!sfx_minitspin)
 		exit(ERROR_NOSNDFILE);
-	sfx_combo1x = Mix_LoadWAV("sfx/combo_1.wav");
-	if (!sfx_combo1x)
-		exit(ERROR_NOSNDFILE);
-	sfx_combo2x = Mix_LoadWAV("sfx/combo_2.wav");
-	if (!sfx_combo2x)
-		exit(ERROR_NOSNDFILE);
-	sfx_combo3x = Mix_LoadWAV("sfx/combo_3.wav");
-	if (!sfx_combo3x)
-		exit(ERROR_NOSNDFILE);
-	sfx_combo4x = Mix_LoadWAV("sfx/combo_4.wav");
-	if (!sfx_combo4x)
-		exit(ERROR_NOSNDFILE);
-	sfx_combo5x = Mix_LoadWAV("sfx/combo_5.wav");
-	if (!sfx_combo5x)
-		exit(ERROR_NOSNDFILE);
-	sfx_combo6x = Mix_LoadWAV("sfx/combo_6.wav");
-	if (!sfx_combo6x)
-		exit(ERROR_NOSNDFILE);
-	sfx_combo7x = Mix_LoadWAV("sfx/combo_7.wav");
-	if (!sfx_combo7x)
-		exit(ERROR_NOSNDFILE);
-
 
 	Mix_VolumeMusic(initmusvol);
 	log("Number of channels: %d\n", Mix_AllocateChannels(-1));
@@ -338,52 +320,7 @@ void playSpeech(int ssflags)
 
 void playEffect(enum SfxEffect se)
 {
-	switch (se)
-	{
-		case SE_HIT:
-			Mix_PlayChannel(SFXEFFECT_CHANNEL, sfx_hit, 0);
-			break;
-		case SE_CLEAR:
-			Mix_PlayChannel(SFXEFFECT_CHANNEL, sfx_clr, 0);
-			break;
-		case SE_CLICK:
-			Mix_PlayChannel(SFXEFFECT_CHANNEL, sfx_click, 0);
-	}
-}
-
-void playcombo(int combo)
-{
-		switch (combo)
-	{
-		case 0:
-			break;
-		case 1:
-			Mix_PlayChannel(SFXEFFECT_CHANNEL, sfx_clr, 0);
-			break;
-		case 2:
-			Mix_PlayChannel(SFXEFFECT_CHANNEL, sfx_combo1x, 0);
-			break;
-		case 3:
-			Mix_PlayChannel(SFXEFFECT_CHANNEL, sfx_combo2x, 0);
-			break;
-		case 4:
-			Mix_PlayChannel(SFXEFFECT_CHANNEL, sfx_combo3x, 0);
-			break;
-		case 5:
-			Mix_PlayChannel(SFXEFFECT_CHANNEL, sfx_combo4x, 0);
-			break;
-		case 6:
-			Mix_PlayChannel(SFXEFFECT_CHANNEL, sfx_combo5x, 0);
-			break;
-		case 7:
-			Mix_PlayChannel(SFXEFFECT_CHANNEL, sfx_combo6x, 0);
-			break;
-		case 8:
-			Mix_PlayChannel(SFXEFFECT_CHANNEL, sfx_combo7x, 0);
-			break;
-		default:
-			Mix_PlayChannel(SFXEFFECT_CHANNEL, sfx_combo7x, 0);
-			break;
-	}
-
+	if (SE_NONE == se)
+		return;
+	Mix_PlayChannel(SFXEFFECT_CHANNEL, sfx_effects[se], 0);
 }

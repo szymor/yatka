@@ -14,11 +14,22 @@ enum SfxSpeech
 	SS_TETRIS = 64
 };
 
+// clear and combo order matters!
+// add new sound effects after combos
 enum SfxEffect
 {
-	SE_HIT,
+	SE_NONE,
 	SE_CLEAR,
-	SE_CLICK
+	SE_COMBO_1X,
+	SE_COMBO_2X,
+	SE_COMBO_3X,
+	SE_COMBO_4X,
+	SE_COMBO_5X,
+	SE_COMBO_6X,
+	SE_COMBO_7X,
+	SE_HIT,
+	SE_CLICK,
+	SE_END
 };
 
 extern int initmusvol;
