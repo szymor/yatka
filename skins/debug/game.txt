@@ -1,0 +1,50 @@
+; bg (background) filename
+bg "bg.png"
+; fg (foreground) filename
+fg null
+; boardxy x y
+boardxy 200 0
+; holdmode off/exchange/preserve
+holdmode preserve
+; tc (tetromino color) id alpha r g b
+tc 0 128 0 255 255
+tc 1 128 255 255 0
+tc 2 128 127 0 255
+tc 3 128 0 255 0
+tc 4 128 255 0 0
+tc 5 128 0 0 255
+tc 6 128 255 128 0
+; bricksize wh
+bricksize 12
+; bricksprite filename
+bricksprite "bricks.png"
+; debriscolor colorid
+debriscolor 100
+; ghost alpha
+ghost 69
+; font id filename size
+font 0 "monobit.ttf" 28
+; box x y w h alpha r g b
+box 0 0 200 240 20 255 255 255
+; hold x y centerx centery alpha
+hold 152 0 1 1 128
+; figure id x y centerx centery alpha
+figure 1 152 36 1 1 128
+figure 2 152 72 1 1 128
+figure 3 152 108 1 1 128
+figure 4 152 144 1 1 128
+figure 5 152 180 1 1 128
+figure 6 152 216 1 1 128
+; text fontid x y alignx aligny r g b string
+text 0 5 0 0 0 255 255 255 "Hiscore: $hiscore"
+text 0 5 15 0 0 255 255 255 "Score: $score"
+text 0 5 30 0 0 255 255 255 "Level: $level"
+text 0 5 45 0 0 255 255 255 "Lines: $lines"
+text 0 5 60 0 0 255 255 255 "Tetris: $tetris%"
+text 0 5 75 0 0 255 255 255 "FPS: $fps"
+text 0 5 90 0 0 255 255 255 "Debris: $debris"
+text 0 5 105 0 0 255 255 255 "Dropped: $dropped"
+text 0 5 120 0 0 255 255 255 "Timer: $timer"
+text 0 5 135 0 0 255 255 255 "PPS: $pps"
+text 0 5 150 0 0 255 255 255 "Stats: I$stat0 O$stat1 T$stat2"
+text 0 5 165 0 0 255 255 255 "   S$stat3 Z$stat4 J$stat5 L$stat6"
