@@ -91,6 +91,7 @@ int tetris_count = 0;
 int ttr = 0;
 int b2b = 0;	// back2back bonus
 int combo = 0;	// combo bonus
+int dropped_pieces_num = 0;
 static int lines_level_up = 0;
 
 char lctext_top[LCT_LEN];
@@ -101,6 +102,7 @@ Uint32 lct_deadline = 0;
 Uint32 game_starttime = 0;
 Uint32 game_totaltime = 0;
 char gametimer[GAMETIMER_STRLEN];
+char pieces_per_second[PPS_LEN];
 
 // test variables for T-Spin detection
 bool tst_tetromino_t = false;
@@ -996,6 +998,7 @@ void lockFigure(void)
 
 	next_lock_time = 0;
 	easyspin_counter = 0;
+	++dropped_pieces_num;
 }
 
 void holdFigure(void)
@@ -1720,6 +1723,7 @@ void resetGame(void)
 	ttr = 0;
 	b2b = 0;
 	combo = 0;
+	dropped_pieces_num = 0;
 	left_move = false;
 	right_move = false;
 	lct_deadline = 0;
@@ -1802,6 +1806,9 @@ void updateGTimer(Uint32 ms)
 		}
 	}
 	convertMsToStr(ms, gametimer);
+
+	// calculate pieces per second
+	sprintf(pieces_per_second, "%.2f", 1000.0 * dropped_pieces_num / ms);
 }
 
 void updateHiscores(enum GameMode gm, enum GameOverType got)
