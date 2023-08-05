@@ -78,10 +78,9 @@ I do not cover the topic in detail because there are many better sources on that
 ## ideas / plans
 - better joystick support (menu navigation, tetromino speed proportional to knob angle, on/off option, etc.)
 - line clear animation (TGM?)
-- new KiCAD skin with no tetromino stats (I got bored with them)
-- some kind of system promoting sponsoring the project (sponsor-defined wishes shown during gameplay?)
-- option to imitate playing multiplayer mode (dynamic debris generation during gameplay)
+- dynamic debris generation during gameplay
 - skin redesign to make them more consistent with implemented game modes
+- sonic/hard drop switch
 
 ## sponsors
 - Saikazu

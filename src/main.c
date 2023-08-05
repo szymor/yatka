@@ -302,7 +302,6 @@ int main(int argc, char *argv[])
 	}
 
 	initialize();
-	markDrop();
 	while (1)
 	{
 		switch (gamestate)
@@ -319,6 +318,7 @@ int main(int argc, char *argv[])
 			case GS_INGAME:
 				SDL_EnableKeyRepeat(0, 0);
 				playMusic();
+				markDrop();
 				while (GS_INGAME == gamestate)
 				{
 					if (!frameLimiter())
@@ -982,6 +982,7 @@ void lockFigure(void)
 
 	free(figures[0]);
 	figures[0] = NULL;
+	spawnFigure();
 
 	int removed = removeFullLines();
 	enum GameOverType goreason = checkGameEnd();
@@ -1481,7 +1482,7 @@ void spawnFigure(void)
 
 	if (figures[0] != NULL)
 	{
-		figures[0]->y = -FIG_DIM + 2;
+		figures[0]->y = -FIG_DIM + 3;
 		figures[0]->x = (BOARD_WIDTH - FIG_DIM) / 2;	// center a figure
 		memcpy(&figures[0]->shape, getShape(figures[0]->id), sizeof(figures[0]->shape));
 		++statistics[figures[0]->id];
