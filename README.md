@@ -73,7 +73,8 @@ I do not cover the topic in detail because there are many better sources on that
 - some tetromino randomizers thanks to Simon Laroche ([link](https://simon.lc/the-history-of-tetris-randomizers))
 - SRS wall kicks thanks to [Tetris Wiki](https://tetris.fandom.com/wiki/SRS)
 - Elektronika60, Dotkom and Gamboi skins by GuineaSquiggle
-- bug reporting by Apacz
+- Retro skin by Miyano
+- bug reporting by Apacz and jimbo
 
 ## ideas / plans
 - better joystick support (menu navigation, tetromino speed proportional to knob angle, on/off option, etc.)
@@ -82,6 +83,7 @@ I do not cover the topic in detail because there are many better sources on that
 - skin redesign to make them more consistent with implemented game modes
 - sonic/hard drop switch
 - finesse calculation
+- keys per tetromino factor calculation
 - perfect clear score bonus
 
 ## sponsors
