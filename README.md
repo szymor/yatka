@@ -81,6 +81,8 @@ I do not cover the topic in detail because there are many better sources on that
 - dynamic debris generation during gameplay
 - skin redesign to make them more consistent with implemented game modes
 - sonic/hard drop switch
+- finesse calculation
+- perfect clear score bonus
 
 ## sponsors
 - Saikazu

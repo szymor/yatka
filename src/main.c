@@ -55,7 +55,8 @@ enum TSpinType
 enum GameOverType
 {
 	GOT_PLAYING,
-	GOT_FULLWELL,
+	GOT_LOCKOUT,
+	GOT_BLOCKOUT,
 	GOT_LINECLEAR,
 	GOT_TIMEUP,
 	GOT_END
@@ -648,6 +649,10 @@ void onDrop(void)
 	markDrop();
 	if (smoothanim)
 		draw_delta_drop = -brick_size;
+
+	enum GameOverType goreason = checkGameEnd();
+	if (goreason != GOT_PLAYING)
+		onGameOver(goreason);
 }
 
 void onLineClear(int removed)
@@ -836,6 +841,12 @@ void dropSoft(void)
 			{
 				next_lock_time = getNextDropTime();
 			}
+			else
+			{
+				/* fix for blocking (unable to lock) a figure
+				   at the top of board */
+				next_lock_time = SDL_GetTicks() + FIXED_LOCK_DELAY;
+			}
 		}
 		else
 		{
@@ -985,9 +996,6 @@ void lockFigure(void)
 	spawnFigure();
 
 	int removed = removeFullLines();
-	enum GameOverType goreason = checkGameEnd();
-	if (goreason != GOT_PLAYING)
-		onGameOver(goreason);
 
 	softdrop_pressed = false;
 	softdrop_press_time = 0;
@@ -1445,13 +1453,33 @@ void ingame_processInputEvents(void)
 enum GameOverType checkGameEnd(void)
 {
 	enum GameOverType ret = GOT_PLAYING;
-	// filling up the well
+	// block out
+	if (figures[0] != NULL)
+	{
+		for (int i = 0; i < (FIG_DIM*FIG_DIM); ++i)
+			if (figures[0]->shape.blockmap[i] != BO_EMPTY)
+			{
+				int x = i % FIG_DIM + figures[0]->x;
+				int y = i / FIG_DIM + figures[0]->y;
+				if ((x >= 0) && (x < BOARD_WIDTH) && (y >= 0) && (y < BOARD_HEIGHT))
+				{
+					if (board[y*BOARD_WIDTH + x].orientation != BO_EMPTY)
+						ret = GOT_BLOCKOUT;
+						break;
+				}
+			}
+	}
+
+	// lock out (does not conform to Tetris Design Guideline 2009)
+	// simply check the top-most row
+
 	for (int i = 0; i < BOARD_WIDTH; ++i)
 		if (board[i].orientation != BO_EMPTY)
 		{
-			ret = GOT_FULLWELL;
+			ret = GOT_LOCKOUT;
 			break;
 		}
+
 	// target number of lines cleared (Sprint only)
 	if (GM_SPRINT == menu_gamemode)
 	{

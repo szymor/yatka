@@ -19,7 +19,7 @@ bricksize 12
 ; bricksprite filename
 bricksprite "bricks.png"
 ; debriscolor colorid
-debriscolor 100
+debriscolor 7
 ; ghost alpha
 ghost 69
 ; font id filename size
