@@ -83,7 +83,6 @@ I do not cover the topic in detail because there are many better sources on that
 - skin redesign to make them more consistent with implemented game modes
 - sonic/hard drop switch
 - finesse calculation
-- keys per tetromino factor calculation
 - perfect clear score bonus
 
 ## sponsors

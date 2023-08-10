@@ -8,10 +8,6 @@
 #include <SDL/SDL_ttf.h>
 #include <SDL/SDL_mixer.h>
 
-#ifdef __MINGW32__
-#undef main
-#endif
-
 #include "joystick.h"
 #include "main.h"
 #include "data_persistence.h"
@@ -93,6 +89,7 @@ int ttr = 0;
 int b2b = 0;	// back2back bonus
 int combo = 0;	// combo bonus
 int dropped_pieces_num = 0;
+int pressed_keys_num = 0;
 static int lines_level_up = 0;
 
 char lctext_top[LCT_LEN];
@@ -104,6 +101,7 @@ Uint32 game_starttime = 0;
 Uint32 game_totaltime = 0;
 char gametimer[GAMETIMER_STRLEN];
 char pieces_per_second[PPS_LEN];
+char keys_per_tetromino[KPT_LEN];
 
 // test variables for T-Spin detection
 bool tst_tetromino_t = false;
@@ -247,6 +245,7 @@ void onGameOver(enum GameOverType reason);
 void checkForPrelocking(void);
 void updateLCT(char *top, char *mid, char *bot, Uint32 ms);
 void updateGTimer(Uint32 ms);
+void updateKPT(void);
 void updateHiscores(enum GameMode gm, enum GameOverType got);
 
 void initFigures(void);
@@ -1008,6 +1007,7 @@ void lockFigure(void)
 	next_lock_time = 0;
 	easyspin_counter = 0;
 	++dropped_pieces_num;
+	updateKPT();
 }
 
 void holdFigure(void)
@@ -1386,10 +1386,14 @@ void ingame_processInputEvents(void)
 				if (event.key.keysym.sym == krotatecw)
 				{
 					rotate_cw();
+					++pressed_keys_num;
+					updateKPT();
 				}
 				else if (event.key.keysym.sym == krotateccw)
 				{
 					rotate_ccw();
+					++pressed_keys_num;
+					updateKPT();
 				}
 				else if (event.key.keysym.sym == ksoftdrop)
 				{
@@ -1406,10 +1410,14 @@ void ingame_processInputEvents(void)
 				else if (event.key.keysym.sym == kleft)
 				{
 					left_on();
+					++pressed_keys_num;
+					updateKPT();
 				}
 				else if (event.key.keysym.sym == kright)
 				{
 					right_on();
+					++pressed_keys_num;
+					updateKPT();
 				}
 				else if (event.key.keysym.sym == kpause)
 				{
@@ -1753,11 +1761,13 @@ void resetGame(void)
 	b2b = 0;
 	combo = 0;
 	dropped_pieces_num = 0;
+	pressed_keys_num = 0;
 	left_move = false;
 	right_move = false;
 	lct_deadline = 0;
 
 	updateLCT("", "", "", 0);
+	updateKPT();
 	randomizer_reset();
 
 	for (int i = 0; i < FIG_NUM - 1; ++i)
@@ -1838,6 +1848,12 @@ void updateGTimer(Uint32 ms)
 
 	// calculate pieces per second
 	sprintf(pieces_per_second, "%.2f", 1000.0 * dropped_pieces_num / ms);
+}
+
+void updateKPT(void)
+{
+	// calculate keys per tetromino
+	sprintf(keys_per_tetromino, "%.2f", (double) pressed_keys_num / (dropped_pieces_num + 1));
 }
 
 void updateHiscores(enum GameMode gm, enum GameOverType got)
