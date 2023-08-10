@@ -195,6 +195,41 @@ void mainmenu_updateScreen(void)
 		sprintf(buff, "  KEY CONFIGURATION  ");
 	text(16, 128, buff, 0, 0);
 
+	// hints
+	switch (submenu_index)
+	{
+		case 0:
+			switch (menu_gamemode)
+			{
+				case GM_MARATHON:
+					sprintf(buff, "Endless game.");
+					break;
+				case GM_SPRINT:
+					sprintf(buff, "Clear 40 or more lines as fast as you can.");
+					break;
+				case GM_ULTRA:
+					sprintf(buff, "Get the highest score for 3 minutes.");
+					break;
+				default:
+					sprintf(buff, "cheater?");
+			} break;
+		case 1:
+			sprintf(buff, "Visual theme, affects some game rules.");
+			break;
+		case 2:
+			sprintf(buff, "Affects initial speed of the game.");
+			break;
+		case 3:
+			sprintf(buff, "Affects initial line garbage.");
+			break;
+		case 4:
+			sprintf(buff, "Affects density of line garbage.");
+			break;
+		default:
+			buff[0] = '\0';
+	}
+	text(16, 220, buff, 0, 0);
+
 	flipScreenScaled();
 }
 
