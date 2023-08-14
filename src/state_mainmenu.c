@@ -17,7 +17,17 @@
 #define MAX_SKIN_NUM		32
 #define MAX_SKIN_NAME_LEN	16
 #define MAX_SKIN_PATH_LEN	256
-#define POSITION_NUM		6
+
+enum MenuEntry
+{
+	ME_GAMEMODE,
+	ME_SKIN,
+	ME_SPEEDLEVEL,
+	ME_DEBRISLEVEL,
+	ME_DEBRISCHANCE,
+	ME_KEYCONFIG,
+	ME_END
+};
 
 enum KeyId
 {
@@ -48,7 +58,7 @@ int menu_debris = 0;
 int menu_debris_chance = 8;
 
 static char custom_skin_dir[256] = "";
-static int submenu_index = 0;
+static int submenu_index = ME_GAMEMODE;
 
 static void up(void);
 static void down(void);
@@ -159,37 +169,37 @@ void mainmenu_updateScreen(void)
 		"SPRINT",
 		"ULTRA"
 	};
-	if (0 == submenu_index)
+	if (ME_GAMEMODE == submenu_index)
 		sprintf(buff, "< %s >", menu_modenames[menu_gamemode]);
 	else
 		sprintf(buff, "  %s  ", menu_modenames[menu_gamemode]);
 	text(120, 40, buff, 0, 0);
 
-	if (1 == submenu_index)
+	if (ME_SKIN == submenu_index)
 		sprintf(buff, "< %s >", menu_skinentries[menu_skin].name);
 	else
 		sprintf(buff, "  %s  ", menu_skinentries[menu_skin].name);
 	text(120, 56, buff, 0, 0);
 
-	if (2 == submenu_index)
+	if (ME_SPEEDLEVEL == submenu_index)
 		sprintf(buff, "< %d >", menu_level);
 	else
 		sprintf(buff, "  %d  ", menu_level);
 	text(120, 72, buff, 0, 0);
 
-	if (3 == submenu_index)
+	if (ME_DEBRISLEVEL == submenu_index)
 		sprintf(buff, "< %d >", menu_debris);
 	else
 		sprintf(buff, "  %d  ", menu_debris);
 	text(120, 88, buff, 0, 0);
 
-	if (4 == submenu_index)
+	if (ME_DEBRISCHANCE == submenu_index)
 		sprintf(buff, "< %d >", menu_debris_chance);
 	else
 		sprintf(buff, "  %d  ", menu_debris_chance);
 	text(120, 104, buff, 0, 0);
 
-	if (5 == submenu_index)
+	if (ME_KEYCONFIG == submenu_index)
 		sprintf(buff, "> KEY CONFIGURATION <");
 	else
 		sprintf(buff, "  KEY CONFIGURATION  ");
@@ -198,7 +208,7 @@ void mainmenu_updateScreen(void)
 	// hints
 	switch (submenu_index)
 	{
-		case 0:
+		case ME_GAMEMODE:
 			switch (menu_gamemode)
 			{
 				case GM_MARATHON:
@@ -213,16 +223,16 @@ void mainmenu_updateScreen(void)
 				default:
 					sprintf(buff, "cheater?");
 			} break;
-		case 1:
+		case ME_SKIN:
 			sprintf(buff, "Visual theme, affects some game rules.");
 			break;
-		case 2:
+		case ME_SPEEDLEVEL:
 			sprintf(buff, "Affects initial speed of the game.");
 			break;
-		case 3:
+		case ME_DEBRISLEVEL:
 			sprintf(buff, "Affects initial line garbage.");
 			break;
-		case 4:
+		case ME_DEBRISCHANCE:
 			sprintf(buff, "Affects density of line garbage.");
 			break;
 		default:
@@ -235,12 +245,12 @@ void mainmenu_updateScreen(void)
 
 static void up(void)
 {
-	decMod(&submenu_index, POSITION_NUM, false);
+	decMod(&submenu_index, ME_END, false);
 }
 
 static void down(void)
 {
-	incMod(&submenu_index, POSITION_NUM, false);
+	incMod(&submenu_index, ME_END, false);
 }
 
 static void left(void)
@@ -249,26 +259,26 @@ static void left(void)
 	int limit = 10;
 	switch (submenu_index)
 	{
-		case 0:
+		case ME_GAMEMODE:
 			option = &menu_gamemode;
 			limit = GM_END;
 			decMod(option, limit, false);
 			break;
-		case 1:
+		case ME_SKIN:
 			option = &menu_skin;
 			limit = menu_skinnum;
 			decMod(option, limit, false);
 			break;
-		case 2:
+		case ME_SPEEDLEVEL:
 			option = &menu_level;
 			decMod(option, limit, true);
 			break;
-		case 3:
+		case ME_DEBRISLEVEL:
 			option = &menu_debris;
 			limit = 16;
 			decMod(option, limit, true);
 			break;
-		case 4:
+		case ME_DEBRISCHANCE:
 			option = &menu_debris_chance;
 			decMod(option, limit, true);
 			break;
@@ -281,26 +291,26 @@ static void right(void)
 	int limit = 10;
 	switch (submenu_index)
 	{
-		case 0:
+		case ME_GAMEMODE:
 			option = &menu_gamemode;
 			limit = GM_END;
 			incMod(option, limit, false);
 			break;
-		case 1:
+		case ME_SKIN:
 			option = &menu_skin;
 			limit = menu_skinnum;
 			incMod(option, limit, false);
 			break;
-		case 2:
+		case ME_SPEEDLEVEL:
 			option = &menu_level;
 			incMod(option, limit, true);
 			break;
-		case 3:
+		case ME_DEBRISLEVEL:
 			option = &menu_debris;
 			limit = 16;
 			incMod(option, limit, true);
 			break;
-		case 4:
+		case ME_DEBRISCHANCE:
 			option = &menu_debris_chance;
 			incMod(option, limit, true);
 			break;
@@ -310,7 +320,7 @@ static void right(void)
 static void action(void)
 {
 	// key configuration
-	if (5 == submenu_index)
+	if (ME_KEYCONFIG == submenu_index)
 	{
 		const int xpos = 16;
 		const int ypos = 144;
@@ -368,7 +378,7 @@ static void action(void)
 		skin_loadSkin(&gameskin, menu_skinentries[menu_skin].path);
 		resetGame();
 		gamestate = GS_INGAME;
-		submenu_index = 0;
+		submenu_index = ME_GAMEMODE;
 	}
 }
 
