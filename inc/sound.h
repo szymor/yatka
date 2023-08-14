@@ -1,6 +1,8 @@
 #ifndef _H_SOUND
 #define _H_SOUND
 
+#include <SDL/SDL_mixer.h>
+
 #define MUSIC_FADE_TIME		3000
 
 enum SfxSpeech

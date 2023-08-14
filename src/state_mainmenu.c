@@ -12,6 +12,7 @@
 #include "main.h"
 #include "joystick.h"
 #include "video.h"
+#include "sound.h"
 #include "data_persistence.h"
 
 #define MAX_SKIN_NUM		32
@@ -25,6 +26,7 @@ enum MenuEntry
 	ME_SPEEDLEVEL,
 	ME_DEBRISLEVEL,
 	ME_DEBRISCHANCE,
+	ME_AUTODEBRIS,
 	ME_KEYCONFIG,
 	ME_END
 };
@@ -56,6 +58,7 @@ int menu_skin = 0;		// currently selected skin
 int menu_level = 0;
 int menu_debris = 0;
 int menu_debris_chance = 8;
+int menu_auto_debris = 0;
 
 static char custom_skin_dir[256] = "";
 static int submenu_index = ME_GAMEMODE;
@@ -149,6 +152,37 @@ void mainmenu_init(void)
 		perror("Couldn't open the main skin directory.");
 }
 
+static char *mainmenu_autodebris_name_helper(int val)
+{
+	static char buff[32];
+
+	if (0 == val)
+	{
+		strcpy(buff, "OFF");
+	}
+	else if (1 == val)
+	{
+		strcpy(buff, "30 seconds");
+	}
+	else if (2 == val)
+	{
+		strcpy(buff, "1 minute");
+	}
+	else
+	{
+		if (val % 2 == 0)
+		{
+			sprintf(buff, "%d minutes", val / 2);
+		}
+		else
+		{
+			sprintf(buff, "%d min 30 sec", val / 2);
+		}
+	}
+
+	return buff;
+}
+
 void mainmenu_updateScreen(void)
 {
 	char buff[256];
@@ -158,11 +192,12 @@ void mainmenu_updateScreen(void)
 	text(16, 16, "YATKA", 0, 0);
 	text(320, 240, xstr(COMMIT_HASH), 2, 2);
 
-	text(16, 40, "MODE", 0, 0);
-	text(16, 56, "SKIN", 0, 0);
-	text(16, 72, "LEVEL", 0, 0);
-	text(16, 88, "DEBRIS", 0, 0);
-	text(16, 104, "DEBRIS CHANCE", 0, 0);
+	text(16, 32, "MODE", 0, 0);
+	text(16, 44, "SKIN", 0, 0);
+	text(16, 56, "LEVEL", 0, 0);
+	text(16, 68, "DEBRIS", 0, 0);
+	text(16, 80, "DEBRIS CHANCE", 0, 0);
+	text(16, 92, "AUTO DEBRIS", 0, 0);
 
 	static const char menu_modenames[GM_END][16] = {
 		"MARATHON",
@@ -173,31 +208,37 @@ void mainmenu_updateScreen(void)
 		sprintf(buff, "< %s >", menu_modenames[menu_gamemode]);
 	else
 		sprintf(buff, "  %s  ", menu_modenames[menu_gamemode]);
-	text(120, 40, buff, 0, 0);
+	text(120, 32, buff, 0, 0);
 
 	if (ME_SKIN == submenu_index)
 		sprintf(buff, "< %s >", menu_skinentries[menu_skin].name);
 	else
 		sprintf(buff, "  %s  ", menu_skinentries[menu_skin].name);
-	text(120, 56, buff, 0, 0);
+	text(120, 44, buff, 0, 0);
 
 	if (ME_SPEEDLEVEL == submenu_index)
 		sprintf(buff, "< %d >", menu_level);
 	else
 		sprintf(buff, "  %d  ", menu_level);
-	text(120, 72, buff, 0, 0);
+	text(120, 56, buff, 0, 0);
 
 	if (ME_DEBRISLEVEL == submenu_index)
 		sprintf(buff, "< %d >", menu_debris);
 	else
 		sprintf(buff, "  %d  ", menu_debris);
-	text(120, 88, buff, 0, 0);
+	text(120, 68, buff, 0, 0);
 
 	if (ME_DEBRISCHANCE == submenu_index)
 		sprintf(buff, "< %d >", menu_debris_chance);
 	else
 		sprintf(buff, "  %d  ", menu_debris_chance);
-	text(120, 104, buff, 0, 0);
+	text(120, 80, buff, 0, 0);
+
+	if (ME_AUTODEBRIS == submenu_index)
+		sprintf(buff, "< %s >", mainmenu_autodebris_name_helper(menu_auto_debris));
+	else
+		sprintf(buff, "  %s  ", mainmenu_autodebris_name_helper(menu_auto_debris));
+	text(120, 92, buff, 0, 0);
 
 	if (ME_KEYCONFIG == submenu_index)
 		sprintf(buff, "> KEY CONFIGURATION <");
@@ -235,6 +276,9 @@ void mainmenu_updateScreen(void)
 		case ME_DEBRISCHANCE:
 			sprintf(buff, "Affects density of line garbage.");
 			break;
+		case ME_AUTODEBRIS:
+			sprintf(buff, "Enables garbage generation over time.");
+			break;
 		default:
 			buff[0] = '\0';
 	}
@@ -245,16 +289,20 @@ void mainmenu_updateScreen(void)
 
 static void up(void)
 {
+	playEffect(SE_CLICK);
 	decMod(&submenu_index, ME_END, false);
 }
 
 static void down(void)
 {
+	playEffect(SE_CLICK);
 	incMod(&submenu_index, ME_END, false);
 }
 
 static void left(void)
 {
+	playEffect(SE_CLICK);
+
 	int *option = NULL;
 	int limit = 10;
 	switch (submenu_index)
@@ -280,6 +328,11 @@ static void left(void)
 			break;
 		case ME_DEBRISCHANCE:
 			option = &menu_debris_chance;
+			decMod(option, limit, true);
+			break;
+		case ME_AUTODEBRIS:
+			option = &menu_auto_debris;
+			limit = 7;
 			decMod(option, limit, true);
 			break;
 	}
@@ -287,6 +340,8 @@ static void left(void)
 
 static void right(void)
 {
+	playEffect(SE_CLICK);
+
 	int *option = NULL;
 	int limit = 10;
 	switch (submenu_index)
@@ -312,6 +367,11 @@ static void right(void)
 			break;
 		case ME_DEBRISCHANCE:
 			option = &menu_debris_chance;
+			incMod(option, limit, true);
+			break;
+		case ME_AUTODEBRIS:
+			option = &menu_auto_debris;
+			limit = 7;
 			incMod(option, limit, true);
 			break;
 	}
