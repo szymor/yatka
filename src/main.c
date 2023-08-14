@@ -97,7 +97,8 @@ char lctext_mid[LCT_LEN];
 char lctext_bot[LCT_LEN];
 Uint32 lct_deadline = 0;
 
-Uint32 game_starttime = 0;
+Uint32 game_lastpausetime = 0;
+Uint32 game_startbias = 0;
 Uint32 game_totaltime = 0;
 char gametimer[GAMETIMER_STRLEN];
 char pieces_per_second[PPS_LEN];
@@ -244,7 +245,8 @@ void onLineClear(int removed);
 void onGameOver(enum GameOverType reason);
 void checkForPrelocking(void);
 void updateLCT(char *top, char *mid, char *bot, Uint32 ms);
-void updateGTimer(Uint32 ms);
+void updateGTimer(void);
+void updateTotalTime(void);
 void updateKPT(void);
 void updateHiscores(enum GameMode gm, enum GameOverType got);
 
@@ -360,18 +362,20 @@ int main(int argc, char *argv[])
 						{
 							updateLCT("", "", "", 0);
 						}
-						updateGTimer(ct - game_starttime);
+						updateGTimer();
 					}
 				}
 				saveLastGameScreen();
 				break;
 			case GS_SETTINGS:
+				game_startbias += SDL_GetTicks() - game_lastpausetime;
 				SDL_EnableKeyRepeat(500, 100);
 				while (GS_SETTINGS == gamestate)
 				{
 					settings_updateScreen();
 					settings_processInputEvents();
 				}
+				game_lastpausetime = SDL_GetTicks();
 				break;
 			case GS_GAMEOVER:
 				gameover_updateScreen();
@@ -815,7 +819,7 @@ void onLineClear(int removed)
 void onGameOver(enum GameOverType reason)
 {
 	stopMusic();
-	game_totaltime = SDL_GetTicks() - game_starttime;
+	updateTotalTime();
 	updateHiscores(menu_gamemode, reason);
 	gamestate = GS_GAMEOVER;
 }
@@ -1499,8 +1503,8 @@ enum GameOverType checkGameEnd(void)
 	// time is up (Ultra only)
 	if (GM_ULTRA == menu_gamemode)
 	{
-		Uint32 now = SDL_GetTicks();
-		if ((now - game_starttime) > ULTRA_MS_LEN)
+		updateTotalTime();
+		if (game_totaltime > ULTRA_MS_LEN)
 		{
 			ret = GOT_TIMEUP;
 		}
@@ -1783,7 +1787,8 @@ void resetGame(void)
 	preserved.id = FIGID_END;
 	spawnFigure();
 	generateDebris();
-	game_starttime = SDL_GetTicks();
+	game_lastpausetime = SDL_GetTicks();
+	game_startbias = 0;
 }
 
 void updateLockTime(void)
@@ -1831,23 +1836,31 @@ void convertMsToStr(Uint32 ms, char *dest)
 	}
 }
 
-void updateGTimer(Uint32 ms)
+void updateGTimer(void)
 {
+	updateTotalTime();
+	Uint32 total = game_totaltime;
+
 	if (GM_ULTRA == menu_gamemode)
 	{
-		if (ms < ULTRA_MS_LEN)
+		if (total < ULTRA_MS_LEN)
 		{
-			ms = ULTRA_MS_LEN - ms;
+			total = ULTRA_MS_LEN - total;
 		}
 		else
 		{
-			ms = 0;
+			total = 0;
 		}
 	}
-	convertMsToStr(ms, gametimer);
+	convertMsToStr(total, gametimer);
 
 	// calculate pieces per second
-	sprintf(pieces_per_second, "%.2f", 1000.0 * dropped_pieces_num / ms);
+	sprintf(pieces_per_second, "%.2f", 1000.0 * dropped_pieces_num / total);
+}
+
+void updateTotalTime(void)
+{
+	game_totaltime = SDL_GetTicks() - game_lastpausetime + game_startbias;
 }
 
 void updateKPT(void)
