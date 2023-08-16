@@ -63,6 +63,7 @@
 
 #define ULTRA_MS_LEN				(3*60*1000)
 #define SPRINT_LINE_COUNT			(40)
+#define AUTO_DEBRIS_TIME_UNIT		(30*1000)
 
 enum GameMode
 {

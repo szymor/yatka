@@ -104,6 +104,8 @@ char gametimer[GAMETIMER_STRLEN];
 char pieces_per_second[PPS_LEN];
 char keys_per_tetromino[KPT_LEN];
 
+static Uint32 time_to_generate_debris = 0;
+
 // test variables for T-Spin detection
 bool tst_tetromino_t = false;
 bool tst_rotation_last = false;
@@ -259,7 +261,10 @@ void rotateFigureCW(void);
 void rotateFigureCCW(void);
 bool rotateTest(int x, int y);
 
-static void generateDebris(void);
+static void generateDebris(int rows);
+static void pushBricksUp(int rows);
+static void updateAutoDebrisTimer(Uint32 ct);
+static void handleAutoDebris(void);
 static void checkForSmoothAnimationCollisions(void);
 
 static void softdrop_off(void);
@@ -363,6 +368,7 @@ int main(int argc, char *argv[])
 							updateLCT("", "", "", 0);
 						}
 						updateGTimer();
+						handleAutoDebris();
 					}
 				}
 				saveLastGameScreen();
@@ -1728,9 +1734,9 @@ void decMod(int *var, int limit, bool sat)
 	*var = (*var + limit - 1) % limit;
 }
 
-static void generateDebris(void)
+static void generateDebris(int rows)
 {
-	for (int yy = 0; yy < menu_debris; ++yy)
+	for (int yy = 0; yy < rows; ++yy)
 	{
 		int bricks_per_row = 0;
 		while (bricks_per_row != menu_debris_chance)
@@ -1744,6 +1750,44 @@ static void generateDebris(void)
 			board[i].color = FIGID_GRAY;
 			++bricks_per_row;
 		}
+	}
+}
+
+static void pushBricksUp(int rows)
+{
+	// push
+	for (int y = 0; y < BOARD_HEIGHT - rows; ++y)
+		for (int x = 0; x < BOARD_WIDTH; ++x)
+		{
+			int i = y * BOARD_WIDTH + x;
+			int j = (y + rows) * BOARD_WIDTH + x;
+			board[i] = board[j];
+		}
+	// clean
+	for (int y = BOARD_HEIGHT - rows; y < BOARD_HEIGHT; ++y)
+		for (int x = 0; x < BOARD_WIDTH; ++x)
+		{
+			int i = y * BOARD_WIDTH + x;
+			board[i].color = FIGID_END;
+			board[i].orientation = BO_EMPTY;
+		}
+}
+
+static void updateAutoDebrisTimer(Uint32 ct)
+{
+	time_to_generate_debris = ct + menu_auto_debris * AUTO_DEBRIS_TIME_UNIT;
+}
+
+static void handleAutoDebris(void)
+{
+	if (0 == menu_auto_debris)
+		return;
+	Uint32 now = SDL_GetTicks();
+	if (now > time_to_generate_debris)
+	{
+		pushBricksUp(1);
+		generateDebris(1);
+		updateAutoDebrisTimer(now);
 	}
 }
 
@@ -1786,9 +1830,10 @@ void resetGame(void)
 
 	preserved.id = FIGID_END;
 	spawnFigure();
-	generateDebris();
+	generateDebris(menu_debris);
 	game_lastpausetime = SDL_GetTicks();
 	game_startbias = 0;
+	updateAutoDebrisTimer(game_lastpausetime);
 }
 
 void updateLockTime(void)
