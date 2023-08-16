@@ -1472,21 +1472,8 @@ enum GameOverType checkGameEnd(void)
 {
 	enum GameOverType ret = GOT_PLAYING;
 	// block out
-	if (figures[0] != NULL)
-	{
-		for (int i = 0; i < (FIG_DIM*FIG_DIM); ++i)
-			if (figures[0]->shape.blockmap[i] != BO_EMPTY)
-			{
-				int x = i % FIG_DIM + figures[0]->x;
-				int y = i / FIG_DIM + figures[0]->y;
-				if ((x >= 0) && (x < BOARD_WIDTH) && (y >= 0) && (y < BOARD_HEIGHT))
-				{
-					if (board[y*BOARD_WIDTH + x].orientation != BO_EMPTY)
-						ret = GOT_BLOCKOUT;
-						break;
-				}
-			}
-	}
+	if (isFigureColliding())
+		ret = GOT_BLOCKOUT;
 
 	// lock out (does not conform to Tetris Design Guideline 2009)
 	// simply check the top-most row
