@@ -368,7 +368,6 @@ int main(int argc, char *argv[])
 							updateLCT("", "", "", 0);
 						}
 						updateGTimer();
-						handleAutoDebris();
 					}
 				}
 				saveLastGameScreen();
@@ -1018,6 +1017,7 @@ void lockFigure(void)
 	easyspin_counter = 0;
 	++dropped_pieces_num;
 	updateKPT();
+	handleAutoDebris();
 }
 
 void holdFigure(void)

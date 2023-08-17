@@ -156,27 +156,29 @@ static char *mainmenu_autodebris_name_helper(int val)
 {
 	static char buff[32];
 
+	Uint32 val_to_sec = val * AUTO_DEBRIS_TIME_UNIT / 1000;
+
 	if (0 == val)
 	{
 		strcpy(buff, "OFF");
 	}
-	else if (1 == val)
+	else if (val_to_sec < 60)
 	{
-		strcpy(buff, "30 seconds");
+		sprintf(buff, "%d seconds", val_to_sec);
 	}
-	else if (2 == val)
+	else if (val_to_sec == 60)
 	{
 		strcpy(buff, "1 minute");
 	}
 	else
 	{
-		if (val % 2 == 0)
+		if (val_to_sec % 60 == 0)
 		{
-			sprintf(buff, "%d minutes", val / 2);
+			sprintf(buff, "%d minutes", val_to_sec / 60);
 		}
 		else
 		{
-			sprintf(buff, "%d min 30 sec", val / 2);
+			sprintf(buff, "%d min %d sec", val_to_sec / 60, val_to_sec % 60);
 		}
 	}
 
@@ -332,7 +334,7 @@ static void left(void)
 			break;
 		case ME_AUTODEBRIS:
 			option = &menu_auto_debris;
-			limit = 7;
+			limit = 19;
 			decMod(option, limit, true);
 			break;
 	}
@@ -371,7 +373,7 @@ static void right(void)
 			break;
 		case ME_AUTODEBRIS:
 			option = &menu_auto_debris;
-			limit = 7;
+			limit = 19;
 			incMod(option, limit, true);
 			break;
 	}
