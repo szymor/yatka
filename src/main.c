@@ -918,6 +918,8 @@ void dropHard(void)
 {
 	if (figures[0] != NULL)
 	{
+		int last_y = figures[0]->y;
+
 		tst_rotation_last = false;
 		while (!isFigureColliding())
 		{
@@ -926,11 +928,29 @@ void dropHard(void)
 		}
 		--figures[0]->y;
 		score -= 2;
+
 		if (!sonicdrop)
 		{
 			lockFigure();
 		}
-		onDrop();
+		else if (last_y != figures[0]->y)
+		{
+			if (!lockdelay)
+			{
+				next_lock_time = getNextDropTime();
+			}
+			else
+			{
+				/* fix for blocking (unable to lock) a figure
+				   at the top of board */
+				next_lock_time = SDL_GetTicks() + FIXED_LOCK_DELAY;
+			}
+		}
+
+		if (last_y != figures[0]->y)
+		{
+			onDrop();
+		}
 	}
 }
 
