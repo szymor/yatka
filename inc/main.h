@@ -150,6 +150,7 @@ extern bool nosound;
 extern bool repeattrack;
 extern bool easyspin;
 extern bool lockdelay;
+extern bool sonicdrop;
 extern bool smoothanim;
 extern bool speechon;
 

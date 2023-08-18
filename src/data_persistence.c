@@ -103,6 +103,8 @@ void loadSettings(void)
 			easyspin = true;
 		else if (!strcmp(buff, "lockdelay"))
 			lockdelay = true;
+		else if (!strcmp(buff, "sonicdrop"))
+			sonicdrop = true;
 		else if (!strcmp(buff, "repeattrack"))
 			repeattrack = true;
 		else if (!strcmp(buff, "fullscreen"))
@@ -189,6 +191,8 @@ void saveSettings(void)
 		fprintf(settingsFile, "easyspin\n");
 	if (lockdelay)
 		fprintf(settingsFile, "lockdelay\n");
+	if (sonicdrop)
+		fprintf(settingsFile, "sonicdrop\n");
 	if (repeattrack)
 		fprintf(settingsFile, "repeattrack\n");
 	if (0 == screenscale)

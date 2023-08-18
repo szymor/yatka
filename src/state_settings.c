@@ -23,6 +23,7 @@ enum SettingsLine
 	SL_TETROMINO_COLOR,
 	SL_EASYSPIN,
 	SL_LOCKDELAY,
+	SL_DROPTYPE,
 	SL_RANDOMIZER,
 	SL_END
 };
@@ -40,6 +41,7 @@ static const char settings_text[][32] = {
 	"  tetromino color           %s",
 	"  easy spin                 %s",
 	"  fixed lock delay          %s",
+	"  drop type                 %s",
 	"  tetromino randomizer      %s",
 };
 
@@ -147,6 +149,11 @@ static void left(void)
 			lockdelay = !lockdelay;
 			settings_changed = true;
 		} break;
+		case SL_DROPTYPE:
+		{
+			sonicdrop = !sonicdrop;
+			settings_changed = true;
+		} break;
 		case SL_RANDOMIZER:
 		{
 			decMod((int*)&randomalgo, RA_END, false);
@@ -201,6 +208,11 @@ static void right(void)
 		case SL_LOCKDELAY:
 		{
 			lockdelay = !lockdelay;
+			settings_changed = true;
+		} break;
+		case SL_DROPTYPE:
+		{
+			sonicdrop = !sonicdrop;
 			settings_changed = true;
 		} break;
 		case SL_RANDOMIZER:
@@ -372,6 +384,10 @@ static char *generateSettingLine(char *buff, int pos)
 		case SL_LOCKDELAY:
 		{
 			sprintf(buff, settings_text[pos], lockdelay ? "on" : "off");
+		} break;
+		case SL_DROPTYPE:
+		{
+			sprintf(buff, settings_text[pos], sonicdrop ? "sonic" : "hard");
 		} break;
 		case SL_RANDOMIZER:
 		{

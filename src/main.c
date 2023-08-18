@@ -73,6 +73,7 @@ bool nosound = false;
 bool repeattrack = false;
 bool easyspin = false;
 bool lockdelay = false;
+bool sonicdrop = false;
 bool smoothanim = false;
 bool speechon = false;
 
@@ -925,7 +926,10 @@ void dropHard(void)
 		}
 		--figures[0]->y;
 		score -= 2;
-		lockFigure();
+		if (!sonicdrop)
+		{
+			lockFigure();
+		}
 		onDrop();
 	}
 }
