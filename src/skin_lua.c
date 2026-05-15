@@ -933,22 +933,52 @@ void skin_lua_draw_shadow(struct Skin *skin)
 	}
 }
 
-/* draw_active_figure(interp_y) — pass the smooth‑drop Y offset */
+/* draw_active_figure(interp_y) — C-level active figure drawing with
+ * smooth‑drop Y offset passed from the render pipeline */
 void skin_lua_draw_active_figure(struct Skin *skin, int interp_y)
 {
-	if (!skin->L) return;
-	lua_State *L = skin->L;
-	lua_getglobal(L, "draw_active_figure");
-	if (lua_isfunction(L, -1))
+	if (!figures[0]) return;
+
+	struct Figure *fig = figures[0];
+	int color = fig->color;
+	if (color < 0 || color >= FIGID_END) return;
+	if (!skin->bricksprite[color]) return;
+
+	int bw = skin->bricksize;
+	int bh = skin->bricksize + skin->brickyoffset;
+	int bx = skin->boardx + skin->bricksize * fig->x;
+	int by = skin->boardy + skin->bricksize * (fig->y - INVISIBLE_ROW_COUNT)
+		- skin->brickyoffset + interp_y;
+
+	for (int i = 0; i < FIG_DIM * FIG_DIM; ++i)
 	{
-		lua_pushinteger(L, interp_y);
-		if (lua_pcall(L, 1, 0, 0) != LUA_OK)
+		if (fig->shape.blockmap[i] == BO_EMPTY) continue;
+
+		int cx = i % FIG_DIM;
+		int cy = i / FIG_DIM;
+
+		SDL_Rect srcrect = { .x = 0, .y = 0, .w = bw, .h = bh };
+		SDL_Rect dst = {
+			.x = bx + cx * bw,
+			.y = by + cy * bh
+		};
+
+		/* orientation / figurewise sprite sheet selection */
+		switch (skin->brickstyle)
 		{
-			fprintf(stderr, "Lua draw_active_figure error: %s\n", lua_tostring(L, -1));
-			lua_pop(L, 1);
+		case BS_ORIENTATION_BASED:
+			srcrect.x = (int)fig->shape.blockmap[i] * bw - bw;
+			break;
+		case BS_FIGUREWISE:
+			srcrect.y = (color % FIGID_GRAY) * bh;
+			break;
+		default: break;
 		}
+
+		SDL_Surface *block = skin->bricksprite[color];
+		SDL_SetAlpha(block, SDL_SRCALPHA, 255);
+		SDL_BlitSurface(block, &srcrect, screen, &dst);
 	}
-	else lua_pop(L, 1);
 }
 
 /* ─────────────────────────────────────────────

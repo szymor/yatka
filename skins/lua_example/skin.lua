@@ -63,17 +63,7 @@ function draw_board()
 	end
 end
 
-function draw_active_figure(interp_y)
-	local fig = figure.active()
-	if not fig then return end
-	local bx, by = 100, 0
-	for _, cell in ipairs(fig.cells) do
-		res.draw_brick(
-			bx + (fig.x + cell.x) * brick_w,
-			by + (fig.y + cell.y - 1) * brick_w + interp_y,
-			fig.color, cell.orient)
-	end
-end
+
 
 
 function on_line_clear(data)
