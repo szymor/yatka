@@ -296,6 +296,8 @@ static int y_set_brick_size(lua_State *L)
 	int h_off = (int)luaL_optinteger(L, 2, 0);
 	skin->bricksize = w;
 	skin->brickyoffset = h_off;
+	brick_size = w;
+	draw_delta_drop = -w;
 	return 0;
 }
 
