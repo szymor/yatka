@@ -2,6 +2,8 @@
 local bg_img, font, small_font
 local brick_w, brick_h
 
+
+
 function skin_load(r)
 	bg_img = r.load_image(r.skin_path .. "bg.png")
 
@@ -85,6 +87,23 @@ function draw_ghost()
 			fig.color, cell.orient, 128)
 	end
 end
+function on_line_clear(data)
+	local clear_names = { "Single", "Double", "Triple", "Tetris", "Cheatris" }
+	local lines = data.lines
+	if lines > 5 then lines = 5 end
+	local name = clear_names[lines]
+	if data.tspin and data.tspin ~= "" then
+		name = data.tspin .. name
+	end
+	if data.b2b then
+		res.show_timed_text(160, 8, "Back-2-Back", 1500, font, 255, 255, 255, 1, 0)
+	end
+	res.show_timed_text(160, 16, name, 1500, font, 255, 255, 255, 1, 0)
+	if data.combo and data.combo > 0 then
+		res.show_timed_text(160, 24, "combo " .. data.combo .. "x", 1500, small_font, 255, 255, 255, 1, 0)
+	end
+end
+
 function draw_foreground() end
 
 function draw_hud()
@@ -149,8 +168,5 @@ function draw_hud()
 		end
 	end
 
-	-- line-clear text
-	local t = lct.top(); if t ~= "" then res.draw_text(font, t, 160, 8, 255,255,255,1,0) end
-	local m = lct.mid(); if m ~= "" then res.draw_text(font, m, 160, 16, 255,255,255,1,0) end
-	local b = lct.bot(); if b ~= "" then res.draw_text(font, b, 160, 24, 255,255,255,1,0) end
+
 end

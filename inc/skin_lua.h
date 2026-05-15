@@ -25,6 +25,7 @@ void skin_lua_draw_active_figure(struct Skin *skin, int interp_y);
 void skin_lua_draw_ghost(struct Skin *skin);
 void skin_lua_draw_foreground(struct Skin *skin);
 void skin_lua_draw_hud(struct Skin *skin);
+void skin_lua_draw_timed_texts(struct Skin *skin);
 
 /* ─── event callbacks ─── */
 

@@ -225,6 +225,7 @@ void skin_updateScreen(struct Skin *skin, SDL_Surface *screen)
 		skin_lua_draw_ghost(skin);
 		skin_lua_draw_foreground(skin);
 		skin_lua_draw_hud(skin);
+		skin_lua_draw_timed_texts(skin);
 
 		flipScreenScaled();
 		frameCounter();
@@ -972,9 +973,7 @@ static void replace_all_vars(char *where)
 	int_replace(where, "$dropped", dropped_pieces_num);
 	int_replace(where, "$pressed", pressed_keys_num);
 
-	str_replace(where, "$lcttop", lctext_top);
-	str_replace(where, "$lctmid", lctext_mid);
-	str_replace(where, "$lctbot", lctext_bot);
+
 	str_replace(where, "$timer", gametimer);
 	str_replace(where, "$pps", pieces_per_second);
 	str_replace(where, "$kpt", keys_per_tetromino);

@@ -18,6 +18,7 @@
 #include "state_settings.h"
 #include "randomizer.h"
 #include "skin.h"
+#include "skin_lua.h"
 
 #define MAX_SOFTDROP_PRESS			300
 #define FONT_SIZE					7
@@ -93,10 +94,7 @@ int dropped_pieces_num = 0;
 int pressed_keys_num = 0;
 static int lines_level_up = 0;
 
-char lctext_top[LCT_LEN];
-char lctext_mid[LCT_LEN];
-char lctext_bot[LCT_LEN];
-Uint32 lct_deadline = 0;
+
 
 Uint32 game_lastpausetime = 0;
 Uint32 game_startbias = 0;
@@ -247,7 +245,7 @@ void onDrop(void);
 void onLineClear(int removed);
 void onGameOver(enum GameOverType reason);
 void checkForPrelocking(void);
-void updateLCT(char *top, char *mid, char *bot, Uint32 ms);
+
 void updateGTimer(void);
 void updateTotalTime(void);
 void updateKPT(void);
@@ -364,10 +362,7 @@ int main(int argc, char *argv[])
 								moveRight(SIDE_MOVE_DELAY);
 							}
 						}
-						if (ct > lct_deadline)
-						{
-							updateLCT("", "", "", 0);
-						}
+
 						updateGTimer();
 					}
 				}
@@ -743,21 +738,7 @@ void onLineClear(int removed)
 	static char tspin_text[TST_END][16] = {
 		"", "T-Spin ", "Mini T-Spin "
 	};
-	int rmvd = removed - 1;
-	if (rmvd > 4)
-		rmvd = 4;
-	char lctmid[LCT_LEN];
-	char lctbot[LCT_LEN];
-	sprintf(lctmid, "%s%s", tspin_text[tst], clear_text[rmvd]);
-	if (combo)
-	{
-		sprintf(lctbot, "combo %dx", combo);
-	}
-	else
-	{
-		lctbot[0] = '\0';
-	}
-	updateLCT(b2b ? "Back-2-Back" : "", lctmid, lctbot, LCT_DEADLINE);
+	skin_lua_on_line_clear(&gameskin, removed, tspin_text[tst], combo, b2b, extra);
 
 	if (speechon)
 	{
@@ -1159,11 +1140,9 @@ int removeFullLines(void)
 		{
 			case TST_REGULAR:
 				score += 400 * (level + 1);
-				updateLCT("", "T-Spin", "", LCT_DEADLINE);
 				break;
 			case TST_MINI:
 				score += 100 * (level + 1);
-				updateLCT("", "Mini T-Spin", "", LCT_DEADLINE);
 				break;
 			case TST_NONE:
 			default:
@@ -1823,9 +1802,7 @@ void resetGame(void)
 	pressed_keys_num = 0;
 	left_move = false;
 	right_move = false;
-	lct_deadline = 0;
 
-	updateLCT("", "", "", 0);
 	updateKPT();
 	randomizer_reset();
 
@@ -1863,14 +1840,7 @@ void updateEasySpin(void)
 	}
 }
 
-void updateLCT(char *top, char *mid, char *bot, Uint32 ms)
-{
-	strcpy(lctext_top, top);
-	strcpy(lctext_mid, mid);
-	strcpy(lctext_bot, bot);
-	if (0 != ms)
-		lct_deadline = SDL_GetTicks() + ms;
-}
+
 
 void convertMsToStr(Uint32 ms, char *dest)
 {

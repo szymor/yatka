@@ -493,6 +493,7 @@ static int y_game_mode(lua_State *L)
 }
 static int y_game_timer_str(lua_State *L) { lua_pushstring(L, gametimer); return 1; }
 static int y_game_fps(lua_State *L) { lua_pushinteger(L, fps); return 1; }
+static int y_game_ticks(lua_State *L) { lua_pushinteger(L, SDL_GetTicks()); return 1; }
 static int y_game_ghost_y(lua_State *L)
 {
 	if (!figures[0]) { lua_pushnil(L); return 1; }
@@ -531,9 +532,52 @@ static int y_figure_next(lua_State *L)
 }
 static int y_figure_held(lua_State *L) { push_figure(L, &preserved, false); return 1; }
 
-static int y_lct_top(lua_State *L) { lua_pushstring(L, lctext_top); return 1; }
-static int y_lct_mid(lua_State *L) { lua_pushstring(L, lctext_mid); return 1; }
-static int y_lct_bot(lua_State *L) { lua_pushstring(L, lctext_bot); return 1; }
+/* res.show_timed_text(x, y, text, timeout_ms [, font, r, g, b, ax, ay]) */
+static int y_show_timed_text(lua_State *L)
+{
+	struct Skin *skin = (struct Skin *)lua_touserdata(L, lua_upvalueindex(1));
+	int x = luaL_checkinteger(L, 1);
+	int y = luaL_checkinteger(L, 2);
+	const char *text = luaL_checkstring(L, 3);
+	int timeout = luaL_checkinteger(L, 4);
+
+	if (timeout <= 0 || !text || !*text) return 0;
+
+	/* find a free slot */
+	int slot = -1;
+	Uint32 now = SDL_GetTicks();
+	for (int i = 0; i < TIMED_TEXT_MAX; ++i)
+	{
+		if (skin->timed_texts[i].deadline <= now)
+		{
+			slot = i;
+			break;
+		}
+	}
+	if (slot < 0) return 0;  /* all slots busy */
+
+	struct TimedText *tt = &skin->timed_texts[slot];
+	strncpy(tt->text, text, TIMED_TEXT_LEN - 1);
+	tt->text[TIMED_TEXT_LEN - 1] = '\0';
+	tt->x = x;
+	tt->y = y;
+	tt->deadline = now + timeout;
+
+	/* optional font: check if arg 5 is a font userdata */
+	tt->font = NULL;
+	if (lua_gettop(L) >= 5)
+	{
+		TTF_Font **fud = (TTF_Font **)luaL_testudata(L, 5, MT_FONT);
+		if (fud) tt->font = *fud;
+	}
+
+	tt->r = (int)luaL_optinteger(L, 6, 255);
+	tt->g = (int)luaL_optinteger(L, 7, 255);
+	tt->b = (int)luaL_optinteger(L, 8, 255);
+	tt->alignx = (int)luaL_optinteger(L, 9, 1);
+	tt->aligny = (int)luaL_optinteger(L, 10, 0);
+	return 0;
+}
 
 /* ─────────────────────────────────────────────
  * Lua‑state initialisation
@@ -629,6 +673,10 @@ void skin_lua_init(struct Skin *skin, const char *skin_path)
 	lua_pushcclosure(L, y_set_shadow, 1);
 	lua_setfield(L, -2, "set_shadow");
 
+	lua_pushlightuserdata(L, skin);
+	lua_pushcclosure(L, y_show_timed_text, 1);
+	lua_setfield(L, -2, "show_timed_text");
+
 	/* add skin path to res table */
 	lua_pushstring(L, skin_path);
 	lua_setfield(L, -2, "skin_path");
@@ -653,6 +701,7 @@ void skin_lua_init(struct Skin *skin, const char *skin_path)
 	lua_pushcfunction(L, y_game_mode);     lua_setfield(L, -2, "mode");
 	lua_pushcfunction(L, y_game_timer_str); lua_setfield(L, -2, "timer_str");
 	lua_pushcfunction(L, y_game_fps);        lua_setfield(L, -2, "fps");
+	lua_pushcfunction(L, y_game_ticks);      lua_setfield(L, -2, "ticks");
 	lua_pushcfunction(L, y_game_shape_cells); lua_setfield(L, -2, "shape_cells");
 	lua_pushcfunction(L, y_game_ghost_y);    lua_setfield(L, -2, "ghost_y");
 	lua_setglobal(L, "game");
@@ -663,13 +712,6 @@ void skin_lua_init(struct Skin *skin, const char *skin_path)
 	lua_pushcfunction(L, y_figure_next);   lua_setfield(L, -2, "next");
 	lua_pushcfunction(L, y_figure_held);   lua_setfield(L, -2, "held");
 	lua_setglobal(L, "figure");
-
-	/* ─── lct table ─── */
-	lua_newtable(L);
-	lua_pushcfunction(L, y_lct_top); lua_setfield(L, -2, "top");
-	lua_pushcfunction(L, y_lct_mid); lua_setfield(L, -2, "mid");
-	lua_pushcfunction(L, y_lct_bot); lua_setfield(L, -2, "bot");
-	lua_setglobal(L, "lct");
 
 	/* load & run skin.lua */
 	char script_path[512];
@@ -746,6 +788,36 @@ void skin_lua_draw_ghost(struct Skin *skin)
 }
 void skin_lua_draw_foreground(struct Skin *skin) { call_lua_void(skin, "draw_foreground"); }
 void skin_lua_draw_hud(struct Skin *skin)        { call_lua_void(skin, "draw_hud"); }
+
+/* skin_lua_draw_timed_texts — render managed timed texts with fade-out */
+void skin_lua_draw_timed_texts(struct Skin *skin)
+{
+	Uint32 now = SDL_GetTicks();
+	for (int i = 0; i < TIMED_TEXT_MAX; ++i)
+	{
+		struct TimedText *tt = &skin->timed_texts[i];
+		if (tt->deadline <= now) continue;
+		if (!tt->text[0]) continue;
+		if (!tt->font) continue;
+
+		Uint32 rem = tt->deadline - now;
+		Uint8 alpha = (Uint8)((rem < 750) ? (rem * 255 / 750) : 255);
+
+		SDL_Color col = { .r = tt->r, .g = tt->g, .b = tt->b };
+		SDL_Surface *ts = TTF_RenderUTF8_Blended(tt->font, tt->text, col);
+		if (!ts) continue;
+
+		SDL_Rect dst = { .x = tt->x, .y = tt->y };
+		if (tt->alignx == 1) dst.x -= ts->w / 2;
+		else if (tt->alignx == 2) dst.x -= ts->w;
+		if (tt->aligny == 1) dst.y -= ts->h / 2;
+		else if (tt->aligny == 2) dst.y -= ts->h;
+
+		SDL_SetAlpha(ts, SDL_SRCALPHA, alpha);
+		SDL_BlitSurface(ts, NULL, screen, &dst);
+		SDL_FreeSurface(ts);
+	}
+}
 
 /* skin_lua_draw_shadow — C-level shadow drawing (board + active figure) */
 void skin_lua_draw_shadow(struct Skin *skin)

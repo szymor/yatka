@@ -55,8 +55,7 @@
 
 #define FIG_NUM				(7)
 #define MAX_NEXTBLOCKS		(FIG_NUM - 1)
-#define LCT_LEN				(64)
-#define LCT_DEADLINE		(1500)
+
 #define GAMETIMER_STRLEN	(16)
 #define PPS_LEN				(16)
 #define KPT_LEN				(16)
@@ -171,10 +170,7 @@ extern int dropped_pieces_num;
 extern int pressed_keys_num;
 extern int statistics[FIGID_GRAY];
 
-// LC - line clear
-extern char lctext_top[LCT_LEN];
-extern char lctext_mid[LCT_LEN];
-extern char lctext_bot[LCT_LEN];
+
 
 extern char gametimer[GAMETIMER_STRLEN];
 extern char pieces_per_second[PPS_LEN];

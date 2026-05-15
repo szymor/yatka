@@ -8,6 +8,8 @@
 
 #define FONT_NUM			(8)
 #define ORIENTATION_NUM		(15)
+#define TIMED_TEXT_MAX		(8)
+#define TIMED_TEXT_LEN		(128)
 
 enum FigureId
 {
@@ -50,6 +52,16 @@ enum HoldMode
  * on every translation unit that pulls in skin.h. */
 struct lua_State;
 
+struct TimedText
+{
+	char text[TIMED_TEXT_LEN];
+	int x, y;
+	Uint32 deadline;
+	TTF_Font *font;
+	Uint8 r, g, b;
+	int alignx, aligny;
+};
+
 struct Skin
 {
 	SDL_Surface *screen;
@@ -75,6 +87,8 @@ struct Skin
 	int shadowx;
 	int shadowy;
 	TTF_Font *fonts[FONT_NUM];
+
+	struct TimedText timed_texts[TIMED_TEXT_MAX];
 
 	/* Lua skin integration  (new) */
 	bool is_lua;                   /* true when lua-based skin is active */
