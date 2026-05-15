@@ -53,6 +53,7 @@ struct TimedText
 	TTF_Font *font;
 	Uint8 r, g, b;
 	int alignx, aligny;
+	Uint32 fadeout_ms;
 };
 
 struct Skin

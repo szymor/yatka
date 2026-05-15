@@ -473,6 +473,7 @@ static int y_show_timed_text(lua_State *L)
 	tt->b = (int)luaL_optinteger(L, 8, 255);
 	tt->alignx = (int)luaL_optinteger(L, 9, 1);
 	tt->aligny = (int)luaL_optinteger(L, 10, 0);
+	tt->fadeout_ms = (Uint32)luaL_optinteger(L, 11, 750);
 	return 0;
 }
 
@@ -943,11 +944,32 @@ static void skin_lua_draw_timed_texts(struct Skin *skin)
 		if (!tt->font) continue;
 
 		Uint32 rem = tt->deadline - now;
-		Uint8 alpha = (Uint8)((rem < 750) ? (rem * 255 / 750) : 255);
+		Uint8 alpha = 255;
+		if (tt->fadeout_ms > 0 && rem < tt->fadeout_ms)
+			alpha = (Uint8)(rem * 255 / tt->fadeout_ms);
 
 		SDL_Color col = { .r = tt->r, .g = tt->g, .b = tt->b };
 		SDL_Surface *ts = TTF_RenderUTF8_Blended(tt->font, tt->text, col);
 		if (!ts) continue;
+
+		/* Apply fade by multiplying per-pixel alpha (TTF_RenderUTF8_Blended
+		 * produces per-pixel alpha; SDL_SetAlpha's per-surface alpha is
+		 * ignored on such surfaces). */
+		if (alpha < 255 && ts->format->Amask)
+		{
+			if (SDL_MUSTLOCK(ts)) SDL_LockSurface(ts);
+			Uint32 *pix = (Uint32 *)ts->pixels;
+			int n = ts->w * ts->h;
+			int ashift = ts->format->Ashift;
+			Uint32 amask = ts->format->Amask;
+			for (int j = 0; j < n; ++j)
+			{
+				Uint32 a = (pix[j] & amask) >> ashift;
+				a = (a * alpha) / 255;
+				pix[j] = (pix[j] & ~amask) | (a << ashift);
+			}
+			if (SDL_MUSTLOCK(ts)) SDL_UnlockSurface(ts);
+		}
 
 		SDL_Rect dst = { .x = tt->x, .y = tt->y };
 		if (tt->alignx == 1) dst.x -= ts->w / 2;
