@@ -136,7 +136,7 @@ function draw_hud()
 					res.draw_brick(
 						nx + cell.x * brick_w,
 						ny + cell.y * brick_w,
-						nxt.color, cell.orient, 128)
+						nxt.color, cell.orient, 255)
 				end
 			end
 		end
