@@ -1,7 +1,7 @@
+.aider-desk/
+.aider.input.history
 yatka
 yatka.exe
-hiscore.dat
-settings.txt
 *.dll
 *.o
 *.d
