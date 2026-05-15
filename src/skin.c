@@ -73,7 +73,10 @@ static TTF_Font **check_font(lua_State *L, int idx)
 
 static int y_load_image(lua_State *L)
 {
-	const char *path = luaL_checkstring(L, 1);
+	struct Skin *skin = (struct Skin *)lua_touserdata(L, lua_upvalueindex(1));
+	const char *name = luaL_checkstring(L, 1);
+	char path[512];
+	snprintf(path, sizeof path, "%s%s", skin->path, name);
 	SDL_Surface *img = IMG_Load(path);
 	if (!img)
 		return luaL_error(L, "IMG_Load(%s) failed", path);
@@ -90,7 +93,10 @@ static int y_load_image(lua_State *L)
 
 static int y_load_font(lua_State *L)
 {
-	const char *path = luaL_checkstring(L, 1);
+	struct Skin *skin = (struct Skin *)lua_touserdata(L, lua_upvalueindex(1));
+	const char *name = luaL_checkstring(L, 1);
+	char path[512];
+	snprintf(path, sizeof path, "%s%s", skin->path, name);
 	int size = luaL_checkinteger(L, 2);
 	TTF_Font *font = TTF_OpenFont(path, size);
 	if (!font)
@@ -589,8 +595,6 @@ static int y_figure_held(lua_State *L) { push_figure(L, &preserved, false); retu
  * ───────────────────────────────────────────── */
 
 static const luaL_Reg ylib[] = {
-	{ "load_image",  y_load_image  },
-	{ "load_font",   y_load_font   },
 	{ "draw_image",  y_draw_image  },
 	{ "draw_text",   y_draw_text   },
 	{ "draw_rect",   y_draw_rect   },
@@ -657,6 +661,14 @@ static void skin_lua_init(struct Skin *skin, const char *skin_path)
 	lua_setfield(L, -2, "set_holdmode");
 
 	lua_pushlightuserdata(L, skin);
+	lua_pushcclosure(L, y_load_image, 1);
+	lua_setfield(L, -2, "load_image");
+
+	lua_pushlightuserdata(L, skin);
+	lua_pushcclosure(L, y_load_font, 1);
+	lua_setfield(L, -2, "load_font");
+
+	lua_pushlightuserdata(L, skin);
 	lua_pushcclosure(L, y_set_tc, 1);
 	lua_setfield(L, -2, "set_tetromino_color");
 
@@ -678,10 +690,6 @@ static void skin_lua_init(struct Skin *skin, const char *skin_path)
 
 	lua_pushcfunction(L, y_play_sfx);
 	lua_setfield(L, -2, "play_sfx");
-
-	/* add skin path to res table */
-	lua_pushstring(L, skin_path);
-	lua_setfield(L, -2, "skin_path");
 
 	lua_pop(L, 1);  /* pop res */
 

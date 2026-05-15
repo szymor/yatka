@@ -5,7 +5,7 @@ local brick_w, brick_h
 
 
 function skin_load(r)
-	bg_img = r.load_image(r.skin_path .. "bg.png")
+	bg_img = r.load_image("bg.png")
 
 	-- set colours (row-major: I,O,T,S,Z,J,L)
 	r.set_tetromino_color(0, 128, 215, 64, 0)     -- I
@@ -21,7 +21,7 @@ function skin_load(r)
 	brick_w, brick_h = r.brick_size()
 
 	-- load & wire bricksprite (transfers ownership to C)
-	local bmp = r.load_image(r.skin_path .. "bricks.png")
+	local bmp = r.load_image("bricks.png")
 	r.set_bricksprite(bmp)
 
 	-- shadow: offset (-1,-1), black at alpha 128
@@ -29,8 +29,8 @@ function skin_load(r)
 
 	r.set_ghost_alpha(128)
 
-	font = r.load_font(r.skin_path .. "arcade.ttf", 7)
-	small_font = r.load_font(r.skin_path .. "arcade.ttf", 6)
+	font = r.load_font("arcade.ttf", 7)
+	small_font = r.load_font("arcade.ttf", 6)
 end
 
 function skin_unload() end
