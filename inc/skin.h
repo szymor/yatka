@@ -40,8 +40,8 @@ enum HoldMode
 };
 
 /* Opaque forward declaration — the actual lua_State is
- * defined in skin_lua.c and only accessed through the
- * skin_lua_* API.  Including lua.h here would force it
+ * defined in the merged skin.c and only accessed through
+ * the skin_* API.  Including lua.h here would force it
  * on every translation unit that pulls in skin.h. */
 struct lua_State;
 
@@ -77,15 +77,24 @@ struct Skin
 	struct TimedText timed_texts[TIMED_TEXT_MAX];
 
 	bool is_lua;                   /* true when lua-based skin is active */
-	struct lua_State *L;           /* per-skin lua state, NULL for DSL skins */
+	struct lua_State *L;           /* per-skin lua state, NULL for failed loads */
 };
 
+/* ─── skin lifecycle ─── */
 void skin_initSkin(struct Skin *skin);
 void skin_destroySkin(struct Skin *skin);
-void skin_loadSkin(struct Skin *skin, const char *path);
+bool skin_loadSkin(struct Skin *skin, const char *path);
 void skin_updateScreen(struct Skin *skin, SDL_Surface *screen);
 
-/* Lua skin helpers used by main.c event handlers */
-void skin_lua_draw_bricks(struct Skin *skin);
+/* ─── event callbacks (called from main.c) ─── */
+void skin_lua_on_line_clear(struct Skin *skin, int lines,
+                            const char *tspin_type,
+                            int combo, bool b2b, int score_earned);
+void skin_lua_on_game_over(struct Skin *skin, const char *reason);
+void skin_lua_on_level_up(struct Skin *skin, int level);
+void skin_lua_on_piece_lock(struct Skin *skin, enum FigureId id);
+void skin_lua_on_piece_hold(struct Skin *skin, enum FigureId id);
+void skin_lua_on_hard_drop(struct Skin *skin, int rows);
+void skin_lua_on_combo(struct Skin *skin, int count);
 
 #endif

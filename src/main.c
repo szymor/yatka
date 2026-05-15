@@ -18,7 +18,7 @@
 #include "state_settings.h"
 #include "randomizer.h"
 #include "skin.h"
-#include "skin_lua.h"
+
 
 #define MAX_SOFTDROP_PRESS			300
 #define FONT_SIZE					7

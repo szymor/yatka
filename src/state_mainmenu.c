@@ -61,6 +61,7 @@ int menu_debris_chance = 8;
 int menu_auto_debris = 0;
 
 static char custom_skin_dir[256] = "";
+static char menu_error[256] = "";
 static int submenu_index = ME_GAMEMODE;
 
 static void up(void);
@@ -248,43 +249,51 @@ void mainmenu_updateScreen(void)
 		sprintf(buff, "  KEY CONFIGURATION  ");
 	text(16, 128, buff, 0, 0);
 
-	// hints
-	switch (submenu_index)
+	// hints / error
+	if (menu_error[0])
 	{
-		case ME_GAMEMODE:
-			switch (menu_gamemode)
-			{
-				case GM_MARATHON:
-					sprintf(buff, "Endless game.");
-					break;
-				case GM_SPRINT:
-					sprintf(buff, "Clear 40 or more lines as fast as you can.");
-					break;
-				case GM_ULTRA:
-					sprintf(buff, "Get the highest score for 3 minutes.");
-					break;
-				default:
-					sprintf(buff, "cheater?");
-			} break;
-		case ME_SKIN:
-			sprintf(buff, "Visual theme, affects some game rules.");
-			break;
-		case ME_SPEEDLEVEL:
-			sprintf(buff, "Affects initial speed of the game.");
-			break;
-		case ME_DEBRISLEVEL:
-			sprintf(buff, "Affects initial line garbage.");
-			break;
-		case ME_DEBRISCHANCE:
-			sprintf(buff, "Affects density of line garbage.");
-			break;
-		case ME_AUTODEBRIS:
-			sprintf(buff, "Enables garbage generation over time.");
-			break;
-		default:
-			buff[0] = '\0';
+		sprintf(buff, "ERROR: %s", menu_error);
+		text(16, 220, buff, 0, 0);
 	}
-	text(16, 220, buff, 0, 0);
+	else
+	{
+		switch (submenu_index)
+		{
+			case ME_GAMEMODE:
+				switch (menu_gamemode)
+				{
+					case GM_MARATHON:
+						sprintf(buff, "Endless game.");
+						break;
+					case GM_SPRINT:
+						sprintf(buff, "Clear 40 or more lines as fast as you can.");
+						break;
+					case GM_ULTRA:
+						sprintf(buff, "Get the highest score for 3 minutes.");
+						break;
+					default:
+						sprintf(buff, "cheater?");
+				} break;
+			case ME_SKIN:
+				sprintf(buff, "Visual theme, affects some game rules.");
+				break;
+			case ME_SPEEDLEVEL:
+				sprintf(buff, "Affects initial speed of the game.");
+				break;
+			case ME_DEBRISLEVEL:
+				sprintf(buff, "Affects initial line garbage.");
+				break;
+			case ME_DEBRISCHANCE:
+				sprintf(buff, "Affects density of line garbage.");
+				break;
+			case ME_AUTODEBRIS:
+				sprintf(buff, "Enables garbage generation over time.");
+				break;
+			default:
+				buff[0] = '\0';
+		}
+		text(16, 220, buff, 0, 0);
+	}
 
 	flipScreenScaled();
 }
@@ -318,6 +327,7 @@ static void left(void)
 			option = &menu_skin;
 			limit = menu_skinnum;
 			decMod(option, limit, false);
+			menu_error[0] = '\0';
 			break;
 		case ME_SPEEDLEVEL:
 			option = &menu_level;
@@ -357,6 +367,7 @@ static void right(void)
 			option = &menu_skin;
 			limit = menu_skinnum;
 			incMod(option, limit, false);
+			menu_error[0] = '\0';
 			break;
 		case ME_SPEEDLEVEL:
 			option = &menu_level;
@@ -437,7 +448,12 @@ static void action(void)
 	{
 		skin_destroySkin(&gameskin);
 		skin_initSkin(&gameskin);
-		skin_loadSkin(&gameskin, menu_skinentries[menu_skin].path);
+		if (!skin_loadSkin(&gameskin, menu_skinentries[menu_skin].path))
+		{
+			sprintf(menu_error, "No skin.lua in \"%s\"!", menu_skinentries[menu_skin].name);
+			return;
+		}
+		menu_error[0] = '\0';
 		resetGame();
 		gamestate = GS_INGAME;
 		submenu_index = ME_GAMEMODE;
