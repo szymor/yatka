@@ -115,6 +115,7 @@ static void left(void)
 			if (vol < 0)
 				vol = 0;
 			Mix_VolumeMusic(vol);
+			initmusvol = vol;
 			settings_changed = true;
 		} break;
 		case SL_MUSIC_REPEAT:
@@ -176,6 +177,7 @@ static void right(void)
 			int vol = Mix_VolumeMusic(-1);
 			vol += 1;
 			Mix_VolumeMusic(vol);
+			initmusvol = vol;
 			settings_changed = true;
 		} break;
 		case SL_MUSIC_REPEAT:

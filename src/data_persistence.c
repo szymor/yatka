@@ -65,16 +65,13 @@ static void saveConfig(void)
 
 	/* settings */
 	cJSON *settings = cJSON_CreateObject();
-	cJSON_AddBoolToObject(settings, "nosound", nosound);
 	cJSON_AddBoolToObject(settings, "smoothanim", smoothanim);
 	cJSON_AddBoolToObject(settings, "easyspin", easyspin);
 	cJSON_AddBoolToObject(settings, "lockdelay", lockdelay);
 	cJSON_AddBoolToObject(settings, "sonicdrop", sonicdrop);
 	cJSON_AddBoolToObject(settings, "repeattrack", repeattrack);
 	cJSON_AddBoolToObject(settings, "speechon", speechon);
-	cJSON_AddNumberToObject(settings, "screenscale", screenscale);
-	if (!nosound)
-		cJSON_AddNumberToObject(settings, "musicvol", Mix_VolumeMusic(-1));
+	cJSON_AddNumberToObject(settings, "musicvol", initmusvol);
 	cJSON_AddNumberToObject(settings, "tetrominocolor", (int)tetrominocolor);
 	cJSON_AddStringToObject(settings, "rng", getRandomizerString());
 	cJSON_AddItemToObject(root, "settings", settings);
@@ -139,9 +136,6 @@ static void loadConfig(void)
 	cJSON *settings = cJSON_GetObjectItem(root, "settings");
 	if (cJSON_IsObject(settings))
 	{
-		item = cJSON_GetObjectItem(settings, "nosound");
-		if (cJSON_IsBool(item)) nosound = item->valueint;
-
 		item = cJSON_GetObjectItem(settings, "smoothanim");
 		if (cJSON_IsBool(item)) smoothanim = item->valueint;
 
@@ -159,9 +153,6 @@ static void loadConfig(void)
 
 		item = cJSON_GetObjectItem(settings, "speechon");
 		if (cJSON_IsBool(item)) speechon = item->valueint;
-
-		item = cJSON_GetObjectItem(settings, "screenscale");
-		if (cJSON_IsNumber(item)) screenscale = item->valueint;
 
 		item = cJSON_GetObjectItem(settings, "musicvol");
 		if (cJSON_IsNumber(item)) initmusvol = item->valueint;
