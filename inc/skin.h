@@ -76,7 +76,6 @@ struct Skin
 
 	struct TimedText timed_texts[TIMED_TEXT_MAX];
 
-	bool is_lua;                   /* true when lua-based skin is active */
 	struct lua_State *L;           /* per-skin lua state, NULL for failed loads */
 };
 

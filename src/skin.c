@@ -1078,17 +1078,12 @@ void skin_initSkin(struct Skin *skin)
 	skin->shadowx = 0;
 	skin->shadowy = 0;
 	skin->holdmode = HM_EXCHANGE;
-	skin->is_lua = false;
 	skin->L = NULL;
 }
 
 void skin_destroySkin(struct Skin *skin)
 {
-	if (skin->is_lua)
-	{
-		skin_lua_fini(skin);
-		skin->is_lua = false;
-	}
+	skin_lua_fini(skin);
 	if (skin->path)
 	{
 		free(skin->path);
@@ -1146,7 +1141,6 @@ bool skin_loadSkin(struct Skin *skin, const char *path)
 	}
 	fclose(f);
 
-	skin->is_lua = true;
 	skin_lua_init(skin, skin->path);
 	log("Lua skin loaded.\n");
 	return true;
@@ -1155,13 +1149,6 @@ bool skin_loadSkin(struct Skin *skin, const char *path)
 void skin_updateScreen(struct Skin *skin, SDL_Surface *screen)
 {
 	skin->screen = screen;
-
-	if (!skin->is_lua)
-	{
-		flipScreenScaled();
-		frameCounter();
-		return;
-	}
 
 	/* smooth-drop interpolation (C side, passed to draw_active_figure) */
 	int interp_y = 0;
