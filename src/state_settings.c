@@ -28,7 +28,7 @@ enum SettingsLine
 	SL_END
 };
 
-static bool redraw_bg = false;
+
 static int settings_pos = 0;
 static const char settings_text[][32] = {
 	"  track selection           %s",
@@ -234,11 +234,6 @@ static void quit(void)
 static void action(void)
 {
 	gamestate = GS_INGAME;
-	if (redraw_bg)
-	{
-		skin_updateBackground(&gameskin);
-		redraw_bg = false;
-	}
 }
 
 void settings_processInputEvents(void)

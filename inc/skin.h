@@ -32,13 +32,6 @@ enum BrickStyle
 	BS_END
 };
 
-enum BgAnimationMode
-{
-	BAM_REPLACE,
-	BAM_BLEND,
-	BAM_END
-};
-
 enum HoldMode
 {
 	HM_OFF,
@@ -65,18 +58,11 @@ struct TimedText
 struct Skin
 {
 	SDL_Surface *screen;
-	enum BgAnimationMode bgmode;
 	enum HoldMode holdmode;
-	SDL_Surface *bgsheet;
-	SDL_Surface *bg;
-	SDL_Rect bgrect;
-	SDL_Surface *fg;
 	SDL_Surface *bricksprite[FIGID_END];
 	Uint32 colors[FIGID_GRAY];
 	Uint32 color_alphas[FIGID_GRAY];
 	enum BrickStyle brickstyle;
-	enum FigureId debriscolor;
-	char *script;
 	char *path;
 	int boardx;
 	int boardy;
@@ -90,7 +76,6 @@ struct Skin
 
 	struct TimedText timed_texts[TIMED_TEXT_MAX];
 
-	/* Lua skin integration  (new) */
 	bool is_lua;                   /* true when lua-based skin is active */
 	struct lua_State *L;           /* per-skin lua state, NULL for DSL skins */
 };
@@ -99,7 +84,6 @@ void skin_initSkin(struct Skin *skin);
 void skin_destroySkin(struct Skin *skin);
 void skin_loadSkin(struct Skin *skin, const char *path);
 void skin_updateScreen(struct Skin *skin, SDL_Surface *screen);
-void skin_updateBackground(struct Skin *skin);
 
 /* Lua skin helpers used by main.c event handlers */
 void skin_lua_draw_bricks(struct Skin *skin);
