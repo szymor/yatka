@@ -47,21 +47,7 @@ function draw_background()
 	res.draw_rect(246, 172, 48, 24, 255, 255, 255, 48)
 end
 
-function draw_board()
-	local bx, by = 100, 0
-	-- skip invisible row (y=0), BOARD_HEIGHT=21, visible rows 1..20
-	for y = 1, board.height - 1 do
-		for x = 0, board.width - 1 do
-			local blk = board.get(x, y)
-			if blk then
-				res.draw_brick(
-					bx + x * brick_w,
-					by + (y - 1) * brick_w,
-					blk.color, blk.orient)
-			end
-		end
-	end
-end
+
 
 
 

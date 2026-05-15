@@ -769,7 +769,50 @@ static void call_lua_void(struct Skin *skin, const char *func)
  * ───────────────────────────────────────────── */
 
 static void skin_lua_draw_background(struct Skin *skin) { call_lua_void(skin, "draw_background"); }
-static void skin_lua_draw_board(struct Skin *skin)      { call_lua_void(skin, "draw_board"); }
+static void skin_lua_draw_board(struct Skin *skin)
+{
+	int bw = skin->bricksize;
+	int bh = skin->bricksize + skin->brickyoffset;
+
+	for (int i = BOARD_WIDTH * BOARD_HEIGHT - 1; i >= BOARD_WIDTH * INVISIBLE_ROW_COUNT; --i)
+	{
+		if (board[i].orientation == BO_EMPTY) continue;
+
+		int color = board[i].color;
+		if (color < 0 || color >= FIGID_END) continue;
+		if (!skin->bricksprite[color]) continue;
+
+		int x = (i % BOARD_WIDTH) * bw + skin->boardx;
+		int y = (i / BOARD_WIDTH - INVISIBLE_ROW_COUNT) * bw
+			+ skin->boardy - skin->brickyoffset;
+
+		int above = 0;
+		if (skin->brickyoffset > 0)
+		{
+			int above_idx = i - BOARD_WIDTH;
+			if (above_idx >= 0 && board[above_idx].orientation != BO_EMPTY)
+				above = skin->brickyoffset;
+		}
+
+		SDL_Rect srcrect = { .x = 0, .y = 0, .w = bw, .h = bh - above };
+		SDL_Rect dst = { .x = x, .y = y + above, .w = 0, .h = 0 };
+
+		switch (skin->brickstyle)
+		{
+		case BS_ORIENTATION_BASED:
+			srcrect.x = (int)board[i].orientation * bw - bw;
+			break;
+		case BS_FIGUREWISE:
+			srcrect.y = (color % FIGID_GRAY) * bh;
+			break;
+		default: break;
+		}
+
+		SDL_Surface *block = skin->bricksprite[color];
+		SDL_SetAlpha(block, SDL_SRCALPHA, 255);
+		SDL_BlitSurface(block, &srcrect, screen, &dst);
+	}
+}
 
 static void skin_lua_draw_ghost(struct Skin *skin)
 {
