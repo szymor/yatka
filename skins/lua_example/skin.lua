@@ -7,14 +7,14 @@ local brick_w, brick_h
 function skin_load(r)
 	bg_img = r.load_image("bg.png")
 
-	-- set colours (row-major: I,O,T,S,Z,J,L)
-	r.set_tetromino_color(0, 128, 215, 64, 0)     -- I
-	r.set_tetromino_color(1, 128, 59, 52, 255)     -- O
-	r.set_tetromino_color(2, 128, 115, 121, 0)     -- T
-	r.set_tetromino_color(3, 128, 0, 132, 96)      -- S
-	r.set_tetromino_color(4, 128, 75, 160, 255)    -- Z
-	r.set_tetromino_color(5, 128, 255, 174, 10)    -- J
-	r.set_tetromino_color(6, 128, 255, 109, 247)   -- L
+	-- set colours (using symbolic fig.* constants)
+	r.set_tetromino_color(fig.I, 128, 215, 64, 0)
+	r.set_tetromino_color(fig.O, 128, 59, 52, 255)
+	r.set_tetromino_color(fig.T, 128, 115, 121, 0)
+	r.set_tetromino_color(fig.S, 128, 0, 132, 96)
+	r.set_tetromino_color(fig.Z, 128, 75, 160, 255)
+	r.set_tetromino_color(fig.J, 128, 255, 174, 10)
+	r.set_tetromino_color(fig.L, 128, 255, 109, 247)
 
 	r.set_brick_size(12)
 	r.set_board_xy(100, 0)

@@ -708,6 +708,17 @@ static void skin_lua_init(struct Skin *skin, const char *skin_path)
 	lua_pushinteger(L, SE_CLICK);    lua_setfield(L, -2, "click");
 	lua_setglobal(L, "sfx");
 
+	/* ─── fig table (symbolic tetromino IDs) ─── */
+	lua_newtable(L);
+	lua_pushinteger(L, FIGID_I); lua_setfield(L, -2, "I");
+	lua_pushinteger(L, FIGID_O); lua_setfield(L, -2, "O");
+	lua_pushinteger(L, FIGID_T); lua_setfield(L, -2, "T");
+	lua_pushinteger(L, FIGID_S); lua_setfield(L, -2, "S");
+	lua_pushinteger(L, FIGID_Z); lua_setfield(L, -2, "Z");
+	lua_pushinteger(L, FIGID_J); lua_setfield(L, -2, "J");
+	lua_pushinteger(L, FIGID_L); lua_setfield(L, -2, "L");
+	lua_setglobal(L, "fig");
+
 	/* ─── board table ─── */
 	lua_newtable(L);
 	lua_pushinteger(L, BOARD_WIDTH);  lua_setfield(L, -2, "width");
