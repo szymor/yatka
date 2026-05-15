@@ -120,7 +120,7 @@ static void mainmenu_init_skinload_helper(DIR *dp, const char *maindir)
 	{
 		if (strcmp(ep->d_name, ".") && strcmp(ep->d_name, ".."))
 		{
-			if (!strcmp(ep->d_name, "lua_example"))
+			if (!strcmp(ep->d_name, "default"))
 			menu_skin = menu_skinnum;
 			strcpy(menu_skinentries[menu_skinnum].name, ep->d_name);
 			sprintf(menu_skinentries[menu_skinnum].path, "%s%s/skin.lua", maindir, ep->d_name);
