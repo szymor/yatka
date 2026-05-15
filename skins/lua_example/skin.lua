@@ -52,6 +52,14 @@ end
 
 
 
+function on_move(direction)
+	res.play_sfx(sfx.click)
+end
+
+function on_piece_lock(data)
+	res.play_sfx(sfx.hit)
+end
+
 function on_line_clear(data)
 	local clear_names = { "Single", "Double", "Triple", "Tetris", "Cheatris" }
 	local lines = data.lines
@@ -66,6 +74,7 @@ function on_line_clear(data)
 	res.show_timed_text(160, 16, name, 1500, font, 255, 255, 255, 1, 0)
 	if data.combo and data.combo > 0 then
 		res.show_timed_text(160, 24, "combo " .. data.combo .. "x", 1500, small_font, 255, 255, 255, 1, 0)
+		res.play_sfx(math.min(sfx.combo_1 + data.combo - 1, sfx.combo_7))
 	end
 end
 

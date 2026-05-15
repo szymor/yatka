@@ -95,5 +95,6 @@ void skin_lua_on_piece_lock(struct Skin *skin, enum FigureId id);
 void skin_lua_on_piece_hold(struct Skin *skin, enum FigureId id);
 void skin_lua_on_hard_drop(struct Skin *skin, int rows);
 void skin_lua_on_combo(struct Skin *skin, int count);
+void skin_lua_on_move(struct Skin *skin, const char *direction);
 
 #endif

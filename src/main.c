@@ -609,7 +609,7 @@ void moveLeft(int delay)
 		else
 		{
 			tst_rotation_last = false;
-			playEffect(SE_CLICK);
+			skin_lua_on_move(&gameskin, "left");
 			updateEasySpin();
 			updateLockTime();
 			if (lockdelay)
@@ -634,7 +634,7 @@ void moveRight(int delay)
 		else
 		{
 			tst_rotation_last = false;
-			playEffect(SE_CLICK);
+			skin_lua_on_move(&gameskin, "right");
 			updateEasySpin();
 			updateLockTime();
 			if (lockdelay)
@@ -799,8 +799,6 @@ void onLineClear(int removed)
 	else
 		ttr = 0;
 
-	// play a clearing sound
-	playEffect(combo > SE_COMBO_7X ? SE_COMBO_7X : combo);
 }
 
 void onGameOver(enum GameOverType reason)
@@ -1004,6 +1002,7 @@ void lockFigure(void)
 			}
 		}
 
+	enum FigureId locked_id = figures[0]->id;
 	free(figures[0]);
 	figures[0] = NULL;
 	spawnFigure();
@@ -1015,8 +1014,8 @@ void lockFigure(void)
 	if (!removed)
 	{
 		combo = 0;
-		playEffect(SE_HIT);
 	}
+	skin_lua_on_piece_lock(&gameskin, locked_id);
 
 	next_lock_time = 0;
 	easyspin_counter = 0;

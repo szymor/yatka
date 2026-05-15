@@ -15,6 +15,7 @@
 #include "main.h"
 #include "state_mainmenu.h"
 #include "video.h"
+#include "sound.h"
 
 /* ─────────────────────────────────────────────
  * Constants
@@ -413,6 +414,15 @@ static int y_set_ghost_alpha(lua_State *L)
 	return 0;
 }
 
+/* res.play_sfx(id) — play a sound effect by enum index */
+static int y_play_sfx(lua_State *L)
+{
+	int id = luaL_checkinteger(L, 1);
+	if (id >= 0 && id < SE_END)
+		playEffect((enum SfxEffect)id);
+	return 0;
+}
+
 /* res.show_timed_text(x, y, text, timeout_ms [, font, r, g, b, ax, ay]) */
 static int y_show_timed_text(lua_State *L)
 {
@@ -666,11 +676,29 @@ static void skin_lua_init(struct Skin *skin, const char *skin_path)
 	lua_pushcclosure(L, y_show_timed_text, 1);
 	lua_setfield(L, -2, "show_timed_text");
 
+	lua_pushcfunction(L, y_play_sfx);
+	lua_setfield(L, -2, "play_sfx");
+
 	/* add skin path to res table */
 	lua_pushstring(L, skin_path);
 	lua_setfield(L, -2, "skin_path");
 
 	lua_pop(L, 1);  /* pop res */
+
+	/* ─── sfx table (named sound effect constants) ─── */
+	lua_newtable(L);
+	lua_pushinteger(L, SE_NONE);     lua_setfield(L, -2, "none");
+	lua_pushinteger(L, SE_CLEAR);    lua_setfield(L, -2, "clear");
+	lua_pushinteger(L, SE_COMBO_1X); lua_setfield(L, -2, "combo_1");
+	lua_pushinteger(L, SE_COMBO_2X); lua_setfield(L, -2, "combo_2");
+	lua_pushinteger(L, SE_COMBO_3X); lua_setfield(L, -2, "combo_3");
+	lua_pushinteger(L, SE_COMBO_4X); lua_setfield(L, -2, "combo_4");
+	lua_pushinteger(L, SE_COMBO_5X); lua_setfield(L, -2, "combo_5");
+	lua_pushinteger(L, SE_COMBO_6X); lua_setfield(L, -2, "combo_6");
+	lua_pushinteger(L, SE_COMBO_7X); lua_setfield(L, -2, "combo_7");
+	lua_pushinteger(L, SE_HIT);      lua_setfield(L, -2, "hit");
+	lua_pushinteger(L, SE_CLICK);    lua_setfield(L, -2, "click");
+	lua_setglobal(L, "sfx");
 
 	/* ─── board table ─── */
 	lua_newtable(L);
@@ -1084,6 +1112,16 @@ void skin_lua_on_combo(struct Skin *skin, int count)
 	lua_getglobal(L, "on_combo");
 	if (!lua_isfunction(L, -1)) { lua_pop(L, 1); return; }
 	lua_pushinteger(L, count);
+	if (lua_pcall(L, 1, 0, 0) != LUA_OK) lua_pop(L, 1);
+}
+
+void skin_lua_on_move(struct Skin *skin, const char *direction)
+{
+	if (!skin->L) return;
+	lua_State *L = skin->L;
+	lua_getglobal(L, "on_move");
+	if (!lua_isfunction(L, -1)) { lua_pop(L, 1); return; }
+	lua_pushstring(L, direction);
 	if (lua_pcall(L, 1, 0, 0) != LUA_OK) lua_pop(L, 1);
 }
 
