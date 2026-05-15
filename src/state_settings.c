@@ -28,8 +28,6 @@ enum SettingsLine
 	SL_END
 };
 
-bool settings_changed = false;
-
 static bool redraw_bg = false;
 static int settings_pos = 0;
 static const char settings_text[][32] = {

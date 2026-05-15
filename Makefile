@@ -6,7 +6,7 @@ SRC = src/main.c src/data_persistence.c src/video.c src/sound.c \
 	src/state_mainmenu.c src/skin.c
 OBJ = $(SRC:.c=.o)
 DEP = $(SRC:.c=.d)
-PKGS = sdl SDL_image SDL_ttf SDL_mixer
+PKGS = sdl SDL_image SDL_ttf SDL_mixer libcjson
 
 COMMIT_HASH != git tag --points-at HEAD
 ifeq ($(COMMIT_HASH), )

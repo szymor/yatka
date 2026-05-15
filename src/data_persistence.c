@@ -1,9 +1,11 @@
-
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include <SDL/SDL_mixer.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <cjson/cJSON.h>
 
 #include "main.h"
 #include "state_mainmenu.h"
@@ -12,15 +14,14 @@
 #include "data_persistence.h"
 #include "randomizer.h"
 
-#define GAMEDIR				".yatka"
-#define HISCORE_FILE		"hiscore.dat"
-#define SETTINGS_FILE		"settings.txt"
+#define GAMEDIR			".yatka"
+#define CONFIG_FILE		"config.json"
 
 char dirpath[256];
-static char hiscore_path[256];
-static char settings_path[256];
+static char config_path[256];
 static int records[RT_END] = { 0 };
-static bool records_need_save = false;
+
+bool settings_changed = false;
 
 static void createGameDir(void)
 {
@@ -35,8 +36,7 @@ void initPaths(void)
 {
 	const char *home = getenv("HOME");
 	sprintf(dirpath, "%s/" GAMEDIR, home);
-	sprintf(hiscore_path, "%.240s/" HISCORE_FILE, dirpath);
-	sprintf(settings_path, "%.240s/" SETTINGS_FILE, dirpath);
+	sprintf(config_path, "%.240s/" CONFIG_FILE, dirpath);
 }
 
 int getRecord(enum RecordType rt)
@@ -46,181 +46,217 @@ int getRecord(enum RecordType rt)
 
 void setRecord(enum RecordType rt, int record)
 {
-	records_need_save = records[rt] != record;
 	records[rt] = record;
+	settings_changed = true;
 }
 
-void loadRecords(void)
-{
-	FILE *hifile = fopen(hiscore_path, "r");
-	if (hifile)
-	{
-		for (int i = 0; i < RT_END; ++i)
-		{
-			int value = 0;
-			if (1 == fscanf(hifile, "%d", &value))
-			{
-				setRecord(i, value);
-			}
-		}
-		fclose(hifile);
-		records_need_save = false;
-	}
-}
+/* ───────── internal: full config load / save ───────── */
 
-void saveRecords(void)
+static void saveConfig(void)
 {
-	if (!records_need_save)
-		return;
 	createGameDir();
-	FILE *hifile = fopen(hiscore_path, "w");
-	if (hifile)
-	{
-		for (int i = 0; i < RT_END; ++i)
-		{
-			fprintf(hifile, "%d\n", getRecord(i));
-		}
-		fclose(hifile);
-		records_need_save = false;
-	}
-}
-
-void loadSettings(void)
-{
-	char buff[256];
-	FILE *settingsFile = fopen(settings_path, "r");
-	if (!settingsFile)
+	FILE *f = fopen(config_path, "w");
+	if (!f)
 		return;
 
-	while (!feof(settingsFile))
+	cJSON *root = cJSON_CreateObject();
+
+	cJSON_AddNumberToObject(root, "version", 1);
+
+	/* settings */
+	cJSON *settings = cJSON_CreateObject();
+	cJSON_AddBoolToObject(settings, "nosound", nosound);
+	cJSON_AddBoolToObject(settings, "smoothanim", smoothanim);
+	cJSON_AddBoolToObject(settings, "easyspin", easyspin);
+	cJSON_AddBoolToObject(settings, "lockdelay", lockdelay);
+	cJSON_AddBoolToObject(settings, "sonicdrop", sonicdrop);
+	cJSON_AddBoolToObject(settings, "repeattrack", repeattrack);
+	cJSON_AddBoolToObject(settings, "speechon", speechon);
+	cJSON_AddNumberToObject(settings, "screenscale", screenscale);
+	if (!nosound)
+		cJSON_AddNumberToObject(settings, "musicvol", Mix_VolumeMusic(-1));
+	cJSON_AddNumberToObject(settings, "tetrominocolor", (int)tetrominocolor);
+	cJSON_AddStringToObject(settings, "rng", getRandomizerString());
+	cJSON_AddItemToObject(root, "settings", settings);
+
+	/* key bindings */
+	cJSON *keys = cJSON_CreateObject();
+	cJSON_AddNumberToObject(keys, "left", kleft);
+	cJSON_AddNumberToObject(keys, "right", kright);
+	cJSON_AddNumberToObject(keys, "softdrop", ksoftdrop);
+	cJSON_AddNumberToObject(keys, "harddrop", kharddrop);
+	cJSON_AddNumberToObject(keys, "rotatecw", krotatecw);
+	cJSON_AddNumberToObject(keys, "rotateccw", krotateccw);
+	cJSON_AddNumberToObject(keys, "hold", khold);
+	cJSON_AddNumberToObject(keys, "pause", kpause);
+	cJSON_AddNumberToObject(keys, "quit", kquit);
+	cJSON_AddItemToObject(root, "keys", keys);
+
+	/* records */
+	cJSON *records_obj = cJSON_CreateObject();
+	cJSON_AddNumberToObject(records_obj, "marathon_score", records[RT_MARATHON_SCORE]);
+	cJSON_AddNumberToObject(records_obj, "marathon_lines", records[RT_MARATHON_LINES]);
+	cJSON_AddNumberToObject(records_obj, "sprint_time", records[RT_SPRINT_TIME]);
+	cJSON_AddNumberToObject(records_obj, "ultra_score", records[RT_ULTRA_SCORE]);
+	cJSON_AddNumberToObject(records_obj, "ultra_lines", records[RT_ULTRA_LINES]);
+	cJSON_AddItemToObject(root, "records", records_obj);
+
+	char *json = cJSON_Print(root);
+	fprintf(f, "%s\n", json);
+	free(json);
+	cJSON_Delete(root);
+	fclose(f);
+}
+
+static void loadConfig(void)
+{
+	FILE *f = fopen(config_path, "r");
+	if (!f)
+		return;
+
+	fseek(f, 0, SEEK_END);
+	long len = ftell(f);
+	rewind(f);
+
+	char *data = malloc((size_t)len + 1);
+	if (!data)
 	{
-		fscanf(settingsFile, "%s", buff);
-		if (!strcmp(buff, "nosound"))
-			nosound = true;
-		else if (!strcmp(buff, "smoothanim"))
-			smoothanim = true;
-		else if (!strcmp(buff, "easyspin"))
-			easyspin = true;
-		else if (!strcmp(buff, "lockdelay"))
-			lockdelay = true;
-		else if (!strcmp(buff, "sonicdrop"))
-			sonicdrop = true;
-		else if (!strcmp(buff, "repeattrack"))
-			repeattrack = true;
-		else if (!strcmp(buff, "fullscreen"))
-			screenscale = 0;
-		else if (!strcmp(buff, "scale1x"))
-			screenscale = 1;
-		else if (!strcmp(buff, "scale2x"))
-			screenscale = 2;
-		else if (!strcmp(buff, "scale3x"))
-			screenscale = 3;
-		else if (!strcmp(buff, "scale4x"))
-			screenscale = 4;
-		else if (!strcmp(buff, "speechon"))
-			speechon = true;
-		else if (!strcmp(buff, "musicvol"))
+		fclose(f);
+		return;
+	}
+	size_t rlen = fread(data, 1, (size_t)len, f);
+	data[rlen] = '\0';
+	fclose(f);
+
+	cJSON *root = cJSON_Parse(data);
+	free(data);
+	if (!root)
+		return;
+
+	cJSON *item;
+
+	/* settings */
+	cJSON *settings = cJSON_GetObjectItem(root, "settings");
+	if (cJSON_IsObject(settings))
+	{
+		item = cJSON_GetObjectItem(settings, "nosound");
+		if (cJSON_IsBool(item)) nosound = item->valueint;
+
+		item = cJSON_GetObjectItem(settings, "smoothanim");
+		if (cJSON_IsBool(item)) smoothanim = item->valueint;
+
+		item = cJSON_GetObjectItem(settings, "easyspin");
+		if (cJSON_IsBool(item)) easyspin = item->valueint;
+
+		item = cJSON_GetObjectItem(settings, "lockdelay");
+		if (cJSON_IsBool(item)) lockdelay = item->valueint;
+
+		item = cJSON_GetObjectItem(settings, "sonicdrop");
+		if (cJSON_IsBool(item)) sonicdrop = item->valueint;
+
+		item = cJSON_GetObjectItem(settings, "repeattrack");
+		if (cJSON_IsBool(item)) repeattrack = item->valueint;
+
+		item = cJSON_GetObjectItem(settings, "speechon");
+		if (cJSON_IsBool(item)) speechon = item->valueint;
+
+		item = cJSON_GetObjectItem(settings, "screenscale");
+		if (cJSON_IsNumber(item)) screenscale = item->valueint;
+
+		item = cJSON_GetObjectItem(settings, "musicvol");
+		if (cJSON_IsNumber(item)) initmusvol = item->valueint;
+
+		item = cJSON_GetObjectItem(settings, "tetrominocolor");
+		if (cJSON_IsNumber(item)) tetrominocolor = (enum TetrominoColor)item->valueint;
+
+		item = cJSON_GetObjectItem(settings, "rng");
+		if (cJSON_IsString(item))
 		{
-			fscanf(settingsFile, "%d", &initmusvol);
-		}
-		else if (!strcmp(buff, "tetrominocolor"))
-		{
-			fscanf(settingsFile, "%d", (int *)&tetrominocolor);
-		}
-		else if (!strcmp(buff, "rng"))
-		{
-			fscanf(settingsFile, "%s", buff);
 			for (int i = 0; i < RA_END; ++i)
 			{
 				randomalgo = i;
-				if (!strcmp(buff, getRandomizerString()))
+				if (!strcmp(item->valuestring, getRandomizerString()))
 					break;
 			}
 		}
-		else if (!strcmp(buff, "kleft"))
-		{
-			fscanf(settingsFile, "%d", &kleft);
-		}
-		else if (!strcmp(buff, "kright"))
-		{
-			fscanf(settingsFile, "%d", &kright);
-		}
-		else if (!strcmp(buff, "ksoftdrop"))
-		{
-			fscanf(settingsFile, "%d", &ksoftdrop);
-		}
-		else if (!strcmp(buff, "kharddrop"))
-		{
-			fscanf(settingsFile, "%d", &kharddrop);
-		}
-		else if (!strcmp(buff, "krotatecw"))
-		{
-			fscanf(settingsFile, "%d", &krotatecw);
-		}
-		else if (!strcmp(buff, "krotateccw"))
-		{
-			fscanf(settingsFile, "%d", &krotateccw);
-		}
-		else if (!strcmp(buff, "khold"))
-		{
-			fscanf(settingsFile, "%d", &khold);
-		}
-		else if (!strcmp(buff, "kpause"))
-		{
-			fscanf(settingsFile, "%d", &kpause);
-		}
-		else if (!strcmp(buff, "kquit"))
-		{
-			fscanf(settingsFile, "%d", &kquit);
-		}
 	}
 
-	fclose(settingsFile);
+	/* key bindings */
+	cJSON *keys = cJSON_GetObjectItem(root, "keys");
+	if (cJSON_IsObject(keys))
+	{
+		item = cJSON_GetObjectItem(keys, "left");
+		if (cJSON_IsNumber(item)) kleft = item->valueint;
+
+		item = cJSON_GetObjectItem(keys, "right");
+		if (cJSON_IsNumber(item)) kright = item->valueint;
+
+		item = cJSON_GetObjectItem(keys, "softdrop");
+		if (cJSON_IsNumber(item)) ksoftdrop = item->valueint;
+
+		item = cJSON_GetObjectItem(keys, "harddrop");
+		if (cJSON_IsNumber(item)) kharddrop = item->valueint;
+
+		item = cJSON_GetObjectItem(keys, "rotatecw");
+		if (cJSON_IsNumber(item)) krotatecw = item->valueint;
+
+		item = cJSON_GetObjectItem(keys, "rotateccw");
+		if (cJSON_IsNumber(item)) krotateccw = item->valueint;
+
+		item = cJSON_GetObjectItem(keys, "hold");
+		if (cJSON_IsNumber(item)) khold = item->valueint;
+
+		item = cJSON_GetObjectItem(keys, "pause");
+		if (cJSON_IsNumber(item)) kpause = item->valueint;
+
+		item = cJSON_GetObjectItem(keys, "quit");
+		if (cJSON_IsNumber(item)) kquit = item->valueint;
+	}
+
+	/* records */
+	cJSON *records_obj = cJSON_GetObjectItem(root, "records");
+	if (cJSON_IsObject(records_obj))
+	{
+		item = cJSON_GetObjectItem(records_obj, "marathon_score");
+		if (cJSON_IsNumber(item)) records[RT_MARATHON_SCORE] = item->valueint;
+
+		item = cJSON_GetObjectItem(records_obj, "marathon_lines");
+		if (cJSON_IsNumber(item)) records[RT_MARATHON_LINES] = item->valueint;
+
+		item = cJSON_GetObjectItem(records_obj, "sprint_time");
+		if (cJSON_IsNumber(item)) records[RT_SPRINT_TIME] = item->valueint;
+
+		item = cJSON_GetObjectItem(records_obj, "ultra_score");
+		if (cJSON_IsNumber(item)) records[RT_ULTRA_SCORE] = item->valueint;
+
+		item = cJSON_GetObjectItem(records_obj, "ultra_lines");
+		if (cJSON_IsNumber(item)) records[RT_ULTRA_LINES] = item->valueint;
+	}
+
+	cJSON_Delete(root);
+	settings_changed = false;
+}
+
+/* ───────── public API ───────── */
+
+void loadSettings(void)
+{
+	loadConfig();
 }
 
 void saveSettings(void)
 {
-	createGameDir();
-	FILE *settingsFile = fopen(settings_path, "w");
+	saveConfig();
+	settings_changed = false;
+}
 
-	if (nosound)
-		fprintf(settingsFile, "nosound\n");
-	if (smoothanim)
-		fprintf(settingsFile, "smoothanim\n");
-	if (easyspin)
-		fprintf(settingsFile, "easyspin\n");
-	if (lockdelay)
-		fprintf(settingsFile, "lockdelay\n");
-	if (sonicdrop)
-		fprintf(settingsFile, "sonicdrop\n");
-	if (repeattrack)
-		fprintf(settingsFile, "repeattrack\n");
-	if (0 == screenscale)
-		fprintf(settingsFile, "fullscreen\n");
-	if (1 == screenscale)
-		fprintf(settingsFile, "scale1x\n");
-	if (2 == screenscale)
-		fprintf(settingsFile, "scale2x\n");
-	if (3 == screenscale)
-		fprintf(settingsFile, "scale3x\n");
-	if (4 == screenscale)
-		fprintf(settingsFile, "scale4x\n");
-	if (speechon)
-		fprintf(settingsFile, "speechon\n");
-	if (!nosound)
-		fprintf(settingsFile, "musicvol %d\n", Mix_VolumeMusic(-1));
-	fprintf(settingsFile, "tetrominocolor %d\n", tetrominocolor);
-	fprintf(settingsFile, "rng %s\n", getRandomizerString());
+void loadRecords(void)
+{
+	/* records live inside the same config.json;
+	 * loadSettings() already loads them. */
+}
 
-	fprintf(settingsFile, "kleft %d\n", kleft);
-	fprintf(settingsFile, "kright %d\n", kright);
-	fprintf(settingsFile, "ksoftdrop %d\n", ksoftdrop);
-	fprintf(settingsFile, "kharddrop %d\n", kharddrop);
-	fprintf(settingsFile, "krotatecw %d\n", krotatecw);
-	fprintf(settingsFile, "krotateccw %d\n", krotateccw);
-	fprintf(settingsFile, "khold %d\n", khold);
-	fprintf(settingsFile, "kpause %d\n", kpause);
-	fprintf(settingsFile, "kquit %d\n", kquit);
-
-	fclose(settingsFile);
+void saveRecords(void)
+{
+	saveConfig();
 }
