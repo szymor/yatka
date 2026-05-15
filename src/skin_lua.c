@@ -532,6 +532,14 @@ static int y_figure_next(lua_State *L)
 }
 static int y_figure_held(lua_State *L) { push_figure(L, &preserved, false); return 1; }
 
+/* res.set_ghost_alpha(alpha) — sets ghost opacity (0 = off, 255 = fully opaque) */
+static int y_set_ghost_alpha(lua_State *L)
+{
+	struct Skin *skin = (struct Skin *)lua_touserdata(L, lua_upvalueindex(1));
+	skin->ghost = (int)luaL_checkinteger(L, 1);
+	return 0;
+}
+
 /* res.show_timed_text(x, y, text, timeout_ms [, font, r, g, b, ax, ay]) */
 static int y_show_timed_text(lua_State *L)
 {
@@ -674,6 +682,10 @@ void skin_lua_init(struct Skin *skin, const char *skin_path)
 	lua_setfield(L, -2, "set_shadow");
 
 	lua_pushlightuserdata(L, skin);
+	lua_pushcclosure(L, y_set_ghost_alpha, 1);
+	lua_setfield(L, -2, "set_ghost_alpha");
+
+	lua_pushlightuserdata(L, skin);
 	lua_pushcclosure(L, y_show_timed_text, 1);
 	lua_setfield(L, -2, "show_timed_text");
 
@@ -784,7 +796,63 @@ void skin_lua_draw_background(struct Skin *skin) { call_lua_void(skin, "draw_bac
 void skin_lua_draw_board(struct Skin *skin)      { call_lua_void(skin, "draw_board"); }
 void skin_lua_draw_ghost(struct Skin *skin)
 {
-	call_lua_void(skin, "draw_ghost");
+	if (!figures[0]) return;
+	if (skin->ghost <= 0) return;
+
+	/* drop figure until collision to find ghost position */
+	int tfy = figures[0]->y;
+	while (!isFigureColliding())
+		++figures[0]->y;
+	if (tfy != figures[0]->y)
+		--figures[0]->y;
+
+	int ghost_y = figures[0]->y;
+	figures[0]->y = tfy;
+
+	/* only draw if ghost is far enough (at least FIG_DIM rows below) */
+	if ((ghost_y - tfy) < FIG_DIM)
+		return;
+
+	struct Figure *fig = figures[0];
+	int bx = skin->boardx + skin->bricksize * fig->x;
+	int by = skin->boardy + skin->bricksize * (ghost_y - INVISIBLE_ROW_COUNT)
+		- skin->brickyoffset;
+	int bw = skin->bricksize;
+	int bh = skin->bricksize + skin->brickyoffset;
+
+	for (int i = 0; i < FIG_DIM * FIG_DIM; ++i)
+	{
+		if (fig->shape.blockmap[i] == BO_EMPTY) continue;
+
+		int color = fig->color;
+		if (color < 0 || color >= FIGID_END) continue;
+		if (!skin->bricksprite[color]) continue;
+
+		int cx = i % FIG_DIM;
+		int cy = i / FIG_DIM;
+
+		SDL_Rect srcrect = { .x = 0, .y = 0, .w = bw, .h = bh };
+		SDL_Rect dst = {
+			.x = bx + cx * bw,
+			.y = by + cy * bh
+		};
+
+		/* orientation / figurewise sprite sheet selection */
+		switch (skin->brickstyle)
+		{
+		case BS_ORIENTATION_BASED:
+			srcrect.x = (int)fig->shape.blockmap[i] * bw - bw;
+			break;
+		case BS_FIGUREWISE:
+			srcrect.y = (color % FIGID_GRAY) * bh;
+			break;
+		default: break;
+		}
+
+		SDL_Surface *block = skin->bricksprite[color];
+		SDL_SetAlpha(block, SDL_SRCALPHA, (Uint8)skin->ghost);
+		SDL_BlitSurface(block, &srcrect, screen, &dst);
+	}
 }
 void skin_lua_draw_foreground(struct Skin *skin) { call_lua_void(skin, "draw_foreground"); }
 void skin_lua_draw_hud(struct Skin *skin)        { call_lua_void(skin, "draw_hud"); }

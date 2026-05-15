@@ -27,6 +27,8 @@ function skin_load(r)
 	-- shadow: offset (-1,-1), black at alpha 128
 	r.set_shadow(4, 4, 48, 0, 0, 192)
 
+	r.set_ghost_alpha(128)
+
 	font = r.load_font(r.skin_path .. "arcade.ttf", 7)
 	small_font = r.load_font(r.skin_path .. "arcade.ttf", 6)
 end
@@ -73,20 +75,7 @@ function draw_active_figure(interp_y)
 	end
 end
 
-function draw_ghost()
-	local fig = figure.active()
-	if not fig then return end
-	local gy = game.ghost_y()
-	if not gy then return end
-	if gy - fig.y < 4 then return end
-	local bx, by = 100, 0
-	for _, cell in ipairs(fig.cells) do
-		res.draw_brick(
-			bx + (fig.x + cell.x) * brick_w,
-			by + (gy + cell.y - 1) * brick_w,
-			fig.color, cell.orient, 128)
-	end
-end
+
 function on_line_clear(data)
 	local clear_names = { "Single", "Double", "Triple", "Tetris", "Cheatris" }
 	local lines = data.lines
