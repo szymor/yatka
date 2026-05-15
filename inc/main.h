@@ -172,6 +172,7 @@ extern int statistics[FIGID_GRAY];
 
 
 
+extern Uint32 game_totaltime;
 extern char gametimer[GAMETIMER_STRLEN];
 extern char pieces_per_second[PPS_LEN];
 extern char keys_per_tetromino[KPT_LEN];
@@ -195,6 +196,7 @@ void markDrop(void);
 Uint32 getNextDropTime(void);
 void setDropRate(int level);
 void softDropTimeCounter(void);
+void updateTotalTime(void);
 void convertMsToStr(Uint32 ms, char *dest);
 
 void getShapeDimensions(const struct Shape *shape, int *minx, int *maxx, int *miny, int *maxy);

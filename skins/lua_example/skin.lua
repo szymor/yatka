@@ -85,7 +85,7 @@ function draw_hud()
 	res.draw_text(font, "Level: " .. game.level(), 0, 7)
 	res.draw_text(font, "Lines: " .. game.lines(), 0, 14)
 	res.draw_text(small_font, game.dropped() .. " pcs", 0, 21)
-	res.draw_text(small_font, game.timer_str(), 320, 240, 255, 255, 255, 2, 2)
+	res.draw_text(small_font, game.timer(), 320, 240, 255, 255, 255, 2, 2)
 	res.draw_text(small_font, game.fps() .. " fps", 320, 0, 255, 255, 255, 2, 0)
 
 	-- stats (bars, 30px spacing to match default skin)

@@ -1864,23 +1864,10 @@ void convertMsToStr(Uint32 ms, char *dest)
 void updateGTimer(void)
 {
 	updateTotalTime();
-	Uint32 total = game_totaltime;
-
-	if (GM_ULTRA == menu_gamemode)
-	{
-		if (total < ULTRA_MS_LEN)
-		{
-			total = ULTRA_MS_LEN - total;
-		}
-		else
-		{
-			total = 0;
-		}
-	}
-	convertMsToStr(total, gametimer);
+	convertMsToStr(game_totaltime, gametimer);
 
 	// calculate pieces per second
-	sprintf(pieces_per_second, "%.2f", 1000.0 * dropped_pieces_num / total);
+	sprintf(pieces_per_second, "%.2f", 1000.0 * dropped_pieces_num / game_totaltime);
 }
 
 void updateTotalTime(void)
