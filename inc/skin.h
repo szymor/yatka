@@ -1,6 +1,7 @@
 #ifndef _H_SKIN
 #define _H_SKIN
 
+#include <stdbool.h>
 #include <SDL/SDL.h>
 #include <SDL/SDL_image.h>
 #include <SDL/SDL_ttf.h>
@@ -43,6 +44,12 @@ enum HoldMode
 	HM_PRESERVE
 };
 
+/* Opaque forward declaration — the actual lua_State is
+ * defined in skin_lua.c and only accessed through the
+ * skin_lua_* API.  Including lua.h here would force it
+ * on every translation unit that pulls in skin.h. */
+struct lua_State;
+
 struct Skin
 {
 	SDL_Surface *screen;
@@ -68,6 +75,10 @@ struct Skin
 	int shadowx;
 	int shadowy;
 	TTF_Font *fonts[FONT_NUM];
+
+	/* Lua skin integration  (new) */
+	bool is_lua;                   /* true when lua-based skin is active */
+	struct lua_State *L;           /* per-skin lua state, NULL for DSL skins */
 };
 
 void skin_initSkin(struct Skin *skin);
@@ -75,5 +86,8 @@ void skin_destroySkin(struct Skin *skin);
 void skin_loadSkin(struct Skin *skin, const char *path);
 void skin_updateScreen(struct Skin *skin, SDL_Surface *screen);
 void skin_updateBackground(struct Skin *skin);
+
+/* Lua skin helpers used by main.c event handlers */
+void skin_lua_draw_bricks(struct Skin *skin);
 
 #endif

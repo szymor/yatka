@@ -1,11 +1,13 @@
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_image.h>
 #include <SDL/SDL_ttf.h>
 
 #include "skin.h"
+#include "skin_lua.h"
 #include "main.h"
 #include "video.h"
 #include "state_mainmenu.h"
@@ -81,10 +83,17 @@ void skin_initSkin(struct Skin *skin)
 	skin->shadowx = 0;
 	skin->shadowy = 0;
 	skin->holdmode = HM_EXCHANGE;
+	skin->is_lua = false;
+	skin->L = NULL;
 }
 
 void skin_destroySkin(struct Skin *skin)
 {
+	if (skin->is_lua)
+	{
+		skin_lua_fini(skin);
+		skin->is_lua = false;
+	}
 	if (skin->bgsheet)
 	{
 		SDL_FreeSurface(skin->bgsheet);
@@ -126,7 +135,7 @@ void skin_destroySkin(struct Skin *skin)
 	{
 		if (skin->bricksprite[i])
 		{
-			free(skin->bricksprite[i]);
+			SDL_FreeSurface(skin->bricksprite[i]);
 			skin->bricksprite[i] = NULL;
 		}
 	}
@@ -143,39 +152,41 @@ void skin_destroySkin(struct Skin *skin)
 void skin_loadSkin(struct Skin *skin, const char *path)
 {
 	skin_destroySkin(skin);
+
+	/* extract skin directory from the path "skins/foo/game.txt" */
+	int totallen = strlen(path) + 1;
+	skin->path = (char*)malloc(totallen);
+	if (NULL == skin->path) exit(ERROR_MALLOC);
+	strcpy(skin->path, path);
+	char *ptr = skin->path + totallen - 1;
+	while (*ptr != '/') { *(ptr--) = '\0'; }
+	log("Skin path: %s\n", skin->path);
+
+	/* try Lua‑based skin first */
+	if (skin_lua_available(skin->path))
+	{
+		skin->is_lua = true;
+		skin_lua_init(skin, skin->path);
+		log("Lua skin loaded.\n");
+		return;
+	}
+
+	/* fall back to legacy DSL skin */
 	FILE *sfile = fopen(path, "rb");
+	if (!sfile) exit(ERROR_IO);
 
 	fseek(sfile, 0, SEEK_END);
 	size_t filesize = ftell(sfile);
 	rewind(sfile);
 
-	skin->script = (char*)malloc(sizeof(char) * filesize + 1);
-	if (NULL == skin->script)
-	{
-		exit(ERROR_MALLOC);
-	}
-
+	skin->script = (char*)malloc(filesize + 1);
+	if (NULL == skin->script) exit(ERROR_MALLOC);
 	size_t result = fread(skin->script, 1, filesize, sfile);
-	if (result != filesize)
-	{
-		exit(ERROR_IO);
-	}
+	if (result != filesize) exit(ERROR_IO);
 	skin->script[filesize] = '\0';
-	
-	int totallen = strlen(path) + 1;
-	skin->path = (char*)malloc(totallen);
-	if (NULL == skin->path)
-	{
-		exit(ERROR_MALLOC);
-	}
-	strcpy(skin->path, path);
-	char *ptr = skin->path + totallen - 1;
-	while (*ptr != '/')
-	{
-		*(ptr--) = '\0';
-	}
-	log("Script path: %s\n", skin->path);
+	fclose(sfile);
 
+	log("DSL script loaded (%zu bytes).\n", filesize);
 	skin_executeScript(skin, false);
 
 	fclose(sfile);
@@ -183,6 +194,44 @@ void skin_loadSkin(struct Skin *skin, const char *path)
 
 void skin_updateScreen(struct Skin *skin, SDL_Surface *screen)
 {
+	skin->screen = screen;
+
+	/* ─── Lua skin path ─── */
+	if (skin->is_lua)
+	{
+		/* smooth‑drop interpolation (C side, passed to Lua) */
+		int interp_y = 0;
+		if (smoothanim)
+		{
+			Uint32 ct = SDL_GetTicks();
+			double fraction;
+			if (next_lock_time)
+				fraction = (double)(ct - last_drop_time) / (double)(next_lock_time - last_drop_time);
+			else
+				fraction = (double)(ct - last_drop_time) / (double)(getNextDropTime() - last_drop_time);
+			int new_delta = (int)(skin->bricksize * fraction) - skin->bricksize;
+			if (new_delta > draw_delta_drop)
+			{
+				draw_delta_drop = new_delta;
+				if (draw_delta_drop > 0) draw_delta_drop = 0;
+			}
+			interp_y = draw_delta_drop;
+		}
+
+		skin_lua_draw_background(skin);
+		skin_lua_draw_shadow(skin);
+		skin_lua_draw_board(skin);
+		skin_lua_draw_active_figure(skin, interp_y);
+		skin_lua_draw_ghost(skin);
+		skin_lua_draw_foreground(skin);
+		skin_lua_draw_hud(skin);
+
+		flipScreenScaled();
+		frameCounter();
+		return;
+	}
+
+	/* ─── legacy DSL skin path ─── */
 	SDL_Rect rect;
 	skin->screen = screen;
 

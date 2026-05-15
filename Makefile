@@ -3,10 +3,10 @@
 PROJECT = yatka
 SRC = src/main.c src/data_persistence.c src/video.c src/sound.c \
 	src/state_gameover.c src/state_settings.c src/randomizer.c \
-	src/state_mainmenu.c src/skin.c
+	src/state_mainmenu.c src/skin.c src/skin_lua.c
 OBJ = $(SRC:.c=.o)
 DEP = $(SRC:.c=.d)
-PKGS = sdl SDL_image SDL_ttf SDL_mixer libcjson
+PKGS = sdl SDL_image SDL_ttf SDL_mixer libcjson lua5.4
 
 COMMIT_HASH != git tag --points-at HEAD
 ifeq ($(COMMIT_HASH), )
