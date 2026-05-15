@@ -80,12 +80,32 @@ end
 
 function draw_foreground() end
 
+function format_ms(ms)
+	local cs = math.floor(ms / 10) % 100
+	local ss = math.floor(ms / 1000) % 60
+	local mm = math.floor(ms / 60000)
+	return string.format("%02d:%02d.%02d", mm, ss, cs)
+end
+
 function draw_hud()
 	res.draw_text(font, "Score: " .. game.score(), 0, 0)
 	res.draw_text(font, "Level: " .. game.level(), 0, 7)
-	res.draw_text(font, "Lines: " .. game.lines(), 0, 14)
+
+	local mode = game.mode()
+	if mode == "sprint" then
+		res.draw_text(font, "Lines: " .. game.lines() .. " / 40", 0, 14)
+	else
+		res.draw_text(font, "Lines: " .. game.lines(), 0, 14)
+	end
+
 	res.draw_text(small_font, game.dropped() .. " pcs", 0, 21)
-	res.draw_text(small_font, game.timer(), 320, 240, 255, 255, 255, 2, 2)
+
+	if mode == "ultra" then
+		res.draw_text(small_font, format_ms(game.ultra_time_left()), 320, 240, 255, 255, 255, 2, 2)
+	else
+		res.draw_text(small_font, format_ms(game.timer()), 320, 240, 255, 255, 255, 2, 2)
+	end
+
 	res.draw_text(small_font, game.fps() .. " fps", 320, 0, 255, 255, 255, 2, 0)
 
 	-- stats (bars, 30px spacing to match default skin)

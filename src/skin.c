@@ -551,12 +551,7 @@ static int y_game_mode(lua_State *L)
 	lua_pushstring(L, names[menu_gamemode]);
 	return 1;
 }
-static int y_game_timer(lua_State *L) { lua_pushstring(L, gametimer); return 1; }
-static int y_game_sprint_lines_left(lua_State *L)
-{
-	lua_pushinteger(L, (SPRINT_LINE_COUNT > lines) ? (SPRINT_LINE_COUNT - lines) : 0);
-	return 1;
-}
+static int y_game_timer(lua_State *L) { lua_pushinteger(L, (int)game_totaltime); return 1; }
 static int y_game_ultra_time_left(lua_State *L)
 {
 	updateTotalTime();
@@ -748,7 +743,6 @@ static void skin_lua_init(struct Skin *skin, const char *skin_path)
 	lua_pushcfunction(L, y_game_stat);     lua_setfield(L, -2, "stat");
 	lua_pushcfunction(L, y_game_mode);     lua_setfield(L, -2, "mode");
 	lua_pushcfunction(L, y_game_timer);              lua_setfield(L, -2, "timer");
-	lua_pushcfunction(L, y_game_sprint_lines_left); lua_setfield(L, -2, "sprint_lines_left");
 	lua_pushcfunction(L, y_game_ultra_time_left);   lua_setfield(L, -2, "ultra_time_left");
 	lua_pushcfunction(L, y_game_fps);        lua_setfield(L, -2, "fps");
 	lua_pushcfunction(L, y_game_ticks);      lua_setfield(L, -2, "ticks");
