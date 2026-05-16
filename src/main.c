@@ -444,7 +444,7 @@ void initialize(void)
 	SDL_ShowCursor(SDL_DISABLE);
 #endif
 
-	arcade_font = TTF_OpenFont("skins/default/arcade.ttf", FONT_SIZE);
+	arcade_font = TTF_OpenFont("gfx/arcade.ttf", FONT_SIZE);
 	if (arcade_font == NULL)
 	{
 		printf("TTF_OpenFont failed.\n");

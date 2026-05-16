@@ -76,10 +76,16 @@ static int y_load_image(lua_State *L)
 	struct Skin *skin = (struct Skin *)lua_touserdata(L, lua_upvalueindex(1));
 	const char *name = luaL_checkstring(L, 1);
 	char path[512];
+	char fallback[512];
 	snprintf(path, sizeof path, "%s%s", skin->path, name);
 	SDL_Surface *img = IMG_Load(path);
 	if (!img)
-		return luaL_error(L, "IMG_Load(%s) failed", path);
+	{
+		snprintf(fallback, sizeof fallback, "gfx/%s", name);
+		img = IMG_Load(fallback);
+	}
+	if (!img)
+		return luaL_error(L, "IMG_Load(%s) and IMG_Load(%s) both failed", path, fallback);
 	SDL_Surface *opt = SDL_DisplayFormat(img);
 	SDL_FreeSurface(img);
 	if (!opt)
@@ -96,11 +102,17 @@ static int y_load_font(lua_State *L)
 	struct Skin *skin = (struct Skin *)lua_touserdata(L, lua_upvalueindex(1));
 	const char *name = luaL_checkstring(L, 1);
 	char path[512];
+	char fallback[512];
 	snprintf(path, sizeof path, "%s%s", skin->path, name);
 	int size = luaL_checkinteger(L, 2);
 	TTF_Font *font = TTF_OpenFont(path, size);
 	if (!font)
-		return luaL_error(L, "TTF_OpenFont(%s) failed", path);
+	{
+		snprintf(fallback, sizeof fallback, "gfx/%s", name);
+		font = TTF_OpenFont(fallback, size);
+	}
+	if (!font)
+		return luaL_error(L, "TTF_OpenFont(%s) and TTF_OpenFont(%s) both failed", path, fallback);
 
 	TTF_Font **ud = (TTF_Font **)lua_newuserdata(L, sizeof(TTF_Font *));
 	*ud = font;
