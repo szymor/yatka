@@ -9,7 +9,7 @@ SRC = src/main.c src/data_persistence.c src/video.c src/sound.c \
 OBJ = $(SRC:.c=.o)
 DEP = $(SRC:.c=.d)
 CFLAGS = -Iinc -D_RETROFW -Ofast
-LDFLAGS = -s $(shell $(BIN_BASE)pkg-config --libs sdl SDL_image SDL_ttf SDL_mixer)
+LDFLAGS = -s $(shell $(BIN_BASE)pkg-config --libs sdl SDL_image SDL_ttf SDL_mixer) -lcjson -llua5.4
 CC = mipsel-linux-gcc
 
 all: opk

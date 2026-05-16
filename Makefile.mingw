@@ -17,8 +17,8 @@ ifneq ($(.SHELLSTATUS),0)
 COMMIT_HASH := $(COMMIT_HASH)_dirty
 endif
 
-CFLAGS = -std=c99 -g -Iinc -DDEV -DCOMMIT_HASH=$(COMMIT_HASH)
-LDFLAGS = -lmingw32 -lSDLmain -lSDL -lSDL_image -lSDL_ttf -lSDL_mixer
+CFLAGS = -std=gnu99 -g -Iinc -DDEV -DCOMMIT_HASH=$(COMMIT_HASH)
+LDFLAGS = -lmingw32 -lSDLmain -lSDL -lSDL_image -lSDL_ttf -lSDL_mixer -lcjson -llua5.4
 CC = gcc
 
 all: $(PROJECT)
