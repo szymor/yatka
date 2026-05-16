@@ -1022,7 +1022,6 @@ static void skin_lua_draw_ghost(struct Skin *skin)
 }
 
 static void skin_lua_draw_foreground(struct Skin *skin) { call_lua_void(skin, "draw_foreground"); }
-static void skin_lua_draw_hud(struct Skin *skin)        { call_lua_void(skin, "draw_hud"); }
 
 static void skin_lua_draw_timed_texts(struct Skin *skin)
 {
@@ -1405,12 +1404,11 @@ void skin_updateScreen(struct Skin *skin, SDL_Surface *screen)
 	}
 
 	skin_lua_draw_background(skin);
-	skin_lua_draw_hud(skin);
-	skin_lua_draw_timed_texts(skin);
 	skin_lua_draw_shadow(skin);
 	skin_lua_draw_board(skin);
 	skin_lua_draw_active_figure(skin, interp_y);
 	skin_lua_draw_ghost(skin);
+	skin_lua_draw_timed_texts(skin);
 	skin_update_particles(skin);
 	skin_draw_particles(skin);
 	skin_lua_draw_foreground(skin);

@@ -47,68 +47,8 @@ function draw_background()
 	res.draw_rect(246, 112, 48, 24, 255, 255, 255, 48)
 	res.draw_rect(246, 142, 48, 24, 255, 255, 255, 48)
 	res.draw_rect(246, 172, 48, 24, 255, 255, 255, 48)
-end
 
-
-
-
-
-
-function on_move(direction)
-	res.play_sfx(sfx.click)
-end
-
-function on_piece_lock(data)
-	res.play_sfx(sfx.hit)
-end
-
-function on_line_clear(data)
-	if not data.speech_on then
-		res.play_sfx(sfx.clear)
-	end
-	local clear_names = { "Single", "Double", "Triple", "Tetris", "Cheatris" }
-	local lines = data.lines
-	if lines > 5 then lines = 5 end
-	local name = clear_names[lines]
-	if data.tspin and data.tspin ~= "" then
-		name = data.tspin .. name
-	end
-	if data.b2b then
-		res.show_timed_text(160, 8, "Back-2-Back", 1500, font, 255, 255, 255, 1, 0)
-	end
-	res.show_timed_text(160, 16, name, 1500, font, 255, 255, 255, 1, 0)
-	if data.combo and data.combo > 0 then
-		res.show_timed_text(160, 24, "combo " .. data.combo .. "x", 1500, small_font, 255, 255, 255, 1, 0)
-		res.play_sfx(math.min(sfx.combo_1 + data.combo - 1, sfx.combo_7))
-	end
-
-	-- spawn particles from cleared lines (C handles update + drawing)
-	if data.particles then
-		for _, p in ipairs(data.particles) do
-			res.add_particle(
-				board_x + p.x * brick_w,
-				board_y + (p.y - 1) * brick_w,
-				(math.random() - 0.5) * 60,
-				-math.random() * 120 - 40,
-				p.color,
-				p.orient,
-				255,
-				0, 180
-			)
-		end
-	end
-end
-
-function draw_foreground() end
-
-function format_ms(ms)
-	local cs = math.floor(ms / 10) % 100
-	local ss = math.floor(ms / 1000) % 60
-	local mm = math.floor(ms / 60000)
-	return string.format("%02d:%02d.%02d", mm, ss, cs)
-end
-
-function draw_hud()
+	-- HUD
 	res.draw_text(font, "Score: " .. game.score(), 0, 0)
 	res.draw_text(font, "Level: " .. game.level(), 0, 7)
 
@@ -182,6 +122,64 @@ function draw_hud()
 			end
 		end
 	end
-
-
 end
+
+
+
+
+
+
+function on_move(direction)
+	res.play_sfx(sfx.click)
+end
+
+function on_piece_lock(data)
+	res.play_sfx(sfx.hit)
+end
+
+function on_line_clear(data)
+	if not data.speech_on then
+		res.play_sfx(sfx.clear)
+	end
+	local clear_names = { "Single", "Double", "Triple", "Tetris", "Cheatris" }
+	local lines = data.lines
+	if lines > 5 then lines = 5 end
+	local name = clear_names[lines]
+	if data.tspin and data.tspin ~= "" then
+		name = data.tspin .. name
+	end
+	if data.b2b then
+		res.show_timed_text(160, 8, "Back-2-Back", 1500, font, 255, 255, 255, 1, 0)
+	end
+	res.show_timed_text(160, 16, name, 1500, font, 255, 255, 255, 1, 0)
+	if data.combo and data.combo > 0 then
+		res.show_timed_text(160, 24, "combo " .. data.combo .. "x", 1500, small_font, 255, 255, 255, 1, 0)
+		res.play_sfx(math.min(sfx.combo_1 + data.combo - 1, sfx.combo_7))
+	end
+
+	-- spawn particles from cleared lines (C handles update + drawing)
+	if data.particles then
+		for _, p in ipairs(data.particles) do
+			res.add_particle(
+				board_x + p.x * brick_w,
+				board_y + (p.y - 1) * brick_w,
+				(math.random() - 0.5) * 60,
+				-math.random() * 120 - 40,
+				p.color,
+				p.orient,
+				255,
+				0, 180
+			)
+		end
+	end
+end
+
+function draw_foreground() end
+
+function format_ms(ms)
+	local cs = math.floor(ms / 10) % 100
+	local ss = math.floor(ms / 1000) % 60
+	local mm = math.floor(ms / 60000)
+	return string.format("%02d:%02d.%02d", mm, ss, cs)
+end
+
