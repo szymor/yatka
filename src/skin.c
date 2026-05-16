@@ -1392,6 +1392,8 @@ void skin_updateScreen(struct Skin *skin, SDL_Surface *screen)
 	}
 
 	skin_lua_draw_background(skin);
+	skin_lua_draw_hud(skin);
+	skin_lua_draw_timed_texts(skin);
 	skin_lua_draw_shadow(skin);
 	skin_lua_draw_board(skin);
 	skin_lua_draw_active_figure(skin, interp_y);
@@ -1399,8 +1401,6 @@ void skin_updateScreen(struct Skin *skin, SDL_Surface *screen)
 	skin_update_particles(skin);
 	skin_draw_particles(skin);
 	skin_lua_draw_foreground(skin);
-	skin_lua_draw_hud(skin);
-	skin_lua_draw_timed_texts(skin);
 
 	flipScreenScaled();
 	frameCounter();
