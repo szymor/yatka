@@ -1171,6 +1171,7 @@ void skin_lua_on_line_clear(struct Skin *skin, int lines,
 	lua_pushinteger(L, combo);      lua_setfield(L, -2, "combo");
 	lua_pushboolean(L, b2b);        lua_setfield(L, -2, "b2b");
 	lua_pushinteger(L, score_earned); lua_setfield(L, -2, "score");
+	lua_pushboolean(L, speechon);   lua_setfield(L, -2, "speech_on");
 
 	/* pass particles table (cleared brick positions) */
 	lua_newtable(L);

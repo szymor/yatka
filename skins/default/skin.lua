@@ -63,6 +63,9 @@ function on_piece_lock(data)
 end
 
 function on_line_clear(data)
+	if not data.speech_on then
+		res.play_sfx(sfx.clear)
+	end
 	local clear_names = { "Single", "Double", "Triple", "Tetris", "Cheatris" }
 	local lines = data.lines
 	if lines > 5 then lines = 5 end

@@ -330,5 +330,5 @@ void playEffect(enum SfxEffect se)
 {
 	if (SE_NONE == se)
 		return;
-	Mix_PlayChannel(SFXEFFECT_CHANNEL, sfx_effects[se], 0);
+	Mix_PlayChannel(-1, sfx_effects[se], 0);
 }
