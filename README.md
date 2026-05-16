@@ -78,10 +78,7 @@ I do not cover the topic in detail because there are many better sources on that
 
 ## ideas / plans
 - better joystick support (menu navigation, tetromino speed proportional to knob angle, on/off option, etc.)
-- line clear animation (TGM?)
-- dynamic debris generation during gameplay
 - skin redesign to make them more consistent with implemented game modes
-- sonic/hard drop switch
 - finesse calculation
 - perfect clear score bonus
 

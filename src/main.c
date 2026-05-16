@@ -102,6 +102,8 @@ Uint32 game_totaltime = 0;
 char gametimer[GAMETIMER_STRLEN];
 char pieces_per_second[PPS_LEN];
 char keys_per_tetromino[KPT_LEN];
+struct ClearedBrick cleared_bricks[MAX_CLEARED_BRICKS];
+int cleared_brick_count;
 
 static Uint32 time_to_generate_debris = 0;
 
@@ -1081,6 +1083,7 @@ void holdFigure(void)
 
 int removeFullLines(void)
 {
+	cleared_brick_count = 0;
 	int removed_lines = 0;
 
 	// checking and removing full lines
@@ -1097,6 +1100,16 @@ int removeFullLines(void)
 		}
 		if (flag)
 		{
+			// capture bricks before removal
+			for (int x = 0; x < BOARD_WIDTH && cleared_brick_count < MAX_CLEARED_BRICKS; ++x)
+			{
+				cleared_bricks[cleared_brick_count].x = x;
+				cleared_bricks[cleared_brick_count].y = y;
+				cleared_bricks[cleared_brick_count].color = board[y * BOARD_WIDTH + x].color;
+				cleared_bricks[cleared_brick_count].orient = board[y * BOARD_WIDTH + x].orientation;
+				++cleared_brick_count;
+			}
+
 			// removing
 			++removed_lines;
 			for (int ys = y-1; ys >= 0; --ys)

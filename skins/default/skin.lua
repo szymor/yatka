@@ -1,6 +1,7 @@
 -- Yatka Lua skin: minimal example
 local bg_img, font, small_font
-local brick_w, brick_h
+local brick_w, brick_h, board_x, board_y
+
 
 
 
@@ -18,6 +19,7 @@ function skin_load(r)
 
 	r.set_brick_size(12)
 	r.set_board_xy(100, 0)
+	board_x, board_y = 100, 0
 	brick_w, brick_h = r.brick_size()
 
 	-- load & wire bricksprite (transfers ownership to C)
@@ -75,6 +77,22 @@ function on_line_clear(data)
 	if data.combo and data.combo > 0 then
 		res.show_timed_text(160, 24, "combo " .. data.combo .. "x", 1500, small_font, 255, 255, 255, 1, 0)
 		res.play_sfx(math.min(sfx.combo_1 + data.combo - 1, sfx.combo_7))
+	end
+
+	-- spawn particles from cleared lines (C handles update + drawing)
+	if data.particles then
+		for _, p in ipairs(data.particles) do
+			res.add_particle(
+				board_x + p.x * brick_w,
+				board_y + (p.y - 1) * brick_w,
+				(math.random() - 0.5) * 60,
+				-math.random() * 120 - 40,
+				p.color,
+				p.orient,
+				255,
+				0, 180
+			)
+		end
 	end
 end
 

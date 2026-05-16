@@ -10,6 +10,7 @@
 #define ORIENTATION_NUM		(15)
 #define TIMED_TEXT_MAX		(8)
 #define TIMED_TEXT_LEN		(128)
+#define PARTICLE_MAX		(256)
 
 enum FigureId
 {
@@ -56,6 +57,16 @@ struct TimedText
 	Uint32 fadeout_ms;
 };
 
+struct Particle
+{
+	float x, y;
+	float vx, vy;
+	float ax, ay;
+	int color;
+	int orient;
+	int alpha;
+};
+
 struct Skin
 {
 	SDL_Surface *screen;
@@ -76,6 +87,10 @@ struct Skin
 	TTF_Font *fonts[FONT_NUM];
 
 	struct TimedText timed_texts[TIMED_TEXT_MAX];
+
+	struct Particle particles[PARTICLE_MAX];
+	int particle_count;
+	Uint32 last_particle_tick;
 
 	struct lua_State *L;           /* per-skin lua state, NULL for failed loads */
 };

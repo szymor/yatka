@@ -599,6 +599,79 @@ static int y_figure_next(lua_State *L)
 static int y_figure_held(lua_State *L) { push_figure(L, &preserved, false); return 1; }
 
 /* ─────────────────────────────────────────────
+ * Particle system (C update+draw, Lua spawn)
+ * ───────────────────────────────────────────── */
+
+static int y_add_particle(lua_State *L)
+{
+	struct Skin *skin = (struct Skin *)lua_touserdata(L, lua_upvalueindex(1));
+	if (skin->particle_count >= PARTICLE_MAX) return 0;
+	struct Particle *p = &skin->particles[skin->particle_count++];
+	p->x = (float)luaL_checknumber(L, 1);
+	p->y = (float)luaL_checknumber(L, 2);
+	p->vx = (float)luaL_checknumber(L, 3);
+	p->vy = (float)luaL_checknumber(L, 4);
+	p->color = luaL_checkinteger(L, 5);
+	p->orient = luaL_checkinteger(L, 6);
+	p->alpha = (int)luaL_optinteger(L, 7, 255);
+	p->ax = (float)luaL_optnumber(L, 8, 0.0f);
+	p->ay = (float)luaL_optnumber(L, 9, 0.0f);
+	return 0;
+}
+
+static void skin_update_particles(struct Skin *skin)
+{
+	Uint32 now = SDL_GetTicks();
+	if (!skin->last_particle_tick) { skin->last_particle_tick = now; return; }
+	float dt = (now - skin->last_particle_tick) / 1000.0f;
+	skin->last_particle_tick = now;
+	if (dt > 0.1f) dt = 0.1f;
+
+	for (int i = 0; i < skin->particle_count; )
+	{
+		struct Particle *p = &skin->particles[i];
+		p->vx += p->ax * dt;
+		p->vy += p->ay * dt;
+		p->x += p->vx * dt;
+		p->y += p->vy * dt;
+		if (p->y > 320 || p->x < -20 || p->x > 340)
+			skin->particles[i] = skin->particles[--skin->particle_count];
+		else
+			++i;
+	}
+}
+
+static void skin_draw_particles(struct Skin *skin)
+{
+	for (int i = 0; i < skin->particle_count; ++i)
+	{
+		struct Particle *p = &skin->particles[i];
+		int color = p->color;
+		if (color < 0 || color >= FIGID_END) continue;
+		if (!skin->bricksprite[color]) continue;
+
+		SDL_Rect srcrect = { .x = 0, .y = 0,
+			.w = skin->bricksize,
+			.h = skin->bricksize + skin->brickyoffset };
+		SDL_Surface *block = skin->bricksprite[color];
+		switch (skin->brickstyle)
+		{
+			case BS_ORIENTATION_BASED:
+				srcrect.x = p->orient * srcrect.w - srcrect.w;
+				break;
+			case BS_FIGUREWISE:
+				srcrect.y = (color % FIGID_GRAY) * srcrect.h;
+				break;
+			default: break;
+		}
+
+		SDL_Rect dst = { .x = (int)p->x, .y = (int)p->y };
+		SDL_SetAlpha(block, SDL_SRCALPHA, (Uint8)p->alpha);
+		SDL_BlitSurface(block, &srcrect, skin->screen, &dst);
+	}
+}
+
+/* ─────────────────────────────────────────────
  * Lua‑state initialisation
  * ───────────────────────────────────────────── */
 
@@ -699,6 +772,10 @@ static void skin_lua_init(struct Skin *skin, const char *skin_path)
 	lua_pushcfunction(L, y_play_sfx);
 	lua_setfield(L, -2, "play_sfx");
 
+	lua_pushlightuserdata(L, skin);
+	lua_pushcclosure(L, y_add_particle, 1);
+	lua_setfield(L, -2, "add_particle");
+
 	lua_pop(L, 1);  /* pop res */
 
 	/* ─── sfx table (named sound effect constants) ─── */
@@ -798,6 +875,8 @@ static void skin_lua_fini(struct Skin *skin)
 
 	lua_close(L);
 	skin->L = NULL;
+	skin->particle_count = 0;
+	skin->last_particle_tick = 0;
 }
 
 /* ─────────────────────────────────────────────
@@ -1093,6 +1172,19 @@ void skin_lua_on_line_clear(struct Skin *skin, int lines,
 	lua_pushboolean(L, b2b);        lua_setfield(L, -2, "b2b");
 	lua_pushinteger(L, score_earned); lua_setfield(L, -2, "score");
 
+	/* pass particles table (cleared brick positions) */
+	lua_newtable(L);
+	for (int i = 0; i < cleared_brick_count; ++i)
+	{
+		lua_newtable(L);
+		lua_pushinteger(L, cleared_bricks[i].x);     lua_setfield(L, -2, "x");
+		lua_pushinteger(L, cleared_bricks[i].y);     lua_setfield(L, -2, "y");
+		lua_pushinteger(L, cleared_bricks[i].color); lua_setfield(L, -2, "color");
+		lua_pushinteger(L, cleared_bricks[i].orient); lua_setfield(L, -2, "orient");
+		lua_rawseti(L, -2, i + 1);
+	}
+	lua_setfield(L, -2, "particles");
+
 	if (lua_pcall(L, 1, 0, 0) != LUA_OK)
 	{
 		fprintf(stderr, "Lua on_line_clear error: %s\n", lua_tostring(L, -1));
@@ -1304,6 +1396,8 @@ void skin_updateScreen(struct Skin *skin, SDL_Surface *screen)
 	skin_lua_draw_board(skin);
 	skin_lua_draw_active_figure(skin, interp_y);
 	skin_lua_draw_ghost(skin);
+	skin_update_particles(skin);
+	skin_draw_particles(skin);
 	skin_lua_draw_foreground(skin);
 	skin_lua_draw_hud(skin);
 	skin_lua_draw_timed_texts(skin);

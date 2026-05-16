@@ -63,6 +63,14 @@
 #define ULTRA_MS_LEN				(3*60*1000)
 #define SPRINT_LINE_COUNT			(40)
 #define AUTO_DEBRIS_TIME_UNIT		(10*1000)
+#define MAX_CLEARED_BRICKS		(BOARD_WIDTH * 4)
+
+struct ClearedBrick
+{
+	int x, y;
+	int color;
+	int orient;
+};
 
 enum GameMode
 {
@@ -143,6 +151,8 @@ extern struct Figure *figures[FIG_NUM];
 extern struct Figure preserved;
 extern struct Skin gameskin;
 extern struct Block *board;
+extern struct ClearedBrick cleared_bricks[MAX_CLEARED_BRICKS];
+extern int cleared_brick_count;
 extern enum GameState gamestate;
 
 extern bool nosound;
