@@ -6,6 +6,7 @@
 #include <SDL/SDL_image.h>
 
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <dirent.h>
 
 #include "state_mainmenu.h"
@@ -120,10 +121,15 @@ static void mainmenu_init_skinload_helper(DIR *dp, const char *maindir)
 	{
 		if (strcmp(ep->d_name, ".") && strcmp(ep->d_name, ".."))
 		{
+			char skinlua_path[512];
+			struct stat st;
+			sprintf(skinlua_path, "%s%s/skin.lua", maindir, ep->d_name);
+			if (stat(skinlua_path, &st) != 0 || !S_ISREG(st.st_mode))
+				continue;
 			if (!strcmp(ep->d_name, "default"))
-			menu_skin = menu_skinnum;
+				menu_skin = menu_skinnum;
 			strcpy(menu_skinentries[menu_skinnum].name, ep->d_name);
-			sprintf(menu_skinentries[menu_skinnum].path, "%s%s/skin.lua", maindir, ep->d_name);
+			strcpy(menu_skinentries[menu_skinnum].path, skinlua_path);
 			++menu_skinnum;
 		}
 	}
