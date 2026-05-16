@@ -62,8 +62,8 @@ struct Particle
 	float x, y;
 	float vx, vy;
 	float ax, ay;
-	int color;
-	int orient;
+	SDL_Surface *sprite;
+	SDL_Rect srcrect;
 	int alpha;
 };
 

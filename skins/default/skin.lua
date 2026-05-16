@@ -165,8 +165,8 @@ function on_line_clear(data)
 				board_y + (p.y - 1) * brick_w,
 				(math.random() - 0.5) * 60,
 				-math.random() * 120 - 40,
-				p.color,
-				p.orient,
+				p.sprite,
+				p.sx, p.sy, p.sw, p.sh,
 				255,
 				0, 180
 			)

@@ -623,11 +623,14 @@ static int y_add_particle(lua_State *L)
 	p->y = (float)luaL_checknumber(L, 2);
 	p->vx = (float)luaL_checknumber(L, 3);
 	p->vy = (float)luaL_checknumber(L, 4);
-	p->color = luaL_checkinteger(L, 5);
-	p->orient = luaL_checkinteger(L, 6);
-	p->alpha = (int)luaL_optinteger(L, 7, 255);
-	p->ax = (float)luaL_optnumber(L, 8, 0.0f);
-	p->ay = (float)luaL_optnumber(L, 9, 0.0f);
+	p->sprite = (SDL_Surface *)lua_touserdata(L, 5);  /* lightuserdata, non-owning */
+	p->srcrect.x = luaL_checkinteger(L, 6);
+	p->srcrect.y = luaL_checkinteger(L, 7);
+	p->srcrect.w = luaL_checkinteger(L, 8);
+	p->srcrect.h = luaL_checkinteger(L, 9);
+	p->alpha = (int)luaL_optinteger(L, 10, 255);
+	p->ax = (float)luaL_optnumber(L, 11, 0.0f);
+	p->ay = (float)luaL_optnumber(L, 12, 0.0f);
 	return 0;
 }
 
@@ -658,28 +661,11 @@ static void skin_draw_particles(struct Skin *skin)
 	for (int i = 0; i < skin->particle_count; ++i)
 	{
 		struct Particle *p = &skin->particles[i];
-		int color = p->color;
-		if (color < 0 || color >= FIGID_END) continue;
-		if (!skin->bricksprite[color]) continue;
-
-		SDL_Rect srcrect = { .x = 0, .y = 0,
-			.w = skin->bricksize,
-			.h = skin->bricksize + skin->brickyoffset };
-		SDL_Surface *block = skin->bricksprite[color];
-		switch (skin->brickstyle)
-		{
-			case BS_ORIENTATION_BASED:
-				srcrect.x = p->orient * srcrect.w - srcrect.w;
-				break;
-			case BS_FIGUREWISE:
-				srcrect.y = (color % FIGID_GRAY) * srcrect.h;
-				break;
-			default: break;
-		}
+		if (!p->sprite) continue;
 
 		SDL_Rect dst = { .x = (int)p->x, .y = (int)p->y };
-		SDL_SetAlpha(block, SDL_SRCALPHA, (Uint8)p->alpha);
-		SDL_BlitSurface(block, &srcrect, skin->screen, &dst);
+		SDL_SetAlpha(p->sprite, SDL_SRCALPHA, (Uint8)p->alpha);
+		SDL_BlitSurface(p->sprite, &p->srcrect, skin->screen, &dst);
 	}
 }
 
@@ -1164,6 +1150,44 @@ static void skin_lua_draw_active_figure(struct Skin *skin, int interp_y)
 }
 
 /* ─────────────────────────────────────────────
+ * Helper: push bricksprite sheet surface + source rect
+ *         into the Lua particles table (non‑owning)
+ * ───────────────────────────────────────────── */
+static void push_brick_sprite_table(struct Skin *skin, lua_State *L, int color, int orient)
+{
+	int bw = skin->bricksize;
+	int bh = skin->bricksize + skin->brickyoffset;
+	int sx = 0, sy = 0;
+
+	if (color >= 0 && color < FIGID_END && skin->bricksprite[color])
+	{
+		switch (skin->brickstyle)
+		{
+			case BS_ORIENTATION_BASED:
+				sx = orient * bw - bw;
+				break;
+			case BS_FIGUREWISE:
+				sy = (color % FIGID_GRAY) * bh;
+				break;
+			default: break;
+		}
+
+		lua_pushlightuserdata(L, skin->bricksprite[color]);
+		lua_setfield(L, -2, "sprite");
+	}
+	else
+	{
+		lua_pushnil(L);
+		lua_setfield(L, -2, "sprite");
+	}
+
+	lua_pushinteger(L, sx);  lua_setfield(L, -2, "sx");
+	lua_pushinteger(L, sy);  lua_setfield(L, -2, "sy");
+	lua_pushinteger(L, bw);  lua_setfield(L, -2, "sw");
+	lua_pushinteger(L, bh);  lua_setfield(L, -2, "sh");
+}
+
+/* ─────────────────────────────────────────────
  * Event callbacks (called from main.c)
  * ───────────────────────────────────────────── */
 
@@ -1184,15 +1208,14 @@ void skin_lua_on_line_clear(struct Skin *skin, int lines,
 	lua_pushinteger(L, score_earned); lua_setfield(L, -2, "score");
 	lua_pushboolean(L, speechon);   lua_setfield(L, -2, "speech_on");
 
-	/* pass particles table (cleared brick positions) */
+	/* pass particles table (cleared brick positions + sprite surfaces) */
 	lua_newtable(L);
 	for (int i = 0; i < cleared_brick_count; ++i)
 	{
 		lua_newtable(L);
 		lua_pushinteger(L, cleared_bricks[i].x);     lua_setfield(L, -2, "x");
 		lua_pushinteger(L, cleared_bricks[i].y);     lua_setfield(L, -2, "y");
-		lua_pushinteger(L, cleared_bricks[i].color); lua_setfield(L, -2, "color");
-		lua_pushinteger(L, cleared_bricks[i].orient); lua_setfield(L, -2, "orient");
+		push_brick_sprite_table(skin, L, cleared_bricks[i].color, cleared_bricks[i].orient);
 		lua_rawseti(L, -2, i + 1);
 	}
 	lua_setfield(L, -2, "particles");
