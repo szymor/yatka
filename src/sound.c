@@ -7,6 +7,7 @@
 #include "main.h"
 #include "data_persistence.h"
 
+#define MAX_TRACKS		256
 #define SFXEFFECT_CHANNEL	(2)
 #define SFXSPEECH_CHANNEL	(3)
 
@@ -42,28 +43,47 @@ static const char sfx_speech_paths[SS_END][32] = {
 	"sfx/tetris.wav"
 };
 
-static DIR *music_dp;
 static const char default_music_dir[] = "music/";
 static char custom_music_dir[256] = "";
 static const char *music_dir = NULL;
 
-static struct dirent *getNextDirEntry(void);
-static void loadNextTrack(void);
-static void channelDone(int channel);
+static char track_names[MAX_TRACKS][64];
+static int track_count = 0;
+static int track_index = -1;
 
-static struct dirent *getNextDirEntry(void)
+static int track_cmp(const void *a, const void *b)
 {
-	struct dirent *ep = NULL;
-	ep = readdir(music_dp);
-	if (!ep)
-	{
-		rewinddir(music_dp);
-		ep = readdir(music_dp);
-	}
-	return ep;
+	return strcmp((const char *)a, (const char *)b);
 }
 
-static void loadNextTrack(void)
+static void scan_tracks(void)
+{
+	track_count = 0;
+	DIR *dp = opendir(music_dir);
+	if (!dp) return;
+
+	struct dirent *ep;
+	while ((ep = readdir(dp)) != NULL && track_count < MAX_TRACKS)
+	{
+		if (!strcmp(ep->d_name, ".") || !strcmp(ep->d_name, ".."))
+			continue;
+		char path[64];
+		snprintf(path, sizeof path, "%s%.63s", music_dir, ep->d_name);
+		Mix_Music *m = Mix_LoadMUS(path);
+		if (m)
+		{
+			Mix_FreeMusic(m);
+			snprintf(track_names[track_count], 64, "%s", ep->d_name);
+			++track_count;
+		}
+	}
+	closedir(dp);
+
+	if (track_count > 1)
+		qsort(track_names, track_count, 64, track_cmp);
+}
+
+static void load_track(int idx)
 {
 	if (music)
 	{
@@ -71,41 +91,24 @@ static void loadNextTrack(void)
 		music = NULL;
 	}
 
-	struct dirent *ep = NULL;
-	char buff[64];
-	bool invalidINodeOccured = false;
-	ino_t invalidINode = 0;
-	ep = getNextDirEntry();
-	while (ep && (!invalidINodeOccured || (invalidINodeOccured && (ep->d_ino != invalidINode))))
-	{
-		if (!strcmp(ep->d_name, ".") || !strcmp(ep->d_name, ".."))
-		{
-			ep = getNextDirEntry();
-			continue;
-		}
-
-		sprintf(buff, "%s%.63s", music_dir, ep->d_name);
-		log("Track: %s\n", buff);
-		music = Mix_LoadMUS(buff);
-		if (!music)
-		{
-			if (!invalidINodeOccured)
-			{
-				invalidINodeOccured = true;
-				invalidINode = ep->d_ino;
-			}
-			ep = getNextDirEntry();
-			continue;
-		}
-		sprintf(music_name, "%.31s", ep->d_name);
-		break;
-	}
-
-	if (!music)
+	if (idx < 0 || idx >= track_count)
 	{
 		sprintf(music_name, "%s", "<none>");
+		return;
 	}
+
+	char path[64];
+	snprintf(path, sizeof path, "%s%.63s", music_dir, track_names[idx]);
+	music = Mix_LoadMUS(path);
+	if (music)
+		snprintf(music_name, 32, "%s", track_names[idx]);
+	else
+		sprintf(music_name, "%s", "<none>");
+
+	track_index = idx;
 }
+
+static void channelDone(int channel);
 
 static void channelDone(int channel)
 {
@@ -168,37 +171,28 @@ void initSound(void)
 	Mix_ChannelFinished(channelDone);
 
 	sprintf(custom_music_dir, "%s/%s", dirpath, default_music_dir);
-	music_dp = opendir(custom_music_dir);
-	if (music_dp != NULL)
+	music_dir = custom_music_dir;
+	DIR *dp = opendir(custom_music_dir);
+	if (!dp)
 	{
-		music_dir = custom_music_dir;
+		music_dir = default_music_dir;
+		dp = opendir(default_music_dir);
+	}
+	if (dp)
+	{
+		closedir(dp);
+		scan_tracks();
+		load_track(0);
 	}
 	else
 	{
-		music_dp = opendir(default_music_dir);
-		if (music_dp != NULL)
-		{
-			music_dir = default_music_dir;
-		}
-		else
-		{
-			music_dir = NULL;
-		}
-	}
-
-	if (music_dp != NULL)
-	{
-		loadNextTrack();
-	}
-	else
-	{
+		music_dir = NULL;
 		perror("Couldn't open the directory");
 	}
 }
 
 void deinitSound(void)
 {
-	closedir(music_dp);
 	if (music)
 	{
 		Mix_FreeMusic(music);
@@ -216,8 +210,8 @@ void trackFinished(void)
 	{
 		if (!repeattrack)
 		{
-			if (music_dp != NULL)
-				loadNextTrack();
+			if (track_count > 0)
+				load_track((track_index + 1) % track_count);
 		}
 		Mix_PlayMusic(music, 1);
 
@@ -251,14 +245,18 @@ void letMusicFinish(void)
 
 void playNextTrack(void)
 {
-	if (music_dp != NULL)
-		loadNextTrack();
-	Mix_PlayMusic(music, 1);
+	if (track_count > 0)
+		load_track((track_index + 1) % track_count);
+	if (music)
+		Mix_PlayMusic(music, 1);
 }
 
 void playPrevTrack(void)
 {
-	playNextTrack();
+	if (track_count > 0)
+		load_track((track_index - 1 + track_count) % track_count);
+	if (music)
+		Mix_PlayMusic(music, 1);
 }
 
 void playSpeech(int ssflags)
