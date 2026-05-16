@@ -120,7 +120,7 @@ static void left(void)
 		} break;
 		case SL_MUSIC_REPEAT:
 		{
-			repeattrack = !repeattrack;
+			repeattrack = (repeattrack + 2) % MR_END;
 			settings_changed = true;
 		} break;
 		case SL_SPEECH:
@@ -182,7 +182,7 @@ static void right(void)
 		} break;
 		case SL_MUSIC_REPEAT:
 		{
-			repeattrack = !repeattrack;
+			repeattrack = (repeattrack + 1) % MR_END;
 			settings_changed = true;
 		} break;
 		case SL_SPEECH:
@@ -353,7 +353,10 @@ static char *generateSettingLine(char *buff, int pos)
 		} break;
 		case SL_MUSIC_REPEAT:
 		{
-			sprintf(buff, settings_text[pos], repeattrack ? "track once" : "all");
+			{
+			static const char *rep_names[] = { "all", "track once", "shuffled" };
+			sprintf(buff, settings_text[pos], rep_names[repeattrack]);
+		}
 		} break;
 		case SL_SPEECH:
 		{

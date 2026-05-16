@@ -69,7 +69,10 @@ static void saveConfig(void)
 	cJSON_AddBoolToObject(settings, "easyspin", easyspin);
 	cJSON_AddBoolToObject(settings, "lockdelay", lockdelay);
 	cJSON_AddBoolToObject(settings, "sonicdrop", sonicdrop);
-	cJSON_AddBoolToObject(settings, "repeattrack", repeattrack);
+	{
+		static const char *rep_str[] = { "all", "track once", "shuffled" };
+		cJSON_AddStringToObject(settings, "repeattrack", rep_str[repeattrack]);
+	}
 	cJSON_AddBoolToObject(settings, "speechon", speechon);
 	cJSON_AddNumberToObject(settings, "musicvol", initmusvol);
 	cJSON_AddNumberToObject(settings, "tetrominocolor", (int)tetrominocolor);
@@ -149,7 +152,12 @@ static void loadConfig(void)
 		if (cJSON_IsBool(item)) sonicdrop = item->valueint;
 
 		item = cJSON_GetObjectItem(settings, "repeattrack");
-		if (cJSON_IsBool(item)) repeattrack = item->valueint;
+		if (cJSON_IsString(item))
+		{
+			if      (!strcmp(item->valuestring, "track once")) repeattrack = MR_TRACK_ONCE;
+			else if (!strcmp(item->valuestring, "shuffled"))   repeattrack = MR_SHUFFLED;
+			else                                               repeattrack = MR_ALL;
+		}
 
 		item = cJSON_GetObjectItem(settings, "speechon");
 		if (cJSON_IsBool(item)) speechon = item->valueint;

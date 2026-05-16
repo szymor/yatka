@@ -3,6 +3,7 @@
 #include <SDL/SDL_mixer.h>
 #include <sys/types.h>
 #include <dirent.h>
+#include <stdlib.h>
 #include "sound.h"
 #include "main.h"
 #include "data_persistence.h"
@@ -50,6 +51,22 @@ static const char *music_dir = NULL;
 static char track_names[MAX_TRACKS][64];
 static int track_count = 0;
 static int track_index = -1;
+static int shuffle_order[MAX_TRACKS];
+static int shuffle_pos = 0;
+
+static void init_shuffle(void)
+{
+	for (int i = 0; i < track_count; ++i)
+		shuffle_order[i] = i;
+	for (int i = track_count - 1; i > 0; --i)
+	{
+		int j = rand() % (i + 1);
+		int tmp = shuffle_order[i];
+		shuffle_order[i] = shuffle_order[j];
+		shuffle_order[j] = tmp;
+	}
+	shuffle_pos = 0;
+}
 
 static int track_cmp(const void *a, const void *b)
 {
@@ -182,6 +199,7 @@ void initSound(void)
 	{
 		closedir(dp);
 		scan_tracks();
+		init_shuffle();
 		load_track(0);
 	}
 	else
@@ -208,10 +226,18 @@ void trackFinished(void)
 {
 	if (GS_GAMEOVER != gamestate && GS_MAINMENU != gamestate)
 	{
-		if (!repeattrack)
+		if (MR_TRACK_ONCE == repeattrack) return;
+		if (track_count < 1) return;
+
+		if (MR_SHUFFLED == repeattrack)
 		{
-			if (track_count > 0)
-				load_track((track_index + 1) % track_count);
+			shuffle_pos = (shuffle_pos + 1) % track_count;
+			if (0 == shuffle_pos) init_shuffle();
+			load_track(shuffle_order[shuffle_pos]);
+		}
+		else                                    /* all (sequential) */
+		{
+			load_track((track_index + 1) % track_count);
 		}
 		Mix_PlayMusic(music, 1);
 
@@ -245,16 +271,35 @@ void letMusicFinish(void)
 
 void playNextTrack(void)
 {
-	if (track_count > 0)
+	if (track_count < 1) return;
+
+	if (MR_SHUFFLED == repeattrack)
+	{
+		shuffle_pos = (shuffle_pos + 1) % track_count;
+		if (0 == shuffle_pos) init_shuffle();
+		load_track(shuffle_order[shuffle_pos]);
+	}
+	else
+	{
 		load_track((track_index + 1) % track_count);
+	}
 	if (music)
 		Mix_PlayMusic(music, 1);
 }
 
 void playPrevTrack(void)
 {
-	if (track_count > 0)
+	if (track_count < 1) return;
+
+	if (MR_SHUFFLED == repeattrack)
+	{
+		shuffle_pos = (shuffle_pos - 1 + track_count) % track_count;
+		load_track(shuffle_order[shuffle_pos]);
+	}
+	else
+	{
 		load_track((track_index - 1 + track_count) % track_count);
+	}
 	if (music)
 		Mix_PlayMusic(music, 1);
 }

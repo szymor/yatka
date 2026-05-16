@@ -71,7 +71,7 @@ int statistics[FIGID_GRAY];
 /* all settings need to be false in order to
  * be properly read from settings file */
 bool nosound = false;
-bool repeattrack = false;
+enum MusicRepeat repeattrack = MR_ALL;
 bool easyspin = false;
 bool lockdelay = false;
 bool sonicdrop = false;

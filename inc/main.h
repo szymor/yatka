@@ -156,7 +156,14 @@ extern int cleared_brick_count;
 extern enum GameState gamestate;
 
 extern bool nosound;
-extern bool repeattrack;
+enum MusicRepeat
+{
+	MR_ALL,
+	MR_TRACK_ONCE,
+	MR_SHUFFLED,
+	MR_END
+};
+extern enum MusicRepeat repeattrack;
 extern bool easyspin;
 extern bool lockdelay;
 extern bool sonicdrop;
