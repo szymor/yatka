@@ -71,6 +71,20 @@ static TTF_Font **check_font(lua_State *L, int idx)
  * C functions exposed to Lua via `res` table
  * ───────────────────────────────────────────── */
 
+static Uint32 read_pixel(SDL_Surface *surface, int x, int y)
+{
+	int bpp = surface->format->BytesPerPixel;
+	Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x * bpp;
+	switch (bpp)
+	{
+		case 1: return *p;
+		case 2: return *(Uint16 *)p;
+		case 3: return p[0] | (p[1] << 8) | (p[2] << 16);
+		case 4: return *(Uint32 *)p;
+		default: return 0;
+	}
+}
+
 static int y_load_image(lua_State *L)
 {
 	struct Skin *skin = (struct Skin *)lua_touserdata(L, lua_upvalueindex(1));
@@ -90,6 +104,15 @@ static int y_load_image(lua_State *L)
 	SDL_FreeSurface(img);
 	if (!opt)
 		return luaL_error(L, "SDL_DisplayFormat failed");
+
+	/* optional second arg: enable colour‑key from top‑left pixel */
+	if (lua_toboolean(L, 2))
+	{
+		if (SDL_MUSTLOCK(opt)) SDL_LockSurface(opt);
+		Uint32 ck = read_pixel(opt, 0, 0);
+		if (SDL_MUSTLOCK(opt)) SDL_UnlockSurface(opt);
+		SDL_SetColorKey(opt, SDL_SRCCOLORKEY, ck);
+	}
 
 	SDL_Surface **ud = (SDL_Surface **)lua_newuserdata(L, sizeof(SDL_Surface *));
 	*ud = opt;
@@ -623,14 +646,44 @@ static int y_add_particle(lua_State *L)
 	p->y = (float)luaL_checknumber(L, 2);
 	p->vx = (float)luaL_checknumber(L, 3);
 	p->vy = (float)luaL_checknumber(L, 4);
-	p->sprite = (SDL_Surface *)lua_touserdata(L, 5);  /* lightuserdata, non-owning */
+	/* accept both lightuserdata (bricksprite ref) and full userdata (load_image) */
+	if (lua_islightuserdata(L, 5))
+		p->sprite = (SDL_Surface *)lua_touserdata(L, 5);
+	else
+	{
+		SDL_Surface **ud = check_surface(L, 5);
+		p->sprite = ud ? *ud : NULL;
+	}
 	p->srcrect.x = luaL_checkinteger(L, 6);
 	p->srcrect.y = luaL_checkinteger(L, 7);
 	p->srcrect.w = luaL_checkinteger(L, 8);
 	p->srcrect.h = luaL_checkinteger(L, 9);
-	p->alpha = (int)luaL_optinteger(L, 10, 255);
-	p->ax = (float)luaL_optnumber(L, 11, 0.0f);
-	p->ay = (float)luaL_optnumber(L, 12, 0.0f);
+	p->ax = (float)luaL_optnumber(L, 10, 0.0f);
+	p->ay = (float)luaL_optnumber(L, 11, 0.0f);
+	p->no_remove = lua_toboolean(L, 12);
+	lua_pushinteger(L, skin->particle_count - 1);
+	return 1;
+}
+
+static int y_move_particle(lua_State *L)
+{
+	struct Skin *skin = (struct Skin *)lua_touserdata(L, lua_upvalueindex(1));
+	int idx = luaL_checkinteger(L, 1);
+	if (idx < 0 || idx >= skin->particle_count) return 0;
+	struct Particle *p = &skin->particles[idx];
+	if (lua_gettop(L) >= 2) p->vx = (float)luaL_checknumber(L, 2);
+	if (lua_gettop(L) >= 3) p->vy = (float)luaL_checknumber(L, 3);
+	if (lua_gettop(L) >= 4) p->ax = (float)luaL_optnumber(L, 4, 0.0f);
+	if (lua_gettop(L) >= 5) p->ay = (float)luaL_optnumber(L, 5, 0.0f);
+	return 0;
+}
+
+static int y_remove_particle(lua_State *L)
+{
+	struct Skin *skin = (struct Skin *)lua_touserdata(L, lua_upvalueindex(1));
+	int idx = luaL_checkinteger(L, 1);
+	if (idx < 0 || idx >= skin->particle_count) return 0;
+	skin->particles[idx] = skin->particles[--skin->particle_count];
 	return 0;
 }
 
@@ -649,7 +702,7 @@ static void skin_update_particles(struct Skin *skin)
 		p->vy += p->ay * dt;
 		p->x += p->vx * dt;
 		p->y += p->vy * dt;
-		if (p->y > 320 || p->x < -20 || p->x > 340)
+		if (!p->no_remove && (p->y >= SCREEN_HEIGHT || p->x + p->srcrect.w <= 0 || p->x >= SCREEN_WIDTH))
 			skin->particles[i] = skin->particles[--skin->particle_count];
 		else
 			++i;
@@ -664,7 +717,6 @@ static void skin_draw_particles(struct Skin *skin)
 		if (!p->sprite) continue;
 
 		SDL_Rect dst = { .x = (int)p->x, .y = (int)p->y };
-		SDL_SetAlpha(p->sprite, SDL_SRCALPHA, (Uint8)p->alpha);
 		SDL_BlitSurface(p->sprite, &p->srcrect, skin->screen, &dst);
 	}
 }
@@ -773,6 +825,14 @@ static void skin_lua_init(struct Skin *skin, const char *skin_path)
 	lua_pushlightuserdata(L, skin);
 	lua_pushcclosure(L, y_add_particle, 1);
 	lua_setfield(L, -2, "add_particle");
+
+	lua_pushlightuserdata(L, skin);
+	lua_pushcclosure(L, y_move_particle, 1);
+	lua_setfield(L, -2, "move_particle");
+
+	lua_pushlightuserdata(L, skin);
+	lua_pushcclosure(L, y_remove_particle, 1);
+	lua_setfield(L, -2, "remove_particle");
 
 	lua_pop(L, 1);  /* pop res */
 

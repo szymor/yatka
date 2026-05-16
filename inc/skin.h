@@ -64,7 +64,7 @@ struct Particle
 	float ax, ay;
 	SDL_Surface *sprite;
 	SDL_Rect srcrect;
-	int alpha;
+	bool no_remove;
 };
 
 struct Skin
