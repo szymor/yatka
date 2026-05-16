@@ -57,6 +57,14 @@ struct TimedText
 	Uint32 fadeout_ms;
 };
 
+struct Animation
+{
+	SDL_Surface *spritesheet;
+	int frame_w, frame_h;
+	int frame_count;
+	Uint32 frame_duration;
+};
+
 struct Particle
 {
 	float x, y;
@@ -65,6 +73,8 @@ struct Particle
 	SDL_Surface *sprite;
 	SDL_Rect srcrect;
 	bool no_remove;
+	struct Animation *anim;
+	Uint32 anim_start_tick;
 };
 
 struct Skin

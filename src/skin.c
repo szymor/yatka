@@ -21,8 +21,9 @@
  * Constants
  * ───────────────────────────────────────────── */
 
-static const char *MT_SURFACE = "y_surface";
-static const char *MT_FONT    = "y_font";
+static const char *MT_SURFACE   = "y_surface";
+static const char *MT_FONT      = "y_font";
+static const char *MT_ANIMATION = "y_animation";
 
 /* ─────────────────────────────────────────────
  * Lua helper: push file content as string
@@ -155,6 +156,69 @@ static int y_font_gc(lua_State *L)
 	TTF_Font **ud = check_font(L, 1);
 	if (*ud) { TTF_CloseFont(*ud); *ud = NULL; }
 	return 0;
+}
+
+static struct Animation **check_animation(lua_State *L, int idx)
+{
+	return (struct Animation **)luaL_checkudata(L, idx, MT_ANIMATION);
+}
+
+static int y_animation_gc(lua_State *L)
+{
+	struct Animation **ud = check_animation(L, 1);
+	if (*ud)
+	{
+		if ((*ud)->spritesheet) SDL_FreeSurface((*ud)->spritesheet);
+		free(*ud);
+		*ud = NULL;
+	}
+	return 0;
+}
+
+static int y_load_animation(lua_State *L)
+{
+	struct Skin *skin = (struct Skin *)lua_touserdata(L, lua_upvalueindex(1));
+	const char *name = luaL_checkstring(L, 1);
+	int fw = luaL_checkinteger(L, 2);
+	int fh = luaL_checkinteger(L, 3);
+	int fd = luaL_checkinteger(L, 4);
+
+	char path[512], fallback[512];
+	snprintf(path, sizeof path, "%s%s", skin->path, name);
+	SDL_Surface *img = IMG_Load(path);
+	if (!img)
+	{
+		snprintf(fallback, sizeof fallback, "gfx/%s", name);
+		img = IMG_Load(fallback);
+	}
+	if (!img)
+		return luaL_error(L, "IMG_Load(%s) and IMG_Load(%s) both failed", path, fallback);
+	SDL_Surface *opt = SDL_DisplayFormat(img);
+	SDL_FreeSurface(img);
+	if (!opt)
+		return luaL_error(L, "SDL_DisplayFormat failed");
+
+	int fc = opt->w / fw;
+	if (fc < 1) fc = 1;
+
+	/* always enable colour‑key from top‑left pixel */
+	if (SDL_MUSTLOCK(opt)) SDL_LockSurface(opt);
+	Uint32 ck = read_pixel(opt, 0, 0);
+	if (SDL_MUSTLOCK(opt)) SDL_UnlockSurface(opt);
+	SDL_SetColorKey(opt, SDL_SRCCOLORKEY, ck);
+
+	struct Animation *anim = (struct Animation *)malloc(sizeof(struct Animation));
+	if (!anim) exit(ERROR_MALLOC);
+	anim->spritesheet = opt;
+	anim->frame_w = fw;
+	anim->frame_h = fh;
+	anim->frame_count = fc;
+	anim->frame_duration = fd;
+
+	struct Animation **ud = (struct Animation **)lua_newuserdata(L, sizeof(struct Animation *));
+	*ud = anim;
+	luaL_setmetatable(L, MT_ANIMATION);
+	return 1;
 }
 
 static int y_draw_image(lua_State *L)
@@ -646,18 +710,36 @@ static int y_add_particle(lua_State *L)
 	p->y = (float)luaL_checknumber(L, 2);
 	p->vx = (float)luaL_checknumber(L, 3);
 	p->vy = (float)luaL_checknumber(L, 4);
-	/* accept both lightuserdata (bricksprite ref) and full userdata (load_image) */
-	if (lua_islightuserdata(L, 5))
-		p->sprite = (SDL_Surface *)lua_touserdata(L, 5);
+
+	/* arg 5: animation userdata, surface userdata, or lightuserdata */
+	struct Animation **anim_ud = (struct Animation **)luaL_testudata(L, 5, MT_ANIMATION);
+	if (anim_ud && *anim_ud)
+	{
+		p->anim = *anim_ud;
+		p->sprite = (*anim_ud)->spritesheet;
+		p->anim_start_tick = SDL_GetTicks();
+		/* frame rect — updated dynamically in draw */
+		p->srcrect.x = 0;
+		p->srcrect.y = 0;
+		p->srcrect.w = (*anim_ud)->frame_w;
+		p->srcrect.h = (*anim_ud)->frame_h;
+	}
 	else
 	{
-		SDL_Surface **ud = check_surface(L, 5);
-		p->sprite = ud ? *ud : NULL;
+		p->anim = NULL;
+		/* accept both lightuserdata (bricksprite ref) and full userdata (load_image) */
+		if (lua_islightuserdata(L, 5))
+			p->sprite = (SDL_Surface *)lua_touserdata(L, 5);
+		else
+		{
+			SDL_Surface **ud = check_surface(L, 5);
+			p->sprite = ud ? *ud : NULL;
+		}
+		p->srcrect.x = luaL_checkinteger(L, 6);
+		p->srcrect.y = luaL_checkinteger(L, 7);
+		p->srcrect.w = luaL_checkinteger(L, 8);
+		p->srcrect.h = luaL_checkinteger(L, 9);
 	}
-	p->srcrect.x = luaL_checkinteger(L, 6);
-	p->srcrect.y = luaL_checkinteger(L, 7);
-	p->srcrect.w = luaL_checkinteger(L, 8);
-	p->srcrect.h = luaL_checkinteger(L, 9);
 	p->ax = (float)luaL_optnumber(L, 10, 0.0f);
 	p->ay = (float)luaL_optnumber(L, 11, 0.0f);
 	p->no_remove = lua_toboolean(L, 12);
@@ -711,13 +793,25 @@ static void skin_update_particles(struct Skin *skin)
 
 static void skin_draw_particles(struct Skin *skin)
 {
+	Uint32 now = SDL_GetTicks();
 	for (int i = 0; i < skin->particle_count; ++i)
 	{
 		struct Particle *p = &skin->particles[i];
 		if (!p->sprite) continue;
 
+		SDL_Rect srcrect = p->srcrect;
+		if (p->anim)
+		{
+			Uint32 elapsed = now - p->anim_start_tick;
+			int frame = (elapsed / p->anim->frame_duration) % p->anim->frame_count;
+			srcrect.x = frame * p->anim->frame_w;
+			srcrect.y = 0;
+			srcrect.w = p->anim->frame_w;
+			srcrect.h = p->anim->frame_h;
+		}
+
 		SDL_Rect dst = { .x = (int)p->x, .y = (int)p->y };
-		SDL_BlitSurface(p->sprite, &p->srcrect, skin->screen, &dst);
+		SDL_BlitSurface(p->sprite, &srcrect, skin->screen, &dst);
 	}
 }
 
@@ -754,6 +848,11 @@ static void skin_lua_init(struct Skin *skin, const char *skin_path)
 
 	luaL_newmetatable(L, MT_FONT);
 	lua_pushcfunction(L, y_font_gc);
+	lua_setfield(L, -2, "__gc");
+	lua_pop(L, 1);
+
+	luaL_newmetatable(L, MT_ANIMATION);
+	lua_pushcfunction(L, y_animation_gc);
 	lua_setfield(L, -2, "__gc");
 	lua_pop(L, 1);
 
@@ -821,6 +920,10 @@ static void skin_lua_init(struct Skin *skin, const char *skin_path)
 
 	lua_pushcfunction(L, y_play_sfx);
 	lua_setfield(L, -2, "play_sfx");
+
+	lua_pushlightuserdata(L, skin);
+	lua_pushcclosure(L, y_load_animation, 1);
+	lua_setfield(L, -2, "load_animation");
 
 	lua_pushlightuserdata(L, skin);
 	lua_pushcclosure(L, y_add_particle, 1);

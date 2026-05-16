@@ -1,9 +1,7 @@
 -- Yatka Lua skin: minimal example
 local bg_img, font, small_font
 local brick_w, brick_h, board_x, board_y
-
-
-
+local behelit_anim
 
 function skin_load(r)
 	bg_img = r.load_image("bg.png")
@@ -33,6 +31,8 @@ function skin_load(r)
 
 	font = r.load_font("arcade.ttf", 7)
 	small_font = r.load_font("arcade.ttf", 6)
+
+	behelit_anim = r.load_animation("behelit.png", 65, 72, 50)
 end
 
 function skin_unload() end
@@ -124,11 +124,6 @@ function draw_background()
 	end
 end
 
-
-
-
-
-
 function on_move(direction)
 	res.play_sfx(sfx.click)
 end
@@ -150,6 +145,15 @@ function on_line_clear(data)
 	end
 	if data.b2b then
 		res.show_timed_text(160, 8, "Back-2-Back", 1500, font, 255, 255, 255, 1, 0)
+		local sw = res.screen_w()
+		res.add_particle(
+			math.random() * (sw - 62),             -- random along bottom edge
+			res.screen_h(),
+			(math.random() - 0.5) * 200,           -- wider horizontal spread
+			-421,                                  -- shoot upward (peaks at y ≈ 40)
+			behelit_anim,
+			0, 0, 62, 75,
+			0, 443)                                -- gravity (total flight 1.9 s = 38 frames × 50 ms)
 	end
 	res.show_timed_text(160, 16, name, 1500, font, 255, 255, 255, 1, 0)
 	if data.combo and data.combo > 0 then
@@ -167,7 +171,6 @@ function on_line_clear(data)
 				-math.random() * 120 - 40,
 				p.sprite,
 				p.sx, p.sy, p.sw, p.sh,
-				255,
 				0, 180
 			)
 		end
