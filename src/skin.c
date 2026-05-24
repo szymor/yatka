@@ -387,6 +387,73 @@ static int y_draw_brick(lua_State *L)
 }
 
 /* ─────────────────────────────────────────────
+ * Shared helper: draw a shape's bricks
+ * ───────────────────────────────────────────── */
+static void draw_shape_bricks(struct Skin *skin, SDL_Surface *screen,
+                               const struct Shape *shape, int color, int alpha,
+                               int base_x, int base_y, int step_x, int step_y)
+{
+	if (color < 0 || color >= FIGID_END) return;
+	if (!skin->bricksprite[color]) return;
+
+	int bw = skin->bricksize;
+	int bh = skin->bricksize + skin->brickyoffset;
+	SDL_Surface *block = skin->bricksprite[color];
+
+	for (int i = 0; i < FIG_DIM * FIG_DIM; ++i)
+	{
+		if (shape->blockmap[i] == BO_EMPTY) continue;
+
+		int cx = i % FIG_DIM;
+		int cy = i / FIG_DIM;
+
+		SDL_Rect srcrect = { .x = 0, .y = 0, .w = bw, .h = bh };
+		switch (skin->brickstyle)
+		{
+		case BS_ORIENTATION_BASED:
+			srcrect.x = (int)shape->blockmap[i] * bw - bw;
+			break;
+		case BS_FIGUREWISE:
+			srcrect.y = (color % FIGID_GRAY) * bh;
+			break;
+		default: break;
+		}
+
+		SDL_Rect dst = { .x = base_x + cx * step_x, .y = base_y + cy * step_y };
+		SDL_SetAlpha(block, SDL_SRCALPHA, (Uint8)alpha);
+		SDL_BlitSurface(block, &srcrect, screen, &dst);
+	}
+}
+
+/* res.draw_piece_shape(piece_id, base_x, base_y, color, alpha) */
+static int y_draw_piece_shape(lua_State *L)
+{
+	struct Skin *skin = (struct Skin *)lua_touserdata(L, lua_upvalueindex(1));
+	int id = luaL_checkinteger(L, 1);
+	int base_x = luaL_checkinteger(L, 2);
+	int base_y = luaL_checkinteger(L, 3);
+	int color = luaL_checkinteger(L, 4);
+	int alpha = (int)luaL_optinteger(L, 5, 255);
+
+	if (id < 0 || id >= FIGID_GRAY) return 0;
+	const struct Shape *shape = getShape((enum FigureId)id);
+	if (!shape) return 0;
+
+	int minx, maxx, miny, maxy;
+	getShapeDimensions(shape, &minx, &maxx, &miny, &maxy);
+
+	int bw = skin->bricksize;
+	int sw = maxx - minx + 1;
+	int sh = maxy - miny + 1;
+	int ox = (4 - sw) * bw / 2 - minx * bw;
+	int oy = (2 - sh) * bw / 2 - miny * bw;
+
+	draw_shape_bricks(skin, skin->screen, shape, color, alpha,
+	                  base_x + ox, base_y + oy, bw, bw);
+	return 0;
+}
+
+/* ─────────────────────────────────────────────
  * Setter functions (registered in res table)
  * ───────────────────────────────────────────── */
 
@@ -811,6 +878,7 @@ static void skin_draw_particles(struct Skin *skin)
 		}
 
 		SDL_Rect dst = { .x = (int)p->x, .y = (int)p->y };
+		SDL_SetAlpha(p->sprite, SDL_SRCALPHA, 255);
 		SDL_BlitSurface(p->sprite, &srcrect, skin->screen, &dst);
 	}
 }
@@ -865,6 +933,10 @@ static void skin_lua_init(struct Skin *skin, const char *skin_path)
 	lua_pushcclosure(L, y_brick_size, 1);
 	lua_setglobal(L, "y_brick_size");
 
+	lua_pushlightuserdata(L, skin);
+	lua_pushcclosure(L, y_draw_piece_shape, 1);
+	lua_setglobal(L, "y_draw_piece_shape");
+
 	lua_newtable(L);
 	luaL_setfuncs(L, ylib, 0);
 
@@ -872,6 +944,8 @@ static void skin_lua_init(struct Skin *skin, const char *skin_path)
 	lua_setfield(L, -2, "draw_brick");
 	lua_getglobal(L, "y_brick_size");
 	lua_setfield(L, -2, "brick_size");
+	lua_getglobal(L, "y_draw_piece_shape");
+	lua_setfield(L, -2, "draw_piece_shape");
 
 	lua_setglobal(L, "res");
 
@@ -1282,34 +1356,8 @@ static void skin_lua_draw_active_figure(struct Skin *skin, int interp_y)
 	int by = skin->boardy + skin->bricksize * (fig->y - INVISIBLE_ROW_COUNT)
 		- skin->brickyoffset + interp_y;
 
-	for (int i = 0; i < FIG_DIM * FIG_DIM; ++i)
-	{
-		if (fig->shape.blockmap[i] == BO_EMPTY) continue;
-
-		int cx = i % FIG_DIM;
-		int cy = i / FIG_DIM;
-
-		SDL_Rect srcrect = { .x = 0, .y = 0, .w = bw, .h = bh };
-		SDL_Rect dst = {
-			.x = bx + cx * bw,
-			.y = by + cy * bh
-		};
-
-		switch (skin->brickstyle)
-		{
-		case BS_ORIENTATION_BASED:
-			srcrect.x = (int)fig->shape.blockmap[i] * bw - bw;
-			break;
-		case BS_FIGUREWISE:
-			srcrect.y = (color % FIGID_GRAY) * bh;
-			break;
-		default: break;
-		}
-
-		SDL_Surface *block = skin->bricksprite[color];
-		SDL_SetAlpha(block, SDL_SRCALPHA, 255);
-		SDL_BlitSurface(block, &srcrect, screen, &dst);
-	}
+	draw_shape_bricks(skin, screen, &fig->shape, color, 255,
+	                  bx, by, bw, bh);
 }
 
 /* ─────────────────────────────────────────────

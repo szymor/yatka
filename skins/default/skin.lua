@@ -71,26 +71,7 @@ function draw_background()
 
 	-- stats (bars, 30px spacing to match default skin)
 	for i = 0, 6 do
-		-- shape icon next to the bar (centered like DSL shape command)
-		local cells = game.shape_cells(i)
-		if cells then
-			local minx, maxx, miny, maxy = 4, -1, 4, -1
-			for _, c in ipairs(cells) do
-				if c.x < minx then minx = c.x end
-				if c.x > maxx then maxx = c.x end
-				if c.y < miny then miny = c.y end
-				if c.y > maxy then maxy = c.y end
-			end
-			local sw, sh = maxx - minx + 1, maxy - miny + 1
-			local ox = (4 - sw) * brick_w / 2 - minx * brick_w
-			local oy = (2 - sh) * brick_w / 2 - miny * brick_w
-			local sx, sy = 6 + ox, 26 + i * 30 + oy
-			for _, cell in ipairs(cells) do
-				res.draw_brick(sx + cell.x * brick_w,
-					       sy + cell.y * brick_w,
-					       7, cell.orient, 160)
-			end
-		end
+		res.draw_piece_shape(i, 6, 26 + i * 30, 7, 160)
 		res.draw_bar(64, 38 + i * 30, 28, 7, game.stat(i), 56, 0,
 			     255, 192, 192, 255,
 			     255, 255, 255, 64)
@@ -100,26 +81,7 @@ function draw_background()
 	for i = 1, 6 do
 		local nxt = figure.next(i)
 		if nxt then
-			local cells = game.shape_cells(nxt.id)
-			if cells then
-				local minx, maxx, miny, maxy = 4, -1, 4, -1
-				for _, c in ipairs(cells) do
-					if c.x < minx then minx = c.x end
-					if c.x > maxx then maxx = c.x end
-					if c.y < miny then miny = c.y end
-					if c.y > maxy then maxy = c.y end
-				end
-				local sw, sh = maxx - minx + 1, maxy - miny + 1
-				local ox = (4 - sw) * brick_w / 2 - minx * brick_w
-				local oy = (2 - sh) * brick_w / 2 - miny * brick_w
-				local nx, ny = 246 + ox, 22 + (i - 1) * 30 + oy
-				for _, cell in ipairs(cells) do
-					res.draw_brick(
-						nx + cell.x * brick_w,
-						ny + cell.y * brick_w,
-						nxt.color, cell.orient, 255)
-				end
-			end
+			res.draw_piece_shape(nxt.id, 246, 22 + (i - 1) * 30, nxt.color, 255)
 		end
 	end
 end
