@@ -29,6 +29,7 @@ function skin_load(r)
 
 	r.set_ghost_alpha(128)
 
+	big_font = r.load_font("arcade.ttf", 8)
 	font = r.load_font("arcade.ttf", 7)
 	small_font = r.load_font("arcade.ttf", 6)
 
@@ -38,6 +39,7 @@ function skin_load(r)
 	r.draw_text_to(bg_img, font, "Score:", 0, 0, 255, 255, 255)
 	r.draw_text_to(bg_img, font, "Level:", 0, 7, 255, 255, 255)
 	r.draw_text_to(bg_img, font, "Lines:", 0, 14, 255, 255, 255)
+	r.draw_text_to(bg_img, big_font, "NEXT", 246, 11, 255, 255, 255)
 end
 
 function skin_unload() end
