@@ -10,7 +10,16 @@
 #define ORIENTATION_NUM		(15)
 #define TIMED_TEXT_MAX		(8)
 #define TIMED_TEXT_LEN		(128)
+#define TEXT_CACHE_SIZE		(16)
 #define PARTICLE_MAX		(256)
+
+struct TextCacheEntry
+{
+	TTF_Font *font;
+	char text[TIMED_TEXT_LEN];
+	Uint8 r, g, b;
+	SDL_Surface *surface;
+};
 
 enum FigureId
 {
@@ -98,6 +107,7 @@ struct Skin
 	TTF_Font *fonts[FONT_NUM];
 
 	struct TimedText timed_texts[TIMED_TEXT_MAX];
+	struct TextCacheEntry text_cache[TEXT_CACHE_SIZE];
 
 	struct Particle particles[PARTICLE_MAX];
 	int particle_count;

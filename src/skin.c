@@ -234,6 +234,7 @@ static int y_draw_image(lua_State *L)
 
 static int y_draw_text(lua_State *L)
 {
+	struct Skin *skin = (struct Skin *)lua_touserdata(L, lua_upvalueindex(1));
 	TTF_Font **fud = check_font(L, 1);
 	const char *str = luaL_checkstring(L, 2);
 	int x = luaL_checkinteger(L, 3);
@@ -247,9 +248,36 @@ static int y_draw_text(lua_State *L)
 	if (!*fud) return 0;
 	if (!str || !*str) return 0;
 
-	SDL_Color col = { .r = r, .g = g, .b = b };
-	SDL_Surface *ts = TTF_RenderUTF8_Blended(*fud, str, col);
-	if (!ts) return 0;
+	/* look up cached surface */
+	SDL_Surface *ts = NULL;
+	for (int i = 0; i < TEXT_CACHE_SIZE; ++i)
+	{
+		struct TextCacheEntry *e = &skin->text_cache[i];
+		if (e->surface && e->font == *fud && e->r == r && e->g == g && e->b == b
+		    && strcmp(e->text, str) == 0)
+		{
+			ts = e->surface;
+			break;
+		}
+	}
+
+	if (!ts)
+	{
+		SDL_Color col = { .r = r, .g = g, .b = b };
+		ts = TTF_RenderUTF8_Blended(*fud, str, col);
+		if (!ts) return 0;
+
+		/* store in cache (FIFO eviction) */
+		static int next_slot = 0;
+		struct TextCacheEntry *e = &skin->text_cache[next_slot];
+		if (e->surface) SDL_FreeSurface(e->surface);
+		e->font = *fud;
+		strncpy(e->text, str, TIMED_TEXT_LEN - 1);
+		e->text[TIMED_TEXT_LEN - 1] = '\0';
+		e->r = r; e->g = g; e->b = b;
+		e->surface = ts;
+		next_slot = (next_slot + 1) % TEXT_CACHE_SIZE;
+	}
 
 	SDL_Rect dst = { .x = x, .y = y };
 	if (alignx == 1) dst.x -= ts->w / 2;
@@ -258,7 +286,6 @@ static int y_draw_text(lua_State *L)
 	else if (aligny == 2) dst.y -= ts->h;
 
 	SDL_BlitSurface(ts, NULL, screen, &dst);
-	SDL_FreeSurface(ts);
 	return 0;
 }
 
@@ -904,7 +931,6 @@ static void skin_draw_particles(struct Skin *skin)
 
 static const luaL_Reg ylib[] = {
 	{ "draw_image",  y_draw_image  },
-	{ "draw_text",   y_draw_text   },
 	{ "draw_rect",   y_draw_rect   },
 	{ "draw_bar",    y_draw_bar    },
 	{ "screen_w",    y_screen_w    },
@@ -1006,6 +1032,10 @@ static void skin_init_lua(struct Skin *skin, const char *skin_path)
 	lua_pushlightuserdata(L, skin);
 	lua_pushcclosure(L, y_show_timed_text, 1);
 	lua_setfield(L, -2, "show_timed_text");
+
+	lua_pushlightuserdata(L, skin);
+	lua_pushcclosure(L, y_draw_text, 1);
+	lua_setfield(L, -2, "draw_text");
 
 	lua_pushcfunction(L, y_play_sfx);
 	lua_setfield(L, -2, "play_sfx");
@@ -1620,6 +1650,14 @@ void skin_destroy(struct Skin *skin)
 		{
 			SDL_FreeSurface(skin->timed_texts[i].surface);
 			skin->timed_texts[i].surface = NULL;
+		}
+	}
+	for (int i = 0; i < TEXT_CACHE_SIZE; ++i)
+	{
+		if (skin->text_cache[i].surface)
+		{
+			SDL_FreeSurface(skin->text_cache[i].surface);
+			skin->text_cache[i].surface = NULL;
 		}
 	}
 }
