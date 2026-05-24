@@ -1100,6 +1100,8 @@ static void skin_init_lua(struct Skin *skin, const char *skin_path)
 	lua_pushinteger(L, SE_COMBO_5X); lua_setfield(L, -2, "combo_5");
 	lua_pushinteger(L, SE_COMBO_6X); lua_setfield(L, -2, "combo_6");
 	lua_pushinteger(L, SE_COMBO_7X); lua_setfield(L, -2, "combo_7");
+	lua_pushinteger(L, SE_COMBO_8X); lua_setfield(L, -2, "combo_8");
+	lua_pushinteger(L, SE_COMBO_9X); lua_setfield(L, -2, "combo_9");
 	lua_pushinteger(L, SE_HIT);      lua_setfield(L, -2, "hit");
 	lua_pushinteger(L, SE_CLICK);    lua_setfield(L, -2, "click");
 	lua_setglobal(L, "sfx");

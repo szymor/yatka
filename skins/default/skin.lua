@@ -130,7 +130,7 @@ function on_line_clear(data)
 	end
 	if data.combo and data.combo > 0 then
 		res.show_timed_text(160, 24, "combo " .. data.combo .. "x", 1500, small_font, 255, 255, 255, 1, 0)
-		res.play_sfx(math.min(sfx.combo_1 + data.combo - 1, sfx.combo_7))
+		res.play_sfx(math.min(sfx.combo_1 + data.combo - 1, sfx.combo_9))
 	end
 
 	-- spawn particles from cleared lines (C handles update + drawing)

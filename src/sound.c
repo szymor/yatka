@@ -9,7 +9,6 @@
 #include "data_persistence.h"
 
 #define MAX_TRACKS		256
-#define SFXEFFECT_CHANNEL	(2)
 #define SFXSPEECH_CHANNEL	(3)
 
 int initmusvol = MIX_MAX_VOLUME / 4;
@@ -30,6 +29,8 @@ static const char sfx_effect_paths[SE_END][32] = {
 	"sfx/combo_5.wav",
 	"sfx/combo_6.wav",
 	"sfx/combo_7.wav",
+	"sfx/combo_8.wav",
+	"sfx/combo_9.wav",
 	"sfx/hit.wav",
 	"sfx/click.wav"
 };
