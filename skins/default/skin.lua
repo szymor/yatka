@@ -33,6 +33,11 @@ function skin_load(r)
 	small_font = r.load_font("arcade.ttf", 6)
 
 	behelit_anim = r.load_animation("behelit.png", 65, 72, 50)
+
+	-- Pre-render static HUD labels onto the background once
+	r.draw_text_to(bg_img, font, "Score:", 0, 0, 255, 255, 255)
+	r.draw_text_to(bg_img, font, "Level:", 0, 7, 255, 255, 255)
+	r.draw_text_to(bg_img, font, "Lines:", 0, 14, 255, 255, 255)
 end
 
 function skin_unload() end
@@ -48,15 +53,15 @@ function draw_background()
 	res.draw_rect(246, 142, 48, 24, 255, 255, 255, 48)
 	res.draw_rect(246, 172, 48, 24, 255, 255, 255, 48)
 
-	-- HUD
-	res.draw_text(font, "Score: " .. game.score(), 0, 0)
-	res.draw_text(font, "Level: " .. game.level(), 0, 7)
+	-- HUD (dynamic values only; static labels are baked into bg_img)
+	res.draw_text(font, game.score(), 49, 0)
+	res.draw_text(font, game.level(), 49, 7)
 
 	local mode = game.mode()
 	if mode == "sprint" then
-		res.draw_text(font, "Lines: " .. game.lines() .. " / 40", 0, 14)
+		res.draw_text(font, game.lines() .. " / 40", 49, 14)
 	else
-		res.draw_text(font, "Lines: " .. game.lines(), 0, 14)
+		res.draw_text(font, game.lines(), 49, 14)
 	end
 
 	res.draw_text(small_font, game.dropped() .. " pcs", 0, 21)

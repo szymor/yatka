@@ -289,6 +289,34 @@ static int y_draw_text(lua_State *L)
 	return 0;
 }
 
+/* r.draw_text_to(surface, font, text, x, y [, r, g, b])
+ * Renders text onto an arbitrary image surface (not the screen).
+ * The text surface is freed after blit — call this once during skin_load
+ * for static labels, then just blit the image in draw_background. */
+static int y_draw_text_to(lua_State *L)
+{
+	SDL_Surface **sud = check_surface(L, 1);
+	TTF_Font **fud = check_font(L, 2);
+	const char *str = luaL_checkstring(L, 3);
+	int x = luaL_checkinteger(L, 4);
+	int y = luaL_checkinteger(L, 5);
+	int r = (int)luaL_optinteger(L, 6, 255);
+	int g = (int)luaL_optinteger(L, 7, 255);
+	int b = (int)luaL_optinteger(L, 8, 255);
+
+	if (!*sud || !*fud) return 0;
+	if (!str || !*str) return 0;
+
+	SDL_Color col = { .r = r, .g = g, .b = b };
+	SDL_Surface *ts = TTF_RenderUTF8_Blended(*fud, str, col);
+	if (!ts) return 0;
+
+	SDL_Rect dst = { .x = x, .y = y };
+	SDL_BlitSurface(ts, NULL, *sud, &dst);
+	SDL_FreeSurface(ts);
+	return 0;
+}
+
 static int y_draw_rect(lua_State *L)
 {
 	int x = luaL_checkinteger(L, 1);
@@ -1036,6 +1064,9 @@ static void skin_init_lua(struct Skin *skin, const char *skin_path)
 	lua_pushlightuserdata(L, skin);
 	lua_pushcclosure(L, y_draw_text, 1);
 	lua_setfield(L, -2, "draw_text");
+
+	lua_pushcfunction(L, y_draw_text_to);
+	lua_setfield(L, -2, "draw_text_to");
 
 	lua_pushcfunction(L, y_play_sfx);
 	lua_setfield(L, -2, "play_sfx");
