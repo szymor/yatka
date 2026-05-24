@@ -452,8 +452,8 @@ static void action(void)
 	}
 	else
 	{
-		skin_destroySkin(&gameskin);
-		skin_initSkin(&gameskin);
+		skin_destroy(&gameskin);
+		skin_init(&gameskin);
 		if (!skin_loadSkin(&gameskin, menu_skinentries[menu_skin].path))
 		{
 			sprintf(menu_error, "No skin.lua in \"%s\"!", menu_skinentries[menu_skin].name);

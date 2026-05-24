@@ -55,6 +55,7 @@ struct TimedText
 	Uint8 r, g, b;
 	int alignx, aligny;
 	Uint32 fadeout_ms;
+	SDL_Surface *surface;        /* cached rendered text (NULL = not yet rendered) */
 };
 
 struct Animation
@@ -106,21 +107,21 @@ struct Skin
 };
 
 /* ─── skin lifecycle ─── */
-void skin_initSkin(struct Skin *skin);
-void skin_destroySkin(struct Skin *skin);
+void skin_init(struct Skin *skin);
+void skin_destroy(struct Skin *skin);
 bool skin_loadSkin(struct Skin *skin, const char *path);
-void skin_updateScreen(struct Skin *skin, SDL_Surface *screen);
+void skin_update_screen(struct Skin *skin, SDL_Surface *screen);
 
 /* ─── event callbacks (called from main.c) ─── */
-void skin_lua_on_line_clear(struct Skin *skin, int lines,
-                            const char *tspin_type,
-                            int combo, bool b2b, int score_earned);
-void skin_lua_on_game_over(struct Skin *skin, const char *reason);
-void skin_lua_on_level_up(struct Skin *skin, int level);
-void skin_lua_on_piece_lock(struct Skin *skin, enum FigureId id);
-void skin_lua_on_piece_hold(struct Skin *skin, enum FigureId id);
-void skin_lua_on_hard_drop(struct Skin *skin, int rows);
-void skin_lua_on_combo(struct Skin *skin, int count);
-void skin_lua_on_move(struct Skin *skin, const char *direction);
+void skin_on_line_clear(struct Skin *skin, int lines,
+                        const char *tspin_type,
+                        int combo, bool b2b, int score_earned);
+void skin_on_game_over(struct Skin *skin, const char *reason);
+void skin_on_level_up(struct Skin *skin, int level);
+void skin_on_piece_lock(struct Skin *skin, enum FigureId id);
+void skin_on_piece_hold(struct Skin *skin, enum FigureId id);
+void skin_on_hard_drop(struct Skin *skin, int rows);
+void skin_on_combo(struct Skin *skin, int count);
+void skin_on_move(struct Skin *skin, const char *direction);
 
 #endif

@@ -620,6 +620,14 @@ static int y_show_timed_text(lua_State *L)
 	if (slot < 0) return 0;  /* all slots busy */
 
 	struct TimedText *tt = &skin->timed_texts[slot];
+
+	/* free previously cached surface (if slot was reused) */
+	if (tt->surface)
+	{
+		SDL_FreeSurface(tt->surface);
+		tt->surface = NULL;
+	}
+
 	strncpy(tt->text, text, TIMED_TEXT_LEN - 1);
 	tt->text[TIMED_TEXT_LEN - 1] = '\0';
 	tt->x = x;
@@ -640,6 +648,13 @@ static int y_show_timed_text(lua_State *L)
 	tt->alignx = (int)luaL_optinteger(L, 9, 1);
 	tt->aligny = (int)luaL_optinteger(L, 10, 0);
 	tt->fadeout_ms = (Uint32)luaL_optinteger(L, 11, 750);
+
+	/* render and cache the surface once */
+	if (tt->font)
+	{
+		SDL_Color col = { .r = tt->r, .g = tt->g, .b = tt->b };
+		tt->surface = TTF_RenderUTF8_Blended(tt->font, tt->text, col);
+	}
 	return 0;
 }
 
@@ -897,7 +912,7 @@ static const luaL_Reg ylib[] = {
 	{ NULL, NULL }
 };
 
-static void skin_lua_init(struct Skin *skin, const char *skin_path)
+static void skin_init_lua(struct Skin *skin, const char *skin_path)
 {
 	lua_State *L = luaL_newstate();
 	if (!L)
@@ -1094,7 +1109,7 @@ static void skin_lua_init(struct Skin *skin, const char *skin_path)
 	else lua_pop(L, 1);
 }
 
-static void skin_lua_fini(struct Skin *skin)
+static void skin_fini_lua(struct Skin *skin)
 {
 	if (!skin->L) return;
 	lua_State *L = skin->L;
@@ -1138,8 +1153,8 @@ static void call_lua_void(struct Skin *skin, const char *func)
  * Per‑frame render callbacks (internal)
  * ───────────────────────────────────────────── */
 
-static void skin_lua_draw_background(struct Skin *skin) { call_lua_void(skin, "draw_background"); }
-static void skin_lua_draw_board(struct Skin *skin)
+static void skin_draw_background(struct Skin *skin) { call_lua_void(skin, "draw_background"); }
+static void skin_draw_board(struct Skin *skin)
 {
 	int bw = skin->bricksize;
 	int bh = skin->bricksize + skin->brickyoffset;
@@ -1184,7 +1199,7 @@ static void skin_lua_draw_board(struct Skin *skin)
 	}
 }
 
-static void skin_lua_draw_ghost(struct Skin *skin)
+static void skin_draw_ghost(struct Skin *skin)
 {
 	if (!figures[0]) return;
 	if (skin->ghost <= 0) return;
@@ -1244,10 +1259,11 @@ static void skin_lua_draw_ghost(struct Skin *skin)
 	}
 }
 
-static void skin_lua_draw_foreground(struct Skin *skin) { call_lua_void(skin, "draw_foreground"); }
+static void skin_draw_foreground(struct Skin *skin) { call_lua_void(skin, "draw_foreground"); }
 
-static void skin_lua_draw_timed_texts(struct Skin *skin)
+static void skin_draw_timed_texts(struct Skin *skin)
 {
+	SDL_Surface *screen = skin->screen;
 	Uint32 now = SDL_GetTicks();
 	for (int i = 0; i < TIMED_TEXT_MAX; ++i)
 	{
@@ -1255,22 +1271,37 @@ static void skin_lua_draw_timed_texts(struct Skin *skin)
 		if (tt->deadline <= now) continue;
 		if (!tt->text[0]) continue;
 		if (!tt->font) continue;
+		if (!tt->surface) continue;
 
 		Uint32 rem = tt->deadline - now;
 		Uint8 alpha = 255;
 		if (tt->fadeout_ms > 0 && rem < tt->fadeout_ms)
 			alpha = (Uint8)(rem * 255 / tt->fadeout_ms);
 
-		SDL_Color col = { .r = tt->r, .g = tt->g, .b = tt->b };
-		SDL_Surface *ts = TTF_RenderUTF8_Blended(tt->font, tt->text, col);
-		if (!ts) continue;
+		SDL_Rect dst = { .x = tt->x, .y = tt->y };
+		if (tt->alignx == 1) dst.x -= tt->surface->w / 2;
+		else if (tt->alignx == 2) dst.x -= tt->surface->w;
+		if (tt->aligny == 1) dst.y -= tt->surface->h / 2;
+		else if (tt->aligny == 2) dst.y -= tt->surface->h;
 
-		/* Apply fade by multiplying per-pixel alpha (TTF_RenderUTF8_Blended
-		 * produces per-pixel alpha; SDL_SetAlpha's per-surface alpha is
-		 * ignored on such surfaces). */
-		if (alpha < 255 && ts->format->Amask)
+		if (alpha < 255 && tt->surface->format->Amask)
 		{
+			/* Create a temporary copy with faded per-pixel alpha */
+			SDL_Surface *ts = SDL_CreateRGBSurface(
+				tt->surface->flags,
+				tt->surface->w, tt->surface->h,
+				tt->surface->format->BitsPerPixel,
+				tt->surface->format->Rmask,
+				tt->surface->format->Gmask,
+				tt->surface->format->Bmask,
+				tt->surface->format->Amask);
+			if (!ts) continue;
+
+			if (SDL_MUSTLOCK(tt->surface)) SDL_LockSurface(tt->surface);
 			if (SDL_MUSTLOCK(ts)) SDL_LockSurface(ts);
+			memcpy(ts->pixels, tt->surface->pixels,
+			       tt->surface->h * tt->surface->pitch);
+
 			Uint32 *pix = (Uint32 *)ts->pixels;
 			int n = ts->w * ts->h;
 			int ashift = ts->format->Ashift;
@@ -1282,21 +1313,19 @@ static void skin_lua_draw_timed_texts(struct Skin *skin)
 				pix[j] = (pix[j] & ~amask) | (a << ashift);
 			}
 			if (SDL_MUSTLOCK(ts)) SDL_UnlockSurface(ts);
+			if (SDL_MUSTLOCK(tt->surface)) SDL_UnlockSurface(tt->surface);
+
+			SDL_BlitSurface(ts, NULL, screen, &dst);
+			SDL_FreeSurface(ts);
 		}
-
-		SDL_Rect dst = { .x = tt->x, .y = tt->y };
-		if (tt->alignx == 1) dst.x -= ts->w / 2;
-		else if (tt->alignx == 2) dst.x -= ts->w;
-		if (tt->aligny == 1) dst.y -= ts->h / 2;
-		else if (tt->aligny == 2) dst.y -= ts->h;
-
-		SDL_SetAlpha(ts, SDL_SRCALPHA, alpha);
-		SDL_BlitSurface(ts, NULL, screen, &dst);
-		SDL_FreeSurface(ts);
+		else
+		{
+			SDL_BlitSurface(tt->surface, NULL, screen, &dst);
+		}
 	}
 }
 
-static void skin_lua_draw_shadow(struct Skin *skin)
+static void skin_draw_shadow(struct Skin *skin)
 {
 	if (!skin->brick_shadow) return;
 	SDL_Rect srcrect = { .x = 0, .y = 0,
@@ -1341,7 +1370,7 @@ static void skin_lua_draw_shadow(struct Skin *skin)
 	}
 }
 
-static void skin_lua_draw_active_figure(struct Skin *skin, int interp_y)
+static void skin_draw_active_figure(struct Skin *skin, int interp_y)
 {
 	if (!figures[0]) return;
 
@@ -1402,7 +1431,7 @@ static void push_brick_sprite_table(struct Skin *skin, lua_State *L, int color, 
  * Event callbacks (called from main.c)
  * ───────────────────────────────────────────── */
 
-void skin_lua_on_line_clear(struct Skin *skin, int lines,
+void skin_on_line_clear(struct Skin *skin, int lines,
                             const char *tspin_type,
                             int combo, bool b2b, int score_earned)
 {
@@ -1438,7 +1467,7 @@ void skin_lua_on_line_clear(struct Skin *skin, int lines,
 	}
 }
 
-void skin_lua_on_game_over(struct Skin *skin, const char *reason)
+void skin_on_game_over(struct Skin *skin, const char *reason)
 {
 	if (!skin->L) return;
 	lua_State *L = skin->L;
@@ -1452,7 +1481,7 @@ void skin_lua_on_game_over(struct Skin *skin, const char *reason)
 	}
 }
 
-void skin_lua_on_level_up(struct Skin *skin, int level)
+void skin_on_level_up(struct Skin *skin, int level)
 {
 	if (!skin->L) return;
 	lua_State *L = skin->L;
@@ -1462,7 +1491,7 @@ void skin_lua_on_level_up(struct Skin *skin, int level)
 	if (lua_pcall(L, 1, 0, 0) != LUA_OK) lua_pop(L, 1);
 }
 
-void skin_lua_on_piece_lock(struct Skin *skin, enum FigureId id)
+void skin_on_piece_lock(struct Skin *skin, enum FigureId id)
 {
 	if (!skin->L) return;
 	lua_State *L = skin->L;
@@ -1472,7 +1501,7 @@ void skin_lua_on_piece_lock(struct Skin *skin, enum FigureId id)
 	if (lua_pcall(L, 1, 0, 0) != LUA_OK) lua_pop(L, 1);
 }
 
-void skin_lua_on_piece_hold(struct Skin *skin, enum FigureId id)
+void skin_on_piece_hold(struct Skin *skin, enum FigureId id)
 {
 	if (!skin->L) return;
 	lua_State *L = skin->L;
@@ -1482,7 +1511,7 @@ void skin_lua_on_piece_hold(struct Skin *skin, enum FigureId id)
 	if (lua_pcall(L, 1, 0, 0) != LUA_OK) lua_pop(L, 1);
 }
 
-void skin_lua_on_hard_drop(struct Skin *skin, int rows)
+void skin_on_hard_drop(struct Skin *skin, int rows)
 {
 	if (!skin->L) return;
 	lua_State *L = skin->L;
@@ -1492,7 +1521,7 @@ void skin_lua_on_hard_drop(struct Skin *skin, int rows)
 	if (lua_pcall(L, 1, 0, 0) != LUA_OK) lua_pop(L, 1);
 }
 
-void skin_lua_on_combo(struct Skin *skin, int count)
+void skin_on_combo(struct Skin *skin, int count)
 {
 	if (!skin->L) return;
 	lua_State *L = skin->L;
@@ -1502,7 +1531,7 @@ void skin_lua_on_combo(struct Skin *skin, int count)
 	if (lua_pcall(L, 1, 0, 0) != LUA_OK) lua_pop(L, 1);
 }
 
-void skin_lua_on_move(struct Skin *skin, const char *direction)
+void skin_on_move(struct Skin *skin, const char *direction)
 {
 	if (!skin->L) return;
 	lua_State *L = skin->L;
@@ -1516,7 +1545,7 @@ void skin_lua_on_move(struct Skin *skin, const char *direction)
  * Skin lifecycle
  * ───────────────────────────────────────────── */
 
-void skin_initSkin(struct Skin *skin)
+void skin_init(struct Skin *skin)
 {
 	skin->path = NULL;
 	skin->boardx = 0;
@@ -1549,9 +1578,9 @@ void skin_initSkin(struct Skin *skin)
 	skin->L = NULL;
 }
 
-void skin_destroySkin(struct Skin *skin)
+void skin_destroy(struct Skin *skin)
 {
-	skin_lua_fini(skin);
+	skin_fini_lua(skin);
 	if (skin->path)
 	{
 		free(skin->path);
@@ -1583,11 +1612,19 @@ void skin_destroySkin(struct Skin *skin)
 		SDL_FreeSurface(skin->brick_shadow);
 		skin->brick_shadow = NULL;
 	}
+	for (int i = 0; i < TIMED_TEXT_MAX; ++i)
+	{
+		if (skin->timed_texts[i].surface)
+		{
+			SDL_FreeSurface(skin->timed_texts[i].surface);
+			skin->timed_texts[i].surface = NULL;
+		}
+	}
 }
 
 bool skin_loadSkin(struct Skin *skin, const char *path)
 {
-	skin_destroySkin(skin);
+	skin_destroy(skin);
 
 	/* extract skin directory from the path "skins/foo/skin.lua" */
 	int totallen = strlen(path) + 1;
@@ -1609,12 +1646,12 @@ bool skin_loadSkin(struct Skin *skin, const char *path)
 	}
 	fclose(f);
 
-	skin_lua_init(skin, skin->path);
+	skin_init_lua(skin, skin->path);
 	log("Lua skin loaded.\n");
 	return true;
 }
 
-void skin_updateScreen(struct Skin *skin, SDL_Surface *screen)
+void skin_update_screen(struct Skin *skin, SDL_Surface *screen)
 {
 	skin->screen = screen;
 
@@ -1637,15 +1674,15 @@ void skin_updateScreen(struct Skin *skin, SDL_Surface *screen)
 		interp_y = draw_delta_drop;
 	}
 
-	skin_lua_draw_background(skin);
-	skin_lua_draw_shadow(skin);
-	skin_lua_draw_board(skin);
-	skin_lua_draw_active_figure(skin, interp_y);
-	skin_lua_draw_ghost(skin);
-	skin_lua_draw_timed_texts(skin);
+	skin_draw_background(skin);
+	skin_draw_shadow(skin);
+	skin_draw_board(skin);
+	skin_draw_active_figure(skin, interp_y);
+	skin_draw_ghost(skin);
+	skin_draw_timed_texts(skin);
 	skin_update_particles(skin);
 	skin_draw_particles(skin);
-	skin_lua_draw_foreground(skin);
+	skin_draw_foreground(skin);
 
 	flipScreenScaled();
 	frameCounter();

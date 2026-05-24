@@ -332,7 +332,7 @@ int main(int argc, char *argv[])
 					if (!frameLimiter())
 					{
 						ingame_processInputEvents();
-						skin_updateScreen(&gameskin, screen);
+						skin_update_screen(&gameskin, screen);
 						softDropTimeCounter();
 
 						Uint32 ct = SDL_GetTicks();
@@ -479,7 +479,7 @@ void initialize(void)
 
 	resetGame();
 
-	skin_initSkin(&gameskin);
+	skin_init(&gameskin);
 }
 
 void finalize(void)
@@ -488,7 +488,7 @@ void finalize(void)
 		saveSettings();
 	saveRecords();
 
-	skin_destroySkin(&gameskin);
+	skin_destroy(&gameskin);
 
 	TTF_CloseFont(arcade_font);
 	TTF_Quit();
@@ -611,7 +611,7 @@ void moveLeft(int delay)
 		else
 		{
 			tst_rotation_last = false;
-			skin_lua_on_move(&gameskin, "left");
+			skin_on_move(&gameskin, "left");
 			updateEasySpin();
 			updateLockTime();
 			if (lockdelay)
@@ -636,7 +636,7 @@ void moveRight(int delay)
 		else
 		{
 			tst_rotation_last = false;
-			skin_lua_on_move(&gameskin, "right");
+			skin_on_move(&gameskin, "right");
 			updateEasySpin();
 			updateLockTime();
 			if (lockdelay)
@@ -740,7 +740,7 @@ void onLineClear(int removed)
 	static char tspin_text[TST_END][16] = {
 		"", "T-Spin ", "Mini T-Spin "
 	};
-	skin_lua_on_line_clear(&gameskin, removed, tspin_text[tst], combo, b2b, extra);
+	skin_on_line_clear(&gameskin, removed, tspin_text[tst], combo, b2b, extra);
 
 	if (speechon)
 	{
@@ -1017,7 +1017,7 @@ void lockFigure(void)
 	{
 		combo = 0;
 	}
-	skin_lua_on_piece_lock(&gameskin, locked_id);
+	skin_on_piece_lock(&gameskin, locked_id);
 
 	next_lock_time = 0;
 	easyspin_counter = 0;

@@ -315,7 +315,7 @@ void settings_processInputEvents(void)
 				{
 					setBlockAtScreenXY(event.button.x, event.button.y, BO_EMPTY);
 				}
-				skin_updateScreen(&gameskin, last_game_screen);
+				skin_update_screen(&gameskin, last_game_screen);
 				break;
 			case SDL_MOUSEMOTION:
 				// workaround for an apparent SDL bug
@@ -328,7 +328,7 @@ void settings_processInputEvents(void)
 				{
 					setBlockAtScreenXY(event.button.x, event.button.y, BO_EMPTY);
 				}
-				skin_updateScreen(&gameskin, last_game_screen);
+				skin_update_screen(&gameskin, last_game_screen);
 				break;
 #endif
 			case SDL_QUIT:
