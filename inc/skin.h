@@ -115,7 +115,8 @@ void skin_update_screen(struct Skin *skin, SDL_Surface *screen);
 /* ─── event callbacks (called from main.c) ─── */
 void skin_on_line_clear(struct Skin *skin, int lines,
                         const char *tspin_type,
-                        int combo, bool b2b, int score_earned);
+                        int combo, bool b2b, int score_earned,
+                        bool pc);
 void skin_on_game_over(struct Skin *skin, const char *reason);
 void skin_on_level_up(struct Skin *skin, int level);
 void skin_on_piece_lock(struct Skin *skin, enum FigureId id);

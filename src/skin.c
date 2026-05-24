@@ -1433,7 +1433,8 @@ static void push_brick_sprite_table(struct Skin *skin, lua_State *L, int color, 
 
 void skin_on_line_clear(struct Skin *skin, int lines,
                             const char *tspin_type,
-                            int combo, bool b2b, int score_earned)
+                            int combo, bool b2b, int score_earned,
+                            bool pc)
 {
 	if (!skin->L) return;
 	lua_State *L = skin->L;
@@ -1447,6 +1448,7 @@ void skin_on_line_clear(struct Skin *skin, int lines,
 	lua_pushboolean(L, b2b);        lua_setfield(L, -2, "b2b");
 	lua_pushinteger(L, score_earned); lua_setfield(L, -2, "score");
 	lua_pushboolean(L, speechon);   lua_setfield(L, -2, "speech_on");
+	lua_pushboolean(L, pc);         lua_setfield(L, -2, "pc");
 
 	/* pass particles table (cleared brick positions + sprite surfaces) */
 	lua_newtable(L);

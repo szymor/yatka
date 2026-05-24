@@ -89,6 +89,7 @@ int level = 0;
 int tetris_count = 0;
 int ttr = 0;
 int b2b = 0;	// back2back bonus
+int pc_b2b = 0;	// perfect-clear back2back
 int combo = 0;	// combo bonus
 int dropped_pieces_num = 0;
 int pressed_keys_num = 0;
@@ -244,7 +245,7 @@ int removeFullLines(void);
 enum TSpinType getTSpinType(void);
 enum GameOverType checkGameEnd(void);
 void onDrop(void);
-void onLineClear(int removed);
+void onLineClear(int removed, bool pc, int pc_bonus);
 void onGameOver(enum GameOverType reason);
 void checkForPrelocking(void);
 
@@ -661,7 +662,7 @@ void onDrop(void)
 		onGameOver(goreason);
 }
 
-void onLineClear(int removed)
+void onLineClear(int removed, bool pc, int pc_bonus)
 {
 	enum TSpinType tst = getTSpinType();
 	lines += removed;
@@ -731,6 +732,7 @@ void onLineClear(int removed)
 	{
 		extra += 50 * (level + 1) * combo;
 	}
+	extra += pc_bonus;
 	score += extra;
 
 	// notify a player about a special event
@@ -740,7 +742,7 @@ void onLineClear(int removed)
 	static char tspin_text[TST_END][16] = {
 		"", "T-Spin ", "Mini T-Spin "
 	};
-	skin_on_line_clear(&gameskin, removed, tspin_text[tst], combo, b2b, extra);
+	skin_on_line_clear(&gameskin, removed, tspin_text[tst], combo, b2b, extra, pc);
 
 	if (speechon)
 	{
@@ -1081,6 +1083,16 @@ void holdFigure(void)
 	}
 }
 
+/* returns true if the entire board is empty */
+static bool isPerfectClear(void)
+{
+	for (int y = 0; y < BOARD_HEIGHT; ++y)
+		for (int x = 0; x < BOARD_WIDTH; ++x)
+			if (board[y * BOARD_WIDTH + x].orientation != BO_EMPTY)
+				return false;
+	return true;
+}
+
 int removeFullLines(void)
 {
 	cleared_brick_count = 0;
@@ -1143,7 +1155,28 @@ int removeFullLines(void)
 
 	if (removed_lines > 0)
 	{
-		onLineClear(removed_lines);
+		/* perfect clear detection (board is already cleared) */
+		bool pc = isPerfectClear();
+		int pc_bonus = 0;
+		if (pc)
+		{
+			switch (removed_lines)
+			{
+				case 1: pc_bonus = 800 * (level + 1); break;
+				case 2: pc_bonus = 1200 * (level + 1); break;
+				case 3: pc_bonus = 1800 * (level + 1); break;
+				case 4:
+					pc_bonus = pc_b2b ? 3200 * (level + 1) : 2000 * (level + 1);
+					break;
+			}
+			pc_b2b = (removed_lines == 4) ? 1 : 0;
+		}
+		else
+		{
+			pc_b2b = 0;
+		}
+
+		onLineClear(removed_lines, pc, pc_bonus);
 	}
 	else
 	{
@@ -1809,6 +1842,7 @@ void resetGame(void)
 	tetris_count = 0;
 	ttr = 0;
 	b2b = 0;
+	pc_b2b = 0;
 	combo = 0;
 	dropped_pieces_num = 0;
 	pressed_keys_num = 0;

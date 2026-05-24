@@ -80,7 +80,6 @@ I do not cover the topic in detail because there are many better sources on that
 - better joystick support (menu navigation, tetromino speed proportional to knob angle, on/off option, etc.)
 - skin redesign to make them more consistent with implemented game modes
 - finesse calculation
-- perfect clear score bonus
 
 ## sponsors
 - Saikazu

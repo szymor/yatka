@@ -118,6 +118,9 @@ function on_line_clear(data)
 			0, 443)                                -- gravity (total flight 1.9 s = 38 frames × 50 ms)
 	end
 	res.show_timed_text(160, 16, name, 1500, font, 255, 255, 255, 1, 0)
+	if data.pc then
+		res.show_timed_text(160, 32, "Perfect Clear", 1500, font, 255, 255, 255, 1, 0)
+	end
 	if data.combo and data.combo > 0 then
 		res.show_timed_text(160, 24, "combo " .. data.combo .. "x", 1500, small_font, 255, 255, 255, 1, 0)
 		res.play_sfx(math.min(sfx.combo_1 + data.combo - 1, sfx.combo_7))
