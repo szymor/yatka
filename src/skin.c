@@ -400,9 +400,13 @@ static int y_draw_bar(lua_State *L)
 	if (val > maxv) val = maxv;
 	if (maxv < 1) maxv = 1;
 
-	SDL_Surface *bar = SDL_CreateRGBSurface(SDL_SRCALPHA, w, h, 32,
-						0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
-	if (!bar) return 0;
+	/* lazy-allocate the reusable scratch surface */
+	if (!rect_scratch)
+	{
+		rect_scratch = SDL_CreateRGBSurface(0, SCREEN_WIDTH, SCREEN_HEIGHT, 32,
+			0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+		if (!rect_scratch) return 0;
+	}
 
 	SDL_Rect fill = { 0, 0, 0, 0 };
 	SDL_Rect rest = { 0, 0, 0, 0 };
@@ -419,12 +423,12 @@ static int y_draw_bar(lua_State *L)
 		case 3: fill = (SDL_Rect){ 0, h - val * h / maxv, w, val * h / maxv };
 		        rest = (SDL_Rect){ 0, 0, w, h - val * h / maxv }; break;
 	}
-	SDL_FillRect(bar, &fill, SDL_MapRGBA(bar->format, rl, gl, bl, al));
-	SDL_FillRect(bar, &rest, SDL_MapRGBA(bar->format, rr, gr, br, ar));
+	SDL_FillRect(rect_scratch, &fill, SDL_MapRGBA(rect_scratch->format, rl, gl, bl, al));
+	SDL_FillRect(rect_scratch, &rest, SDL_MapRGBA(rect_scratch->format, rr, gr, br, ar));
 
-	SDL_Rect dst = { .x = x, .y = y, .w = w, .h = h };
-	SDL_BlitSurface(bar, NULL, screen, &dst);
-	SDL_FreeSurface(bar);
+	SDL_Rect src = { .x = 0, .y = 0, .w = w, .h = h };
+	SDL_Rect dst = { .x = x, .y = y };
+	SDL_BlitSurface(rect_scratch, &src, screen, &dst);
 	return 0;
 }
 
