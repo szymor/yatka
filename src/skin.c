@@ -25,6 +25,8 @@ static const char *MT_SURFACE   = "y_surface";
 static const char *MT_FONT      = "y_font";
 static const char *MT_ANIMATION = "y_animation";
 
+static SDL_Surface *rect_scratch = NULL;  /* reusable surface for draw_rect */
+
 /* ─────────────────────────────────────────────
  * Lua helper: push file content as string
  * ───────────────────────────────────────────── */
@@ -328,13 +330,20 @@ static int y_draw_rect(lua_State *L)
 	int b = (int)luaL_checkinteger(L, 7);
 	int a = (int)luaL_checkinteger(L, 8);
 
-	SDL_Surface *mask = SDL_CreateRGBSurface(0, w, h, 32,
-						 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
-	if (!mask) return 0;
-	SDL_FillRect(mask, NULL, SDL_MapRGBA(mask->format, r, g, b, a));
+	/* lazy-allocate a reusable scratch surface */
+	if (!rect_scratch)
+	{
+		rect_scratch = SDL_CreateRGBSurface(0, SCREEN_WIDTH, SCREEN_HEIGHT, 32,
+			0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+		if (!rect_scratch) return 0;
+	}
+
+	SDL_Rect fill = { .x = 0, .y = 0, .w = w, .h = h };
+	SDL_FillRect(rect_scratch, &fill, SDL_MapRGBA(rect_scratch->format, r, g, b, a));
+
+	SDL_Rect src = { .x = 0, .y = 0, .w = w, .h = h };
 	SDL_Rect dst = { .x = x, .y = y };
-	SDL_BlitSurface(mask, NULL, screen, &dst);
-	SDL_FreeSurface(mask);
+	SDL_BlitSurface(rect_scratch, &src, screen, &dst);
 	return 0;
 }
 
@@ -1190,6 +1199,13 @@ static void skin_fini_lua(struct Skin *skin)
 	skin->L = NULL;
 	skin->particle_count = 0;
 	skin->last_particle_tick = 0;
+
+	/* free reusable draw_rect scratch surface (per-skin lifecycle is safe proxy) */
+	if (rect_scratch)
+	{
+		SDL_FreeSurface(rect_scratch);
+		rect_scratch = NULL;
+	}
 }
 
 /* ─────────────────────────────────────────────
