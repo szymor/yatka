@@ -178,6 +178,7 @@ extern Uint32 next_lock_time;
 extern Uint32 last_drop_time;
 extern int draw_delta_drop;
 extern bool board_dirty;
+extern int board_gen;
 extern int brick_size;
 
 extern int score;

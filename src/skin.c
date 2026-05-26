@@ -1291,21 +1291,47 @@ static void skin_draw_ghost(struct Skin *skin)
 	if (!figures[0]) return;
 	if (skin->ghost <= 0) return;
 
-	/* drop figure until collision to find ghost position */
-	int tfy = figures[0]->y;
-	while (!isFigureColliding())
-		++figures[0]->y;
-	if (tfy != figures[0]->y)
-		--figures[0]->y;
+	struct Figure *fig = figures[0];
 
-	int ghost_y = figures[0]->y;
-	figures[0]->y = tfy;
+	/* check if cached ghost position is still valid */
+	int ghost_y;
+	bool cache_hit = (skin->ghost_cached_board_gen == board_gen &&
+	                  skin->ghost_cached_fig_id == (int)fig->id &&
+	                  skin->ghost_cached_fig_color == (int)fig->color &&
+	                  skin->ghost_cached_fig_x == fig->x &&
+	                  skin->ghost_cached_fig_y == fig->y &&
+	                  skin->ghost_cached_fig_phase == fig->shape.phase);
+
+	if (cache_hit)
+	{
+		ghost_y = skin->ghost_cached_y;
+	}
+	else
+	{
+		/* drop figure until collision to find ghost position */
+		int tfy = fig->y;
+		while (!isFigureColliding())
+			++fig->y;
+		if (tfy != fig->y)
+			--fig->y;
+
+		ghost_y = fig->y;
+		fig->y = tfy;
+
+		/* update cache */
+		skin->ghost_cached_y = ghost_y;
+		skin->ghost_cached_fig_id = (int)fig->id;
+		skin->ghost_cached_fig_color = (int)fig->color;
+		skin->ghost_cached_fig_x = fig->x;
+		skin->ghost_cached_fig_y = fig->y;
+		skin->ghost_cached_fig_phase = fig->shape.phase;
+		skin->ghost_cached_board_gen = board_gen;
+	}
 
 	/* only draw if ghost is far enough (at least FIG_DIM rows below) */
-	if ((ghost_y - tfy) < FIG_DIM)
+	if ((ghost_y - fig->y) < FIG_DIM)
 		return;
 
-	struct Figure *fig = figures[0];
 	int bx = skin->boardx + skin->bricksize * fig->x;
 	int by = skin->boardy + skin->bricksize * (ghost_y - INVISIBLE_ROW_COUNT)
 		- skin->brickyoffset;
@@ -1666,6 +1692,9 @@ void skin_init(struct Skin *skin)
 	skin->holdmode = HM_EXCHANGE;
 	skin->L = NULL;
 	skin->board_cache = NULL;
+
+	/* invalidate ghost cache */
+	skin->ghost_cached_board_gen = -1;
 }
 
 void skin_destroy(struct Skin *skin)

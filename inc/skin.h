@@ -116,6 +116,15 @@ struct Skin
 	struct lua_State *L;           /* per-skin lua state, NULL for failed loads */
 
 	SDL_Surface *board_cache;      /* cached composited board surface */
+
+	/* ghost position cache (invalidated on figure move/board change) */
+	int ghost_cached_y;
+	int ghost_cached_fig_id;
+	int ghost_cached_fig_color;
+	int ghost_cached_fig_x;
+	int ghost_cached_fig_y;
+	int ghost_cached_fig_phase;
+	int ghost_cached_board_gen;
 };
 
 

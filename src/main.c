@@ -151,6 +151,7 @@ static Uint32 softdrop_press_time = 0;
 Uint32 next_lock_time = 0;
 
 bool board_dirty = true;
+int board_gen = 0;
 int brick_size;
 int draw_delta_drop;
 
@@ -1040,6 +1041,7 @@ void lockFigure(void)
 	skin_on_piece_lock(&gameskin, locked_id);
 
 	board_dirty = true;
+	++board_gen;
 	next_lock_time = 0;
 	easyspin_counter = 0;
 	++dropped_pieces_num;
@@ -1843,6 +1845,7 @@ static void handleAutoDebris(void)
 		generateDebris(1);
 		updateAutoDebrisTimer(now);
 		board_dirty = true;
+	++board_gen;
 	}
 }
 
@@ -1855,6 +1858,7 @@ void resetGame(void)
 	}
 
 	board_dirty = true;
+	++board_gen;
 	lines = 0;
 	lines_level_up = 0;
 	level = menu_level;
@@ -2003,5 +2007,6 @@ void setBlockAtScreenXY(int x, int y, enum BlockOrientation bo)
 	board[by * BOARD_WIDTH + bx].orientation = bo;
 	board[by * BOARD_WIDTH + bx].color = FIGID_GRAY;
 	board_dirty = true;
+	++board_gen;
 }
 #endif
