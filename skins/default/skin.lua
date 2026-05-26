@@ -48,6 +48,11 @@ function skin_load(r)
 	r.draw_rect_to(bg_img, 246, 112, 48, 24, 255, 255, 255, 48)
 	r.draw_rect_to(bg_img, 246, 142, 48, 24, 255, 255, 255, 48)
 	r.draw_rect_to(bg_img, 246, 172, 48, 24, 255, 255, 255, 48)
+
+	-- Pre-render semi-transparent piece icons (stat area, 30px spacing)
+	for i = 0, 6 do
+		r.draw_piece_shape_to(bg_img, i, 6, 26 + i * 30, 7, 160)
+	end
 end
 
 function skin_unload() end
@@ -76,9 +81,8 @@ function draw_background()
 
 	res.draw_text(small_font, game.fps() .. " fps", 320, 0, 255, 255, 255, 2, 0)
 
-	-- stats (bars, 30px spacing to match default skin)
+	-- stats (bars, 30px spacing to match default skin; piece icons baked into bg_img)
 	for i = 0, 6 do
-		res.draw_piece_shape(i, 6, 26 + i * 30, 7, 160)
 		res.draw_bar(64, 38 + i * 30, 28, 7, game.stat(i), 56, 0,
 			     255, 192, 192, 255,
 			     255, 255, 255, 64)

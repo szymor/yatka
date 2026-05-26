@@ -553,6 +553,39 @@ static int y_draw_piece_shape(lua_State *L)
 	return 0;
 }
 
+/* r.draw_piece_shape_to(surface, piece_id, base_x, base_y, color, alpha)
+ * Draws a piece shape onto an arbitrary surface (not the screen).
+ * Call this once during skin_load for static icons, then just blit
+ * the image in draw_background. */
+static int y_draw_piece_shape_to(lua_State *L)
+{
+	struct Skin *skin = (struct Skin *)lua_touserdata(L, lua_upvalueindex(1));
+	SDL_Surface **sud = check_surface(L, 1);
+	int id = luaL_checkinteger(L, 2);
+	int base_x = luaL_checkinteger(L, 3);
+	int base_y = luaL_checkinteger(L, 4);
+	int color = luaL_checkinteger(L, 5);
+	int alpha = (int)luaL_optinteger(L, 6, 255);
+
+	if (!*sud) return 0;
+	if (id < 0 || id >= FIGID_GRAY) return 0;
+	const struct Shape *shape = getShape((enum FigureId)id);
+	if (!shape) return 0;
+
+	int minx, maxx, miny, maxy;
+	getShapeDimensions(shape, &minx, &maxx, &miny, &maxy);
+
+	int bw = skin->bricksize;
+	int sw = maxx - minx + 1;
+	int sh = maxy - miny + 1;
+	int ox = (4 - sw) * bw / 2 - minx * bw;
+	int oy = (2 - sh) * bw / 2 - miny * bw;
+
+	draw_shape_bricks(skin, *sud, shape, color, alpha,
+	                  base_x + ox, base_y + oy, bw, bw);
+	return 0;
+}
+
 /* ─────────────────────────────────────────────
  * Setter functions (registered in res table)
  * ───────────────────────────────────────────── */
@@ -1115,6 +1148,10 @@ static void skin_init_lua(struct Skin *skin, const char *skin_path)
 
 	lua_pushcfunction(L, y_draw_rect_to);
 	lua_setfield(L, -2, "draw_rect_to");
+
+	lua_pushlightuserdata(L, skin);
+	lua_pushcclosure(L, y_draw_piece_shape_to, 1);
+	lua_setfield(L, -2, "draw_piece_shape_to");
 
 	lua_pushcfunction(L, y_play_sfx);
 	lua_setfield(L, -2, "play_sfx");
