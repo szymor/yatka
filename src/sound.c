@@ -9,7 +9,7 @@
 #include "data_persistence.h"
 
 #define MAX_TRACKS		256
-#define SFXSPEECH_CHANNEL	(3)
+#define SFXSPEECH_CHANNEL	(0)
 
 int initmusvol = MIX_MAX_VOLUME / 4;
 Mix_Music *music = NULL;
@@ -186,6 +186,7 @@ void initSound(void)
 
 	Mix_VolumeMusic(initmusvol);
 	log("Number of channels: %d\n", Mix_AllocateChannels(-1));
+	Mix_ReserveChannels(SFXSPEECH_CHANNEL + 1);
 	Mix_ChannelFinished(channelDone);
 
 	sprintf(custom_music_dir, "%s/%s", dirpath, default_music_dir);
