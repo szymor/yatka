@@ -154,6 +154,7 @@ extern struct Block *board;
 extern struct ClearedBrick cleared_bricks[MAX_CLEARED_BRICKS];
 extern int cleared_brick_count;
 extern enum GameState gamestate;
+void setGameState(enum GameState new_state);
 
 extern bool nosound;
 enum MusicRepeat

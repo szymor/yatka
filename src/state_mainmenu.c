@@ -461,7 +461,7 @@ static void action(void)
 		}
 		menu_error[0] = '\0';
 		resetGame();
-		gamestate = GS_INGAME;
+		setGameState(GS_INGAME);
 		submenu_index = ME_GAMEMODE;
 	}
 }

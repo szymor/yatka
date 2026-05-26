@@ -228,12 +228,12 @@ static void right(void)
 
 static void quit(void)
 {
-	gamestate = GS_MAINMENU;
+	setGameState(GS_MAINMENU);
 }
 
 static void action(void)
 {
-	gamestate = GS_INGAME;
+	setGameState(GS_INGAME);
 }
 
 void settings_processInputEvents(void)

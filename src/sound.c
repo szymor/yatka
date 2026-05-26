@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <stdlib.h>
+#include <string.h>
 #include "sound.h"
 #include "main.h"
 #include "data_persistence.h"
@@ -16,6 +17,7 @@ Mix_Music *music = NULL;
 char music_name[32] = "<none>";
 Mix_Chunk *sfx_effects[SE_END] = { NULL };
 Mix_Chunk *sfx_speech[SS_END] = { NULL };
+
 
 int ssflags_planned = 0;
 
@@ -333,4 +335,51 @@ void playEffect(enum SfxEffect se)
 	if (SE_NONE == se)
 		return;
 	Mix_PlayChannel(-1, sfx_effects[se], 0);
+}
+
+/* try to load skin sounds from skin_path + "sfx/"; fall back to default paths */
+void loadSkinSfx(const char *skin_path)
+{
+	for (int i = SE_NONE + 1; i < SE_END; ++i)
+	{
+		if (sfx_effects[i]) Mix_FreeChunk(sfx_effects[i]);
+
+		const char *base = strrchr(sfx_effect_paths[i], '/');
+		base = base ? base + 1 : sfx_effect_paths[i];
+		char path[384];
+		snprintf(path, sizeof path, "%ssfx/%s", skin_path, base);
+
+		sfx_effects[i] = Mix_LoadWAV(path);
+		if (!sfx_effects[i])
+			sfx_effects[i] = Mix_LoadWAV(sfx_effect_paths[i]);
+	}
+
+	for (int i = 0; i < SS_END; ++i)
+	{
+		if (sfx_speech[i]) Mix_FreeChunk(sfx_speech[i]);
+
+		const char *base = strrchr(sfx_speech_paths[i], '/');
+		base = base ? base + 1 : sfx_speech_paths[i];
+		char path[384];
+		snprintf(path, sizeof path, "%ssfx/%s", skin_path, base);
+
+		sfx_speech[i] = Mix_LoadWAV(path);
+		if (!sfx_speech[i])
+			sfx_speech[i] = Mix_LoadWAV(sfx_speech_paths[i]);
+	}
+}
+
+/* reload all sounds from their original default paths */
+void restoreDefaultSfx(void)
+{
+	for (int i = SE_NONE + 1; i < SE_END; ++i)
+	{
+		if (sfx_effects[i]) Mix_FreeChunk(sfx_effects[i]);
+		sfx_effects[i] = Mix_LoadWAV(sfx_effect_paths[i]);
+	}
+	for (int i = 0; i < SS_END; ++i)
+	{
+		if (sfx_speech[i]) Mix_FreeChunk(sfx_speech[i]);
+		sfx_speech[i] = Mix_LoadWAV(sfx_speech_paths[i]);
+	}
 }

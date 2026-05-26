@@ -61,6 +61,8 @@ void playNextTrack(void);
 void playPrevTrack(void);
 void playSpeech(int ssflags);
 void playEffect(enum SfxEffect se);
+void loadSkinSfx(const char *skin_path);
+void restoreDefaultSfx(void);
 void playcombo(int combo);
 
 #endif

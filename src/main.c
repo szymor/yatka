@@ -81,6 +81,23 @@ bool speechon = false;
 enum TetrominoColor tetrominocolor = TC_STANDARD;
 
 enum GameState gamestate = GS_MAINMENU;
+
+void setGameState(enum GameState new_state)
+{
+	enum GameState old = gamestate;
+
+	/* entering gameplay — switch to skin sounds */
+	if (new_state == GS_INGAME && old != GS_INGAME)
+		loadSkinSfx(gameskin.path);
+
+	/* leaving gameplay for menu/gameover — revert to defaults */
+	if ((old == GS_INGAME || old == GS_SETTINGS)
+	    && (new_state == GS_MAINMENU || new_state == GS_GAMEOVER))
+		restoreDefaultSfx();
+
+	gamestate = new_state;
+}
+
 static bool hold_ready = true;
 
 int score = 0;
@@ -810,7 +827,7 @@ void onGameOver(enum GameOverType reason)
 	stopMusic();
 	updateTotalTime();
 	updateHiscores(menu_gamemode, reason);
-	gamestate = GS_GAMEOVER;
+	setGameState(GS_GAMEOVER);
 }
 
 void dropSoft(void)
@@ -1346,12 +1363,12 @@ static void rotate_ccw(void)
 
 static void pause(void)
 {
-	gamestate = GS_SETTINGS;
+	setGameState(GS_SETTINGS);
 }
 
 static void quit(void)
 {
-	gamestate = GS_MAINMENU;
+	setGameState(GS_MAINMENU);
 }
 
 void ingame_processInputEvents(void)

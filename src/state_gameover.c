@@ -38,7 +38,7 @@ void gameover_updateScreen(void)
 
 static void quit(void)
 {
-	gamestate = GS_MAINMENU;
+	setGameState(GS_MAINMENU);
 }
 
 void gameover_processInputEvents(void)
