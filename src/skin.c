@@ -319,6 +319,42 @@ static int y_draw_text_to(lua_State *L)
 	return 0;
 }
 
+/* r.draw_rect_to(surface, x, y, w, h, r, g, b, a)
+ * Draws a filled rectangle onto an arbitrary surface (not the screen).
+ * Call this once during skin_load for static boxes, then just blit
+ * the image in draw_background. */
+static int y_draw_rect_to(lua_State *L)
+{
+	SDL_Surface **sud = check_surface(L, 1);
+	int x = luaL_checkinteger(L, 2);
+	int y = luaL_checkinteger(L, 3);
+	int w = luaL_checkinteger(L, 4);
+	int h = luaL_checkinteger(L, 5);
+	int r = (int)luaL_checkinteger(L, 6);
+	int g = (int)luaL_checkinteger(L, 7);
+	int b = (int)luaL_checkinteger(L, 8);
+	int a = (int)luaL_checkinteger(L, 9);
+
+	if (!*sud) return 0;
+	if (w < 1 || h < 1) return 0;
+
+	/* lazy-allocate scratch surface for the rect */
+	if (!rect_scratch)
+	{
+		rect_scratch = SDL_CreateRGBSurface(0, SCREEN_WIDTH, SCREEN_HEIGHT, 32,
+			0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+		if (!rect_scratch) return 0;
+	}
+
+	SDL_Rect fill = { .x = 0, .y = 0, .w = w, .h = h };
+	SDL_FillRect(rect_scratch, &fill, SDL_MapRGBA(rect_scratch->format, r, g, b, a));
+
+	SDL_Rect src = { .x = 0, .y = 0, .w = w, .h = h };
+	SDL_Rect dst = { .x = x, .y = y };
+	SDL_BlitSurface(rect_scratch, &src, *sud, &dst);
+	return 0;
+}
+
 static int y_draw_rect(lua_State *L)
 {
 	int x = luaL_checkinteger(L, 1);
@@ -1076,6 +1112,9 @@ static void skin_init_lua(struct Skin *skin, const char *skin_path)
 
 	lua_pushcfunction(L, y_draw_text_to);
 	lua_setfield(L, -2, "draw_text_to");
+
+	lua_pushcfunction(L, y_draw_rect_to);
+	lua_setfield(L, -2, "draw_rect_to");
 
 	lua_pushcfunction(L, y_play_sfx);
 	lua_setfield(L, -2, "play_sfx");

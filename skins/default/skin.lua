@@ -35,27 +35,27 @@ function skin_load(r)
 
 	behelit_anim = r.load_animation("behelit.png", 65, 72, 50)
 
-	-- Pre-render static HUD labels onto the background once
+	-- Pre-render static HUD labels + semi-transparent boxes onto the background once
 	r.draw_text_to(bg_img, font, "Score:", 0, 0, 255, 255, 255)
 	r.draw_text_to(bg_img, font, "Level:", 0, 7, 255, 255, 255)
 	r.draw_text_to(bg_img, font, "Lines:", 0, 14, 255, 255, 255)
 	r.draw_text_to(bg_img, big_font, "NEXT", 246, 11, 255, 255, 255)
+
+	r.draw_rect_to(bg_img, 100, 0, 120, 240, 255, 255, 255, 48)
+	r.draw_rect_to(bg_img, 246, 22, 48, 24, 255, 255, 255, 48)
+	r.draw_rect_to(bg_img, 246, 52, 48, 24, 255, 255, 255, 48)
+	r.draw_rect_to(bg_img, 246, 82, 48, 24, 255, 255, 255, 48)
+	r.draw_rect_to(bg_img, 246, 112, 48, 24, 255, 255, 255, 48)
+	r.draw_rect_to(bg_img, 246, 142, 48, 24, 255, 255, 255, 48)
+	r.draw_rect_to(bg_img, 246, 172, 48, 24, 255, 255, 255, 48)
 end
 
 function skin_unload() end
 
 function draw_background()
 	res.draw_image(bg_img, 0, 0)
-	-- semi-transparent boxes (board area + next-piece backgrounds)
-	res.draw_rect(100, 0, 120, 240, 255, 255, 255, 48)
-	res.draw_rect(246, 22, 48, 24, 255, 255, 255, 48)
-	res.draw_rect(246, 52, 48, 24, 255, 255, 255, 48)
-	res.draw_rect(246, 82, 48, 24, 255, 255, 255, 48)
-	res.draw_rect(246, 112, 48, 24, 255, 255, 255, 48)
-	res.draw_rect(246, 142, 48, 24, 255, 255, 255, 48)
-	res.draw_rect(246, 172, 48, 24, 255, 255, 255, 48)
 
-	-- HUD (dynamic values only; static labels are baked into bg_img)
+	-- HUD (dynamic values only; static labels + boxes are baked into bg_img)
 	res.draw_text(font, game.score(), 49, 0)
 	res.draw_text(font, game.level(), 49, 7)
 
