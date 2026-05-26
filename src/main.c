@@ -150,6 +150,7 @@ static bool softdrop_pressed = false;
 static Uint32 softdrop_press_time = 0;
 Uint32 next_lock_time = 0;
 
+bool board_dirty = true;
 int brick_size;
 int draw_delta_drop;
 
@@ -1038,6 +1039,7 @@ void lockFigure(void)
 	}
 	skin_on_piece_lock(&gameskin, locked_id);
 
+	board_dirty = true;
 	next_lock_time = 0;
 	easyspin_counter = 0;
 	++dropped_pieces_num;
@@ -1840,6 +1842,7 @@ static void handleAutoDebris(void)
 		pushBricksUp(1);
 		generateDebris(1);
 		updateAutoDebrisTimer(now);
+		board_dirty = true;
 	}
 }
 
@@ -1851,6 +1854,7 @@ void resetGame(void)
 		board[i].orientation = BO_EMPTY;
 	}
 
+	board_dirty = true;
 	lines = 0;
 	lines_level_up = 0;
 	level = menu_level;
@@ -1998,5 +2002,6 @@ void setBlockAtScreenXY(int x, int y, enum BlockOrientation bo)
 	int by = (py - gameskin.boardy) / gameskin.bricksize + INVISIBLE_ROW_COUNT;
 	board[by * BOARD_WIDTH + bx].orientation = bo;
 	board[by * BOARD_WIDTH + bx].color = FIGID_GRAY;
+	board_dirty = true;
 }
 #endif

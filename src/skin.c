@@ -1217,10 +1217,23 @@ static void call_lua_void(struct Skin *skin, const char *func)
  * ───────────────────────────────────────────── */
 
 static void skin_draw_background(struct Skin *skin) { call_lua_void(skin, "draw_background"); }
-static void skin_draw_board(struct Skin *skin)
+static void skin_composite_board(struct Skin *skin)
 {
 	int bw = skin->bricksize;
 	int bh = skin->bricksize + skin->brickyoffset;
+
+	/* (re)create cache surface if needed */
+	int cw = SCREEN_WIDTH;
+	int ch = SCREEN_HEIGHT;
+	if (!skin->board_cache)
+	{
+		skin->board_cache = SDL_CreateRGBSurface(0, cw, ch, 32,
+			0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+		if (!skin->board_cache) return;
+	}
+
+	/* clear to transparent */
+	SDL_FillRect(skin->board_cache, NULL, 0);
 
 	for (int i = BOARD_WIDTH * BOARD_HEIGHT - 1; i >= BOARD_WIDTH * INVISIBLE_ROW_COUNT; --i)
 	{
@@ -1258,8 +1271,19 @@ static void skin_draw_board(struct Skin *skin)
 
 		SDL_Surface *block = skin->bricksprite[color];
 		SDL_SetAlpha(block, SDL_SRCALPHA, 255);
-		SDL_BlitSurface(block, &srcrect, screen, &dst);
+		SDL_BlitSurface(block, &srcrect, skin->board_cache, &dst);
 	}
+
+	board_dirty = false;
+}
+
+static void skin_draw_board(struct Skin *skin)
+{
+	if (board_dirty || !skin->board_cache)
+		skin_composite_board(skin);
+
+	SDL_Rect dst = { .x = 0, .y = 0 };
+	SDL_BlitSurface(skin->board_cache, NULL, screen, &dst);
 }
 
 static void skin_draw_ghost(struct Skin *skin)
@@ -1641,6 +1665,7 @@ void skin_init(struct Skin *skin)
 	skin->shadowy = 0;
 	skin->holdmode = HM_EXCHANGE;
 	skin->L = NULL;
+	skin->board_cache = NULL;
 }
 
 void skin_destroy(struct Skin *skin)
@@ -1669,6 +1694,11 @@ void skin_destroy(struct Skin *skin)
 			SDL_FreeSurface(skin->bricksprite[i]);
 			skin->bricksprite[i] = NULL;
 		}
+	}
+	if (skin->board_cache)
+	{
+		SDL_FreeSurface(skin->board_cache);
+		skin->board_cache = NULL;
 	}
 	skin->brickstyle = BS_SIMPLE;
 	skin->ghost = 128;

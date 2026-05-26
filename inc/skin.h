@@ -114,7 +114,10 @@ struct Skin
 	Uint32 last_particle_tick;
 
 	struct lua_State *L;           /* per-skin lua state, NULL for failed loads */
+
+	SDL_Surface *board_cache;      /* cached composited board surface */
 };
+
 
 /* ─── skin lifecycle ─── */
 void skin_init(struct Skin *skin);
