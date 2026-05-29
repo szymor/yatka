@@ -26,6 +26,7 @@ extern SDL_Surface *screen_scaled;
 extern SDL_Surface *last_game_screen;
 extern TTF_Font *arcade_font;
 extern int screenscale;
+extern int scanlines;
 extern int fps;
 
 void saveLastGameScreen(void);
@@ -33,6 +34,7 @@ void flipScreenScaled(void);
 void upscale2(uint32_t *to, uint32_t *from);
 void upscale3(uint32_t *to, uint32_t *from);
 void upscale4(uint32_t *to, uint32_t *from);
+void applyScanlines(uint32_t *pixels, int width, int height, int scale);
 void frameCounter(void);
 int frameLimiter(void);
 

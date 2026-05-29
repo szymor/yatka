@@ -320,6 +320,8 @@ int main(int argc, char *argv[])
 			screenscale = 3;
 		else if (!strcmp(argv[i],"--scale4x"))
 			screenscale = 4;
+		else if (!strcmp(argv[i],"--scanlines"))
+			scanlines = 1;
 		else if (!strcmp(argv[i],"--startlevel"))
 		{
 			++i;

@@ -10,6 +10,7 @@ SDL_Surface *screen_scaled = NULL;
 SDL_Surface *last_game_screen = NULL;
 TTF_Font *arcade_font = NULL;
 int screenscale = 1;
+int scanlines = 0;
 int fps;
 
 void saveLastGameScreen(void)
@@ -40,10 +41,46 @@ void flipScreenScaled(void)
 		default:
 			break;
 	}
+
+	if (scanlines && screenscale > 1)
+		applyScanlines(screen_scaled->pixels,
+		               SCREEN_WIDTH * screenscale,
+		               SCREEN_HEIGHT * screenscale,
+		               screenscale);
+
 	if (SDL_MUSTLOCK(screen_scaled))
 		SDL_UnlockSurface(screen_scaled);
 
 	SDL_Flip(screen_scaled);
+}
+
+/* ─────────────────────────────────────────────
+ * Scanlines: darkens every Nth output row (N = scale factor)
+ * to simulate a CRT scanline appearance.
+ * The last row of each source-pixel block gets darkened.
+ */
+void applyScanlines(uint32_t *pixels, int width, int height, int scale)
+{
+	/* intensity multiplier for scanline rows (~60 % brightness) */
+#define SCANLINE_MUL 153  /* 153/255 ≈ 0.6 */
+
+	int row_stride = width;
+
+	for (int y = scale - 1; y < height; y += scale)
+	{
+		uint32_t *row = pixels + y * row_stride;
+		for (int x = 0; x < width; ++x)
+		{
+			uint32_t p = row[x];
+			uint8_t r = ((p & 0xFF)       * SCANLINE_MUL) / 255;
+			uint8_t g = (((p >> 8) & 0xFF) * SCANLINE_MUL) / 255;
+			uint8_t b = (((p >> 16) & 0xFF)* SCANLINE_MUL) / 255;
+			row[x] = (p & 0xFF000000) | ((uint32_t)b << 16) |
+			         ((uint32_t)g << 8) | (uint32_t)r;
+		}
+	}
+
+#undef SCANLINE_MUL
 }
 
 bool screenFlagUpdate(bool v)
