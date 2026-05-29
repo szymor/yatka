@@ -1382,7 +1382,7 @@ void ingame_processInputEvents(void)
 	SDL_Event event;
 	bool joy_harddrop = false;
 
-	if (SDL_PollEvent(&event))
+	while (SDL_PollEvent(&event))
 		switch (event.type)
 		{
 			case SDL_JOYAXISMOTION:
