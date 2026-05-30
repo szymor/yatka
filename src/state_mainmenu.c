@@ -597,6 +597,16 @@ static void level_back(void)
 			cur_level = ML_TOP;
 			break;
 		case ML_KEYCONFIG:
+			kleft   = kc_keys[KI_LEFT];
+			kright  = kc_keys[KI_RIGHT];
+			ksoftdrop = kc_keys[KI_SOFTDROP];
+			kharddrop = kc_keys[KI_HARDDROP];
+			krotatecw  = kc_keys[KI_ROTATE_CW];
+			krotateccw = kc_keys[KI_ROTATE_CCW];
+			khold   = kc_keys[KI_HOLD];
+			kpause  = kc_keys[KI_PAUSE];
+			kquit   = kc_keys[KI_QUIT];
+			saveSettings();
 			cur_level = ML_SETTINGS;
 			break;
 	}
