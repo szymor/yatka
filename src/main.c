@@ -71,6 +71,7 @@ int statistics[FIGID_GRAY];
 /* all settings need to be false in order to
  * be properly read from settings file */
 bool nosound = false;
+static bool fullscreen = false;
 enum MusicRepeat repeattrack = MR_ALL;
 bool easyspin = false;
 bool lockdelay = false;
@@ -309,7 +310,7 @@ int main(int argc, char *argv[])
 		if (!strcmp(argv[i],"--nosound"))
 			nosound = true;
 		else if (!strcmp(argv[i],"--fullscreen"))
-			screenscale = 0;
+			fullscreen = true;
 		else if (!strcmp(argv[i],"--scale1x"))
 			screenscale = 1;
 		else if (!strcmp(argv[i],"--scale2x"))
@@ -444,12 +445,9 @@ void initialize(void)
 	atexit(finalize);
 
 	Uint32 video_flags = VIDEO_MODE_FLAGS;
-	int scale = screenscale;
-	if (0 == screenscale)
-	{
-		scale = 1;
+	if (fullscreen)
 		video_flags |= SDL_FULLSCREEN;
-	}
+	int scale = screenscale > 0 ? screenscale : 1;
 	screen_scaled = SDL_SetVideoMode(SCREEN_WIDTH * scale, SCREEN_HEIGHT * scale, SCREEN_BPP, video_flags);
 	if (screen_scaled == NULL)
 	{
@@ -1992,7 +1990,7 @@ void updateHiscores(enum GameMode gm, enum GameOverType got)
 void setBlockAtScreenXY(int x, int y, enum BlockOrientation bo)
 {
 	// adjust coordinates to the screenscale
-	int scale = screenscale == 0 ? 1 : screenscale;
+	int scale = screenscale > 0 ? screenscale : 1;
 	int px = x / scale;
 	int py = y / scale;
 	// discard the click if out of bounds
