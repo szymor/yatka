@@ -258,6 +258,7 @@ void trackFinished(void)
 
 void playMusic(void)
 {
+	if (nosound) return;
 	Mix_HookMusicFinished(trackFinished);
 	if (!Mix_PlayingMusic())
 		Mix_FadeInMusic(music, 1, MUSIC_FADE_TIME);
@@ -265,16 +266,19 @@ void playMusic(void)
 
 void stopMusic(void)
 {
+	if (nosound) return;
 	Mix_FadeOutMusic(MUSIC_FADE_TIME);
 }
 
 void letMusicFinish(void)
 {
+	if (nosound) return;
 	Mix_HookMusicFinished(NULL);
 }
 
 void playNextTrack(void)
 {
+	if (nosound) return;
 	if (track_count < 1) return;
 
 	if (MR_SHUFFLED == repeattrack)
@@ -293,6 +297,7 @@ void playNextTrack(void)
 
 void playPrevTrack(void)
 {
+	if (nosound) return;
 	if (track_count < 1) return;
 
 	if (MR_SHUFFLED == repeattrack)
@@ -310,6 +315,7 @@ void playPrevTrack(void)
 
 void playSpeech(int ssflags)
 {
+	if (nosound) return;
 	if (0 == ssflags)
 		return;
 	int shift = 0;
@@ -332,6 +338,7 @@ void playSpeech(int ssflags)
 
 void playEffect(enum SfxEffect se)
 {
+	if (nosound) return;
 	if (SE_NONE == se)
 		return;
 	Mix_PlayChannel(-1, sfx_effects[se], 0);
@@ -340,6 +347,7 @@ void playEffect(enum SfxEffect se)
 /* try to load skin sounds from skin_path + "sfx/"; fall back to default paths */
 void loadSkinSfx(const char *skin_path)
 {
+	if (nosound) return;
 	for (int i = SE_NONE + 1; i < SE_END; ++i)
 	{
 		if (sfx_effects[i]) Mix_FreeChunk(sfx_effects[i]);
@@ -372,6 +380,7 @@ void loadSkinSfx(const char *skin_path)
 /* reload all sounds from their original default paths */
 void restoreDefaultSfx(void)
 {
+	if (nosound) return;
 	for (int i = SE_NONE + 1; i < SE_END; ++i)
 	{
 		if (sfx_effects[i]) Mix_FreeChunk(sfx_effects[i]);

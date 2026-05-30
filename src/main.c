@@ -308,8 +308,6 @@ int main(int argc, char *argv[])
 	{
 		if (!strcmp(argv[i],"--nosound"))
 			nosound = true;
-		else if (!strcmp(argv[i],"--sound"))
-			nosound = false;
 		else if (!strcmp(argv[i],"--fullscreen"))
 			screenscale = 0;
 		else if (!strcmp(argv[i],"--scale1x"))
