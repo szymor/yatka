@@ -8,18 +8,20 @@ yet another tetris klone in action
 ![screenshot3](screenshot3.png)
 
 ## description
-YATKA is one of many Tetris implementations available. Motivation behind this one was, on the one hand, to create a game that would conform to modern rules of the game, while, on the other, to make possible running it on resource-limited platforms (e.g. Bittboy or JZ4760-based handheld consoles). This is the reason I use SDL 1.2, which is considered outdated, or develop my own simplistic solutions instead of relying on third-party dependencies.
+YATKA is one of many Tetris implementations available. Motivation behind this one was, on the one hand, to create a game that would conform to modern rules of the game, while, on the other, to make possible running it on resource-limited platforms (e.g. Bittboy or JZ4760-based handheld consoles). This is the reason I use SDL 1.2, which is considered outdated, ~~or develop my own simplistic solutions instead of relying on third-party dependencies~~.
 
-The game is in constant development. Feel free to report errors as it helps to improve the game. There are no full-time testers working on it so I appreciate any feedback.
+**Wind of change:** my own implementation of different gameplay mechanics is sub-optimal, therefore I decided to use external dependencies, such as **Lua** and **cJSON**.
+
+The game is in constant development. Feel free to report errors, as it helps to improve the game. There are no full-time testers working on it, so I appreciate any feedback.
 
 ## features
-* three game modes - play Marathon (classic survival), Sprint (play as fast as possible until you clear 40 or more lines) or Ultra (play for 3 minutes to get the high score),
-* skin system - choose a visual style according to your taste from a set of predefined skins or create your own,
-* music playback - listen to the tracks included in the game or provide your own songs,
-* Super Rotation System - use sophisticated tactics known from the modern versions of Tetris,
-* low hardware requirements - the game can run on devices without accelerated graphics as it was developed using SDL 1.2, a time-proven multimedia library,
-* multi-platform design - the game can be easily ported to any operating system supporting a limited set of dependencies required by YATKA,
-* customizable rules - you can change parameters affecting the tetromino generator, lock delay or easy spin, even during the game.
+* **three game modes** - play Marathon (classic survival), Sprint (play as fast as possible until you clear 40 or more lines) or Ultra (play for 3 minutes to get the high score),
+* **skin system** - choose a visual style according to your taste from a set of predefined skins or create your own,
+* **music playback** - listen to the tracks included in the game or provide your own songs,
+* **Super Rotation System** - use sophisticated tactics known from the modern versions of Tetris,
+* **low hardware requirements** - the game can run on devices without accelerated graphics as it was developed using SDL 1.2, a time-proven multimedia library,
+* **multi-platform design** - the game can be easily ported to any operating system supporting a limited set of dependencies required by YATKA,
+* **customizable rules** - you can change parameters affecting the tetromino generator, lock delay or easy spin, even during the game.
 
 ## how to build (Ubuntu)
     apt update
@@ -29,14 +31,14 @@ The game is in constant development. Feel free to report errors as it helps to i
     make
 
 ## command line parameters
-- --nosound - disable music and sound effects
-- --sound - enable music and sound effects if disabled
-- --fullscreen - full screen mode
-- --scale1x - 320x240 mode
-- --scale2x - 640x480 mode
-- --scale3x - 960x720 mode
-- --scale4x - 1280x960 mode
-- --startlevel <num> - the higher level, the higher speed
+- **--nosound** - disable music and sound effects
+- **--fullscreen** - full screen mode
+- **--scale1x** - 320x240 mode
+- **--scale2x** - 640x480 mode
+- **--scale3x** - 960x720 mode
+- **--scale4x** - 1280x960 mode
+- **--scanlines** - enable scanline screen post-filter
+- **--startlevel <num>** - the higher level, the higher speed
 
 For more, please refer to the source code.
 
@@ -56,13 +58,13 @@ The game supports custom music playback. In order to listen to your favourite so
 As noted before, YATKA offers several randomizers to choose among. Selection of a randomizer affects gameplay as some randomizers tend to generate tetromino sequences difficult to play with. On the contrary, others may generate predictable patterns and therefore offer no challenge to the player.
 
 Currently the following randomizers are supported:
-* naive (unbiased) - each piece is generated independently on each other using a standard pseudo random number generator. It can lead to non-trivial sequences and uneven distribution of tetrominoes.
-* nintendo - a slightly improved variant of the above, used in Nintendo's NES Tetris (hence the name). If the generated piece is the same as the last one, it is generated once more (and only once) and dealt. It helps to avoid issues with the same consecutive pieces, but other issues stay unresolved in regard to the previous randomizer.
-* 7bag - a bag of seven different pieces in a random order is generated. The generated pieces are dealt consecutively until the bag is empty. After that the bag is generated again and the cycle repeats forever. It solves some issues with pieces appearing too often or too seldom, but at the same time it makes the game very predictable.
-* 8bag - a variant of the above, it uses a bag of eight, instead of seven, pieces. It introduces more variation in distribution of pieces, because one of the pieces in the bag repeats.
-* 14bag - similar to 7bag, but the cycle is longer.
-* tgm98 - the randomizer with history of 4 pieces instead of one (as it was with the nintendo randomizer).
-* tgm3 - the most complex randomizer implemented so far. In order to fully grasp the idea, I recommend to take a glimpse into the source code or read the article on randomizers by Simon Laroche (the link is in 'about...' section).
+* **naive (unbiased)** - each piece is generated independently on each other using a standard pseudo random number generator. It can lead to non-trivial sequences and uneven distribution of tetrominoes.
+* **nintendo** - a slightly improved variant of the above, used in Nintendo's NES Tetris (hence the name). If the generated piece is the same as the last one, it is generated once more (and only once) and dealt. It helps to avoid issues with the same consecutive pieces, but other issues stay unresolved in regard to the previous randomizer.
+* **7bag** - a bag of seven different pieces in a random order is generated. The generated pieces are dealt consecutively until the bag is empty. After that the bag is generated again and the cycle repeats forever. It solves some issues with pieces appearing too often or too seldom, but at the same time it makes the game very predictable.
+* **8bag** - a variant of the above, it uses a bag of eight, instead of seven, pieces. It introduces more variation in distribution of pieces, because one of the pieces in the bag repeats.
+* **14bag** - similar to 7bag, but the cycle is longer.
+* **tgm98** - the randomizer with history of 4 pieces instead of one (as it was with the nintendo randomizer).
+* **tgm3** - the most complex randomizer implemented so far. In order to fully grasp the idea, I recommend to take a glimpse into the source code or read the article on randomizers by Simon Laroche (the link is in 'about...' section).
 
 I do not cover the topic in detail because there are many better sources on that.
 
@@ -75,6 +77,7 @@ I do not cover the topic in detail because there are many better sources on that
 - Elektronika60, Dotkom and Gamboi skins by GuineaSquiggle
 - Retro skin by Miyano
 - bug reporting by Apacz and jimbo
+- big thanks to **DeepSeek** for hundreds of hours spent on code development
 
 ## ideas / plans
 - better joystick support (menu navigation, tetromino speed proportional to knob angle, on/off option, etc.)
