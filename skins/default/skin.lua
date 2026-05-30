@@ -3,7 +3,7 @@ local bg_img, font, small_font
 local brick_w, brick_h, board_x, board_y
 local behelit_anim
 
-function skin_load(r)
+function on_skin_load(r)
 	bg_img = r.load_image("bg.png")
 
 	-- set colours (using symbolic fig.* constants)
@@ -55,9 +55,9 @@ function skin_load(r)
 	end
 end
 
-function skin_unload() end
+function on_skin_unload() end
 
-function draw_background()
+function on_background_draw()
 	res.draw_image(bg_img, 0, 0)
 
 	-- HUD (dynamic values only; static labels + boxes are baked into bg_img)
@@ -153,7 +153,7 @@ function on_line_clear(data)
 	end
 end
 
-function draw_foreground() end
+function on_foreground_draw() end
 
 function format_ms(ms)
 	local cs = math.floor(ms / 10) % 100

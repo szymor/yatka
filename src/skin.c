@@ -1248,13 +1248,13 @@ static void skin_init_lua(struct Skin *skin, const char *skin_path)
 	}
 
 	/* call skin.load(res) */
-	lua_getglobal(L, "skin_load");
+	lua_getglobal(L, "on_skin_load");
 	if (lua_isfunction(L, -1))
 	{
 		lua_getglobal(L, "res");
 		if (lua_pcall(L, 1, 0, 0) != LUA_OK)
 		{
-			fprintf(stderr, "Lua skin_load error: %s\n", lua_tostring(L, -1));
+			fprintf(stderr, "Lua on_skin_load error: %s\n", lua_tostring(L, -1));
 			lua_pop(L, 1);
 		}
 	}
@@ -1267,7 +1267,7 @@ static void skin_fini_lua(struct Skin *skin)
 	lua_State *L = skin->L;
 
 	/* call skin.unload() */
-	lua_getglobal(L, "skin_unload");
+	lua_getglobal(L, "on_skin_unload");
 	if (lua_isfunction(L, -1))
 	{
 		if (lua_pcall(L, 0, 0, 0) != LUA_OK)
@@ -1312,7 +1312,7 @@ static void call_lua_void(struct Skin *skin, const char *func)
  * Per‑frame render callbacks (internal)
  * ───────────────────────────────────────────── */
 
-static void skin_draw_background(struct Skin *skin) { call_lua_void(skin, "draw_background"); }
+static void skin_draw_background(struct Skin *skin) { call_lua_void(skin, "on_background_draw"); }
 static void skin_composite_board(struct Skin *skin)
 {
 	int bw = skin->bricksize;
@@ -1468,7 +1468,7 @@ static void skin_draw_ghost(struct Skin *skin)
 	}
 }
 
-static void skin_draw_foreground(struct Skin *skin) { call_lua_void(skin, "draw_foreground"); }
+static void skin_draw_foreground(struct Skin *skin) { call_lua_void(skin, "on_foreground_draw"); }
 
 static void skin_draw_timed_texts(struct Skin *skin)
 {
