@@ -666,7 +666,7 @@ static void action(void)
 
 		case ML_KEYCONFIG:
 		{
-			draw_text(RX, 70, "Press a key...", 0, 0);
+			draw_text(SCREEN_WIDTH / 2, 145, "Press a key...", 1, 0);
 			flipScreenScaled();
 			kc_keys[cur_keycfg] = get_key();
 			break;
