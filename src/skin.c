@@ -16,6 +16,7 @@
 #include "state_mainmenu.h"
 #include "video.h"
 #include "sound.h"
+#include "data_persistence.h"
 
 /* ─────────────────────────────────────────────
  * Constants
@@ -864,6 +865,19 @@ static int y_game_stat(lua_State *L)
 	lua_pushinteger(L, statistics[id]);
 	return 1;
 }
+static int y_game_hiscore(lua_State *L)
+{
+	enum RecordType rt;
+	switch (menu_gamemode)
+	{
+		case GM_SPRINT:  rt = RT_SPRINT_TIME;     break;
+		case GM_ULTRA:   rt = RT_ULTRA_SCORE;     break;
+		default:         rt = RT_MARATHON_SCORE;   break;
+	}
+	lua_pushinteger(L, getRecord(rt));
+	return 1;
+}
+
 static int y_game_mode(lua_State *L)
 {
 	static const char *names[] = { "marathon", "sprint", "ultra" };
@@ -1215,6 +1229,7 @@ static void skin_init_lua(struct Skin *skin, const char *skin_path)
 
 	/* ─── game table ─── */
 	lua_newtable(L);
+	lua_pushcfunction(L, y_game_hiscore);  lua_setfield(L, -2, "hiscore");
 	lua_pushcfunction(L, y_game_score);    lua_setfield(L, -2, "score");
 	lua_pushcfunction(L, y_game_level);    lua_setfield(L, -2, "level");
 	lua_pushcfunction(L, y_game_lines);    lua_setfield(L, -2, "lines");
