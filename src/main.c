@@ -506,8 +506,7 @@ void initialize(void)
 
 void finalize(void)
 {
-	if (settings_changed)
-		saveSettings();
+	saveSettings();
 	saveRecords();
 
 	skin_destroy(&gameskin);

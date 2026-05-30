@@ -16,9 +16,8 @@
 #include "sound.h"
 #include "data_persistence.h"
 
-#define MAX_SKIN_NUM		32
-#define MAX_SKIN_NAME_LEN	16
-#define MAX_SKIN_PATH_LEN	256
+/* MAX_SKIN_NUM, MAX_SKIN_NAME_LEN, MAX_SKIN_PATH_LEN and
+ * struct SkinEntry are defined in state_mainmenu.h */
 
 /* ─── menu hierarchy ─── */
 
@@ -594,6 +593,7 @@ static void level_back(void)
 			cur_level = ML_TOP;
 			break;
 		case ML_SETTINGS:
+			saveSettings();
 			cur_level = ML_TOP;
 			break;
 		case ML_KEYCONFIG:
@@ -720,6 +720,20 @@ void mainmenu_init(void)
 	}
 	else
 		perror("Couldn't open the main skin directory.");
+
+	/* apply saved skin from config */
+	const char *saved = getLoadedSkinName();
+	if (saved[0])
+	{
+		for (int i = 0; i < menu_skinnum; ++i)
+		{
+			if (!strcmp(menu_skinentries[i].name, saved))
+			{
+				menu_skin = i;
+				break;
+			}
+		}
+	}
 
 	cur_level = ML_TOP;
 	cur_top = TE_GAMESTART;

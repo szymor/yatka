@@ -116,48 +116,39 @@ static void left(void)
 				vol = 0;
 			Mix_VolumeMusic(vol);
 			initmusvol = vol;
-			settings_changed = true;
 		} break;
 		case SL_MUSIC_REPEAT:
 		{
 			repeattrack = (repeattrack + 2) % MR_END;
-			settings_changed = true;
 		} break;
 		case SL_SPEECH:
 		{
 			speechon = !speechon;
-			settings_changed = true;
 		} break;
 		case SL_SMOOTHANIM:
 		{
 			smoothanim = !smoothanim;
-			settings_changed = true;
 		} break;
 		case SL_TETROMINO_COLOR:
 		{
 			decMod((int*)&tetrominocolor, TC_END, false);
-			settings_changed = true;
 		} break;
 		case SL_EASYSPIN:
 		{
 			easyspin = !easyspin;
-			settings_changed = true;
 		} break;
 		case SL_LOCKDELAY:
 		{
 			lockdelay = !lockdelay;
-			settings_changed = true;
 		} break;
 		case SL_DROPTYPE:
 		{
 			sonicdrop = !sonicdrop;
-			settings_changed = true;
 		} break;
 		case SL_RANDOMIZER:
 		{
 			decMod((int*)&randomalgo, RA_END, false);
 			randomizer_reset();
-			settings_changed = true;
 		} break;
 		default:
 			break;
@@ -178,48 +169,39 @@ static void right(void)
 			vol += 1;
 			Mix_VolumeMusic(vol);
 			initmusvol = vol;
-			settings_changed = true;
 		} break;
 		case SL_MUSIC_REPEAT:
 		{
 			repeattrack = (repeattrack + 1) % MR_END;
-			settings_changed = true;
 		} break;
 		case SL_SPEECH:
 		{
 			speechon = !speechon;
-			settings_changed = true;
 		} break;
 		case SL_SMOOTHANIM:
 		{
 			smoothanim = !smoothanim;
-			settings_changed = true;
 		} break;
 		case SL_TETROMINO_COLOR:
 		{
 			incMod((int*)&tetrominocolor, TC_END, false);
-			settings_changed = true;
 		} break;
 		case SL_EASYSPIN:
 		{
 			easyspin = !easyspin;
-			settings_changed = true;
 		} break;
 		case SL_LOCKDELAY:
 		{
 			lockdelay = !lockdelay;
-			settings_changed = true;
 		} break;
 		case SL_DROPTYPE:
 		{
 			sonicdrop = !sonicdrop;
-			settings_changed = true;
 		} break;
 		case SL_RANDOMIZER:
 		{
 			incMod((int*)&randomalgo, RA_END, false);
 			randomizer_reset();
-			settings_changed = true;
 		} break;
 		default:
 			break;

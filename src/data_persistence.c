@@ -21,7 +21,8 @@ char dirpath[256];
 static char config_path[256];
 static int records[RT_END] = { 0 };
 
-bool settings_changed = false;
+/* settings_changed removed — explicit saves are used instead */
+static char loaded_skin[256] = "";
 
 static void createGameDir(void)
 {
@@ -47,7 +48,6 @@ int getRecord(enum RecordType rt)
 void setRecord(enum RecordType rt, int record)
 {
 	records[rt] = record;
-	settings_changed = true;
 }
 
 /* ───────── internal: full config load / save ───────── */
@@ -76,6 +76,7 @@ static void saveConfig(void)
 	cJSON_AddBoolToObject(settings, "speechon", speechon);
 	cJSON_AddNumberToObject(settings, "musicvol", initmusvol);
 	cJSON_AddNumberToObject(settings, "tetrominocolor", (int)tetrominocolor);
+	cJSON_AddStringToObject(settings, "skin", menu_skinentries[menu_skin].name);
 	cJSON_AddStringToObject(settings, "rng", getRandomizerString());
 	cJSON_AddItemToObject(root, "settings", settings);
 
@@ -168,6 +169,10 @@ static void loadConfig(void)
 		item = cJSON_GetObjectItem(settings, "tetrominocolor");
 		if (cJSON_IsNumber(item)) tetrominocolor = (enum TetrominoColor)item->valueint;
 
+		item = cJSON_GetObjectItem(settings, "skin");
+		if (cJSON_IsString(item))
+			strncpy(loaded_skin, item->valuestring, sizeof loaded_skin - 1);
+
 		item = cJSON_GetObjectItem(settings, "rng");
 		if (cJSON_IsString(item))
 		{
@@ -233,7 +238,6 @@ static void loadConfig(void)
 	}
 
 	cJSON_Delete(root);
-	settings_changed = false;
 }
 
 /* ───────── public API ───────── */
@@ -246,7 +250,6 @@ void loadSettings(void)
 void saveSettings(void)
 {
 	saveConfig();
-	settings_changed = false;
 }
 
 void loadRecords(void)
@@ -258,4 +261,9 @@ void loadRecords(void)
 void saveRecords(void)
 {
 	saveConfig();
+}
+
+const char *getLoadedSkinName(void)
+{
+	return loaded_skin;
 }

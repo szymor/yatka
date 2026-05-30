@@ -22,5 +22,6 @@ void saveRecords(void);
 
 void loadSettings(void);
 void saveSettings(void);
+const char *getLoadedSkinName(void);
 
 #endif
