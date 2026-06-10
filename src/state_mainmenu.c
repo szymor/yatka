@@ -290,7 +290,7 @@ static void draw_top_menu(void)
 
 static void draw_game_setup(void)
 {
-	int const Y0 = 36;
+	int const Y0 = 46;
 
 	draw_text(LX, SUB_Y, "GAME SETUP", 0, 0);
 
@@ -338,7 +338,7 @@ static void draw_game_setup(void)
 			snprintf(buf, sizeof buf, "< %s >", val);
 			draw_text_col(LX, row, gs_names[i], 0, 0, 255, 255, 0);
 			draw_text_col(LV_X, row + VL_OFF, buf, 2, 0, 255, 255, 0);
-			draw_text(RX, 36, gs_descs[i], 0, 0);
+			draw_text(RX, 46, gs_descs[i], 0, 0);
 		}
 		else
 		{
@@ -347,13 +347,13 @@ static void draw_game_setup(void)
 		}
 	}
 
-	draw_text(RX, 100, "Press ENTER to start.", 0, 0);
-	draw_text(RX, 109, "Press ESC to go back.", 0, 0);
+	draw_text(RX, 110, "Press ENTER to start.", 0, 0);
+	draw_text(RX, 119, "Press ESC to go back.", 0, 0);
 }
 
 static void draw_settings(void)
 {
-	int const Y0 = 36;
+	int const Y0 = 46;
 
 	static const char *names[SET_END] = { "Skin", "Key Config" };
 
@@ -384,19 +384,19 @@ static void draw_settings(void)
 			switch (i)
 			{
 				case SET_SKIN:
-					draw_text(RX, 36, "Visual theme, affects some", 0, 0);
-					draw_text(RX, 45, "game rules and appearance.", 0, 0);
+					draw_text(RX, 46, "Visual theme, affects some", 0, 0);
+					draw_text(RX, 55, "game rules and appearance.", 0, 0);
 					break;
 				case SET_KEYCONFIG:
-					draw_text(RX, 36, "Configure keyboard bindings", 0, 0);
-					draw_text(RX, 45, "for all game actions.", 0, 0);
-					draw_text(RX, 58, "Press ENTER to configure.", 0, 0);
+					draw_text(RX, 46, "Configure keyboard bindings", 0, 0);
+					draw_text(RX, 55, "for all game actions.", 0, 0);
+					draw_text(RX, 68, "Press ENTER to configure.", 0, 0);
 					break;
 			}
 		}
 	}
 
-	draw_text(RX, 76, "Press ESC to go back.", 0, 0);
+	draw_text(RX, 86, "Press ESC to go back.", 0, 0);
 }
 
 static void draw_keyconfig(void)
@@ -409,7 +409,7 @@ static void draw_keyconfig(void)
 #define KC_LX      24    /* symmetric 24 px margins                   */
 #define KCENTRY_H  10
 #define KC_VX      296   /* 320 - 24 = 296                            */
-	int const Y0 = 38;
+	int const Y0 = 48;
 
 	draw_text(KC_LX, SUB_Y, "KEY CONFIGURATION", 0, 0);
 
@@ -429,10 +429,10 @@ static void draw_keyconfig(void)
 	}
 
 	/* description centred between the last entry and the screen bottom */
-	draw_text(SCREEN_WIDTH / 2, 165, "Navigate with UP/DOWN.", 1, 0);
-	draw_text(SCREEN_WIDTH / 2, 174, "Press ENTER to reassign", 1, 0);
-	draw_text(SCREEN_WIDTH / 2, 183, "the selected key.", 1, 0);
-	draw_text(SCREEN_WIDTH / 2, 196, "Press ESC to go back.", 1, 0);
+	draw_text(SCREEN_WIDTH / 2, 175, "Navigate with UP/DOWN.", 1, 0);
+	draw_text(SCREEN_WIDTH / 2, 184, "Press ENTER to reassign", 1, 0);
+	draw_text(SCREEN_WIDTH / 2, 193, "the selected key.", 1, 0);
+	draw_text(SCREEN_WIDTH / 2, 206, "Press ESC to go back.", 1, 0);
 #undef KC_LX
 #undef KCENTRY_H
 #undef KC_VX
