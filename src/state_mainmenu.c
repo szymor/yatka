@@ -39,6 +39,7 @@ enum TopEntry
 
 enum GameSetupEntry
 {
+	GSE_GAMEMODE,
 	GSE_LEVEL,
 	GSE_INITIAL_DEBRIS,
 	GSE_DEBRIS_CHANCE,
@@ -294,9 +295,10 @@ static void draw_game_setup(void)
 	draw_text(LX, SUB_Y, "GAME SETUP", 0, 0);
 
 	static const char *gs_names[GSE_END] = {
-		"Level", "Initial Debris", "Debris Chance", "Auto Debris"
+		"Game Mode", "Level", "Initial Debris", "Debris Chance", "Auto Debris"
 	};
 	static const char *gs_descs[GSE_END] = {
+		"Marathon / Sprint / Ultra.",
 		"Starting speed level.",
 		"Garbage rows at start.",
 		"Density of garbage lines.",
@@ -310,6 +312,12 @@ static void draw_game_setup(void)
 
 		switch (i)
 		{
+			case GSE_GAMEMODE:
+			{
+				static const char *mode_names[] = { "Marathon", "Sprint", "Ultra" };
+				strcpy(val, mode_names[menu_gamemode]);
+			}
+				break;
 			case GSE_LEVEL:
 				snprintf(val, sizeof val, "%d", menu_level);
 				break;
@@ -514,6 +522,9 @@ static void left(void)
 		case ML_GAME_SETUP:
 			switch (cur_game_setup)
 			{
+				case GSE_GAMEMODE:
+					decMod(&menu_gamemode, GM_END, false);
+					break;
 				case GSE_LEVEL:
 					if (menu_level > 0) --menu_level;
 					break;
@@ -549,6 +560,9 @@ static void right(void)
 		case ML_GAME_SETUP:
 			switch (cur_game_setup)
 			{
+				case GSE_GAMEMODE:
+					incMod(&menu_gamemode, GM_END, false);
+					break;
 				case GSE_LEVEL:
 					if (menu_level < 9) ++menu_level;
 					break;
@@ -737,7 +751,7 @@ void mainmenu_init(void)
 
 	cur_level = ML_TOP;
 	cur_top = TE_GAMESTART;
-	cur_game_setup = GSE_LEVEL;
+	cur_game_setup = GSE_GAMEMODE;
 	cur_settings = SET_SKIN;
 	cur_keycfg = 0;
 
