@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <string.h>
 #include <stdbool.h>
 
 #include <SDL/SDL.h>
@@ -93,6 +94,138 @@ int menu_auto_debris = 0;
 
 static char custom_skin_dir[256] = "";
 static char menu_error[256] = "";
+
+/* ─── skin readme cache with word‑wrap + auto‑scroll ─── */
+#define README_MAX      2048
+#define README_LINES_MAX 120
+#define README_VISIBLE   13
+#define README_SCROLL_DELAY_MS  6000
+#define README_SCROLL_INTERVAL  800
+
+static char readme_data[README_MAX] = "";
+static char readme_lines_buf[README_MAX];
+static const char *readme_lines[README_LINES_MAX];
+static int readme_line_count = 0;
+static int readme_scroll_px = 0;
+static Uint32 readme_scroll_tick = 0;
+static int readme_loaded_skin = -1;
+
+static void rebuild_readme_lines(void)
+{
+	int max_w = SCREEN_WIDTH - 132 - 4;
+	char word[64];
+	int wl = 0;
+	int bp = 0; /* next free byte in readme_lines_buf */
+	readme_line_count = 0;
+	readme_scroll_px = 0;
+	readme_scroll_tick = SDL_GetTicks();
+
+	int line_start = 0; /* index where current line starts in buffer */
+	int lb = 0;         /* byte length of current line (excluding \0) */
+
+	for (int ri = 0; ; ++ri)
+	{
+		char c = readme_data[ri];
+		if (c == ' ' || c == '\n' || c == '\0')
+		{
+			word[wl] = '\0';
+			if (wl > 0)
+			{
+				int word_len = strlen(word);
+				/* build test string: current line + " " + word */
+				char test[320];
+				if (lb > 0)
+					snprintf(test, sizeof test, "%.*s %s", lb, readme_lines_buf + line_start, word);
+				else
+					snprintf(test, sizeof test, "%s", word);
+
+				int tw;
+				TTF_SizeUTF8(arcade_font, test, &tw, NULL);
+
+				if (tw > max_w && lb > 0)
+				{
+					/* flush current line (already null-terminated at line_start+lb) */
+					if (readme_line_count < README_LINES_MAX)
+						readme_lines[readme_line_count++] = readme_lines_buf + line_start;
+					/* start fresh line with this word */
+					memcpy(readme_lines_buf + bp, word, word_len + 1);
+					line_start = bp;
+					lb = word_len;
+					bp += word_len + 1;
+				}
+				else
+				{
+					if (lb > 0)
+					{
+						/* append space + word to current line */
+						readme_lines_buf[line_start + lb] = ' ';
+						++lb;
+						memcpy(readme_lines_buf + line_start + lb, word, word_len + 1);
+						lb += word_len;
+						bp = line_start + lb + 1;
+					}
+					else
+					{
+						/* first word on the line */
+						memcpy(readme_lines_buf + bp, word, word_len + 1);
+						line_start = bp;
+						lb = word_len;
+						bp += word_len + 1;
+					}
+				}
+			}
+			wl = 0;
+
+			if (c == '\n')
+			{
+				if (lb > 0)
+				{
+					if (readme_line_count < README_LINES_MAX)
+						readme_lines[readme_line_count++] = readme_lines_buf + line_start;
+				}
+				else
+				{
+					/* preserve empty line */
+					if (readme_line_count < README_LINES_MAX)
+						readme_lines[readme_line_count++] = readme_lines_buf + bp;
+					readme_lines_buf[bp++] = '\0';
+				}
+				lb = 0;
+			}
+			if (c == '\0') break;
+		}
+		else
+		{
+			if (wl < (int)sizeof word - 1)
+				word[wl++] = c;
+		}
+	}
+
+	/* flush last line */
+	if (lb > 0 && readme_line_count < README_LINES_MAX)
+		readme_lines[readme_line_count++] = readme_lines_buf + line_start;
+}
+
+static void load_skin_readme(const char *skin_path)
+{
+	char dir[512];
+	strncpy(dir, skin_path, sizeof dir - 1);
+	dir[sizeof dir - 1] = '\0';
+	char *p = dir + strlen(dir) - 1;
+	while (p > dir && *p != '/') --p;
+	if (*p == '/') *(p + 1) = '\0';
+	else { readme_data[0] = '\0'; rebuild_readme_lines(); return; }
+
+	char path[640];
+	snprintf(path, sizeof path, "%sreadme.txt", dir);
+	FILE *f = fopen(path, "r");
+	if (!f) { readme_data[0] = '\0'; rebuild_readme_lines(); return; }
+
+	size_t len = fread(readme_data, 1, README_MAX - 1, f);
+	fclose(f);
+	readme_data[len] = '\0';
+	rebuild_readme_lines();
+}
 
 /* ─── navigation state ─── */
 static enum MenuLevel cur_level = ML_TOP;
@@ -359,6 +492,11 @@ static void draw_settings(void)
 
 	draw_text(LX, SUB_Y, "SETTINGS", 0, 0);
 
+	/* reset readme scroll when user navigates back to skin entry */
+	static int prev_setting = -1;
+	int just_entered_skin = (prev_setting != SET_SKIN && cur_settings == SET_SKIN);
+	prev_setting = cur_settings;
+
 	for (int i = 0; i < SET_END; ++i)
 	{
 		int row = Y0 + i * ENTRY_H;
@@ -416,18 +554,71 @@ static void draw_settings(void)
 			}
 			/* description in right panel */
 			int dy = 46;
-			for (int k = 0; descs[i][k]; )
+			if (SET_SKIN == i)
 			{
-				char line[32];
-				int n = 0;
-				while (descs[i][k] && n < 31)
+				/* word‑wrapped skin readme with auto‑scroll */
+				if (readme_loaded_skin != menu_skin)
 				{
-					if (descs[i][k] == '\n') { ++k; break; }
-					line[n++] = descs[i][k++];
+					load_skin_readme(menu_skinentries[menu_skin].path);
+					readme_loaded_skin = menu_skin;
 				}
-				line[n] = '\0';
-				draw_text(RX, dy, line, 0, 0);
-				dy += 9;
+				if (readme_line_count > 0)
+				{
+					if (just_entered_skin)
+					{
+						readme_scroll_px = 0;
+						readme_scroll_tick = SDL_GetTicks();
+					}
+
+					/* smooth pixel scroll, rests at end */
+					int max_px = readme_line_count * 9 - README_VISIBLE * 9;
+					if (max_px < 0) max_px = 0;
+					if (max_px > 0)
+					{
+						Uint32 now = SDL_GetTicks();
+						Uint32 elapsed = now - readme_scroll_tick;
+						int target_px = 0;
+						if (elapsed > README_SCROLL_DELAY_MS)
+						{
+							target_px = (int)((elapsed - README_SCROLL_DELAY_MS)
+							          * 9 / README_SCROLL_INTERVAL);
+						}
+						if (target_px > max_px) target_px = max_px;
+						readme_scroll_px = target_px;
+					}
+					/* draw the visible lines with pixel offset */
+					int first = readme_scroll_px / 9;
+					int y_off = readme_scroll_px % 9;
+					int dy2 = dy - y_off;
+					for (int li = first; li < readme_line_count; ++li)
+					{
+						if (dy2 > 161) break;
+						if (dy2 + 9 >= dy)
+							draw_text(RX, dy2, readme_lines[li], 0, 0);
+						dy2 += 9;
+					}
+				}
+				else
+				{
+					draw_text(RX, dy, "Visual theme, affects some", 0, 0);
+					draw_text(RX, dy + 9, "game rules and appearance.", 0, 0);
+				}
+			}
+			else
+			{
+				for (int k = 0; descs[i][k]; )
+				{
+					char line[32];
+					int n = 0;
+					while (descs[i][k] && n < 31)
+					{
+						if (descs[i][k] == '\n') { ++k; break; }
+						line[n++] = descs[i][k++];
+					}
+					line[n] = '\0';
+					draw_text(RX, dy, line, 0, 0);
+					dy += 9;
+				}
 			}
 		}
 		else
@@ -447,7 +638,7 @@ static void draw_settings(void)
 		}
 	}
 
-	draw_text(RX, 170, "Press ESC to go back.", 0, 0);
+	draw_text(RX, 179, "Press ESC to go back.", 0, 0);
 }
 
 static void draw_keyconfig(void)
@@ -858,6 +1049,8 @@ void mainmenu_init(void)
 	cur_settings = SET_SKIN;
 	cur_keycfg = 0;
 
+	readme_loaded_skin = -1;
+	readme_scroll_px = 0;
 	load_menu_bg(menu_skinentries[menu_skin].path);
 }
 
@@ -865,8 +1058,11 @@ void mainmenu_processInputEvents(void)
 {
 	SDL_Event event;
 
-	if (!SDL_WaitEvent(&event))
+	if (!SDL_PollEvent(&event))
+	{
+		SDL_Delay(50);
 		return;
+	}
 
 	switch (event.type)
 	{
