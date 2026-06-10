@@ -10,7 +10,6 @@
 #include "main.h"
 #include "video.h"
 #include "sound.h"
-#include "randomizer.h"
 #include "skin.h"
 
 enum SettingsLine
@@ -18,13 +17,6 @@ enum SettingsLine
 	SL_TRACK_SELECT,
 	SL_MUSIC_VOL,
 	SL_MUSIC_REPEAT,
-	SL_SPEECH,
-	SL_SMOOTHANIM,
-	SL_TETROMINO_COLOR,
-	SL_EASYSPIN,
-	SL_LOCKDELAY,
-	SL_DROPTYPE,
-	SL_RANDOMIZER,
 	SL_END
 };
 
@@ -34,13 +26,6 @@ static const char settings_text[][32] = {
 	"  track selection           %s",
 	"  music volume              %d",
 	"  repeat mode               %s",
-	"  speech at line clear      %s",
-	"  smooth animation          %s",
-	"  tetromino color           %s",
-	"  easy spin                 %s",
-	"  fixed lock delay          %s",
-	"  drop type                 %s",
-	"  tetromino randomizer      %s",
 };
 
 static char *generateSettingLine(char *buff, int pos);
@@ -121,35 +106,6 @@ static void left(void)
 		{
 			repeattrack = (repeattrack + 2) % MR_END;
 		} break;
-		case SL_SPEECH:
-		{
-			speechon = !speechon;
-		} break;
-		case SL_SMOOTHANIM:
-		{
-			smoothanim = !smoothanim;
-		} break;
-		case SL_TETROMINO_COLOR:
-		{
-			decMod((int*)&tetrominocolor, TC_END, false);
-		} break;
-		case SL_EASYSPIN:
-		{
-			easyspin = !easyspin;
-		} break;
-		case SL_LOCKDELAY:
-		{
-			lockdelay = !lockdelay;
-		} break;
-		case SL_DROPTYPE:
-		{
-			sonicdrop = !sonicdrop;
-		} break;
-		case SL_RANDOMIZER:
-		{
-			decMod((int*)&randomalgo, RA_END, false);
-			randomizer_reset();
-		} break;
 		default:
 			break;
 	}
@@ -173,35 +129,6 @@ static void right(void)
 		case SL_MUSIC_REPEAT:
 		{
 			repeattrack = (repeattrack + 1) % MR_END;
-		} break;
-		case SL_SPEECH:
-		{
-			speechon = !speechon;
-		} break;
-		case SL_SMOOTHANIM:
-		{
-			smoothanim = !smoothanim;
-		} break;
-		case SL_TETROMINO_COLOR:
-		{
-			incMod((int*)&tetrominocolor, TC_END, false);
-		} break;
-		case SL_EASYSPIN:
-		{
-			easyspin = !easyspin;
-		} break;
-		case SL_LOCKDELAY:
-		{
-			lockdelay = !lockdelay;
-		} break;
-		case SL_DROPTYPE:
-		{
-			sonicdrop = !sonicdrop;
-		} break;
-		case SL_RANDOMIZER:
-		{
-			incMod((int*)&randomalgo, RA_END, false);
-			randomizer_reset();
 		} break;
 		default:
 			break;
@@ -339,39 +266,6 @@ static char *generateSettingLine(char *buff, int pos)
 			static const char *rep_names[] = { "all", "track once", "shuffled" };
 			sprintf(buff, settings_text[pos], rep_names[repeattrack]);
 		}
-		} break;
-		case SL_SPEECH:
-		{
-			sprintf(buff, settings_text[pos], speechon ? "on" : "off");
-		} break;
-		case SL_SMOOTHANIM:
-		{
-			sprintf(buff, settings_text[pos], smoothanim ? "on" : "off");
-		} break;
-		case SL_TETROMINO_COLOR:
-		{
-			static char *tc_strings[] = {
-				"random",
-				"standard",
-				"gray"
-			};
-			sprintf(buff, settings_text[pos], tc_strings[tetrominocolor]);
-		} break;
-		case SL_EASYSPIN:
-		{
-			sprintf(buff, settings_text[pos], easyspin ? "on" : "off");
-		} break;
-		case SL_LOCKDELAY:
-		{
-			sprintf(buff, settings_text[pos], lockdelay ? "on" : "off");
-		} break;
-		case SL_DROPTYPE:
-		{
-			sprintf(buff, settings_text[pos], sonicdrop ? "sonic" : "hard");
-		} break;
-		case SL_RANDOMIZER:
-		{
-			sprintf(buff, settings_text[pos], getRandomizerString());
 		} break;
 		default:
 			break;

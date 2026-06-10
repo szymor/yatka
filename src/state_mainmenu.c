@@ -15,6 +15,7 @@
 #include "video.h"
 #include "sound.h"
 #include "data_persistence.h"
+#include "randomizer.h"
 
 /* MAX_SKIN_NUM, MAX_SKIN_NAME_LEN, MAX_SKIN_PATH_LEN and
  * struct SkinEntry are defined in state_mainmenu.h */
@@ -50,6 +51,13 @@ enum GameSetupEntry
 enum SettingsEntry
 {
 	SET_SKIN,
+	SET_SPEECH,
+	SET_SMOOTHANIM,
+	SET_TETROMINO_COLOR,
+	SET_EASYSPIN,
+	SET_LOCKDELAY,
+	SET_DROPTYPE,
+	SET_RANDOMIZER,
 	SET_KEYCONFIG,
 	SET_END
 };
@@ -240,7 +248,7 @@ static const char *auto_debris_name(int val)
 
 static void draw_top_menu(void)
 {
-	int const Y0 = 36;
+	int const Y0 = 46;
 
 	static const char *names[TE_END] = {
 		"GAME START",
@@ -270,7 +278,7 @@ static void draw_top_menu(void)
 		/* description in right panel */
 		if (i == cur_top)
 		{
-			int dy = 36;
+			int dy = 46;
 			for (int k = 0; detail[i][k]; )
 			{
 				char line[32];
@@ -355,48 +363,116 @@ static void draw_settings(void)
 {
 	int const Y0 = 46;
 
-	static const char *names[SET_END] = { "Skin", "Key Config" };
+	static const char *names[SET_END] = {
+		"Skin",
+		"Speech", "Smooth Animation",
+		"Tetromino Color", "Easy Spin", "Fixed Lock Delay",
+		"Drop Type", "Randomizer",
+		"Key Config"
+	};
+	static const char *descs[SET_END] = {
+		"Visual theme, affects some\ngame rules and appearance.",
+		"Announce cleared lines\nwith speech synthesis.",
+		"Smooth piece movement.",
+		"Color scheme for pieces.",
+		"Easier T-spin detection.",
+		"Fixed delay before lock.",
+		"Sonic drop or hard drop.",
+		"Algorithm that determines\nthe next tetromino.",
+		"Configure keyboard bindings\nfor all game actions.\nPress ENTER to configure."
+	};
 
 	draw_text(LX, SUB_Y, "SETTINGS", 0, 0);
 
 	for (int i = 0; i < SET_END; ++i)
 	{
 		int row = Y0 + i * ENTRY_H;
+		char val[16];
+
+		switch (i)
+		{
+			case SET_SPEECH:
+				strcpy(val, speechon ? "on" : "off");
+				break;
+			case SET_SMOOTHANIM:
+				strcpy(val, smoothanim ? "on" : "off");
+				break;
+			case SET_TETROMINO_COLOR:
+			{
+				static const char *tc_names[] = { "random", "standard", "gray" };
+				strcpy(val, tc_names[tetrominocolor]);
+			}
+				break;
+			case SET_EASYSPIN:
+				strcpy(val, easyspin ? "on" : "off");
+				break;
+			case SET_LOCKDELAY:
+				strcpy(val, lockdelay ? "on" : "off");
+				break;
+			case SET_DROPTYPE:
+				strcpy(val, sonicdrop ? "sonic" : "hard");
+				break;
+			case SET_RANDOMIZER:
+				strcpy(val, getRandomizerString());
+				break;
+		}
+
 		if (i == cur_settings)
 		{
 			draw_text_col(LX, row, names[i], 0, 0, 255, 255, 0);
-			if (SET_SKIN == i)
+			switch (i)
 			{
-				char buf[32];
-				snprintf(buf, sizeof buf, "< %s >", menu_skinentries[menu_skin].name);
-				draw_text_col(LV_X, row + VL_OFF, buf, 2, 0, 255, 255, 0);
+				case SET_SKIN:
+				{
+					char buf[32];
+					snprintf(buf, sizeof buf, "< %s >", menu_skinentries[menu_skin].name);
+					draw_text_col(LV_X, row + VL_OFF, buf, 2, 0, 255, 255, 0);
+				}
+					break;
+				case SET_KEYCONFIG:
+					break;
+				default:
+				{
+					char buf[32];
+					snprintf(buf, sizeof buf, "< %s >", val);
+					draw_text_col(LV_X, row + VL_OFF, buf, 2, 0, 255, 255, 0);
+				}
+					break;
+			}
+			/* description in right panel */
+			int dy = 46;
+			for (int k = 0; descs[i][k]; )
+			{
+				char line[32];
+				int n = 0;
+				while (descs[i][k] && n < 31)
+				{
+					if (descs[i][k] == '\n') { ++k; break; }
+					line[n++] = descs[i][k++];
+				}
+				line[n] = '\0';
+				draw_text(RX, dy, line, 0, 0);
+				dy += 9;
 			}
 		}
 		else
 		{
 			draw_text(LX, row, names[i], 0, 0);
-			if (SET_SKIN == i)
-				draw_text(LV_X, row + VL_OFF, menu_skinentries[menu_skin].name, 2, 0);
-		}
-
-		if (i == cur_settings)
-		{
 			switch (i)
 			{
 				case SET_SKIN:
-					draw_text(RX, 46, "Visual theme, affects some", 0, 0);
-					draw_text(RX, 55, "game rules and appearance.", 0, 0);
+					draw_text(LV_X, row + VL_OFF, menu_skinentries[menu_skin].name, 2, 0);
 					break;
 				case SET_KEYCONFIG:
-					draw_text(RX, 46, "Configure keyboard bindings", 0, 0);
-					draw_text(RX, 55, "for all game actions.", 0, 0);
-					draw_text(RX, 68, "Press ENTER to configure.", 0, 0);
+					break;
+				default:
+					draw_text(LV_X, row + VL_OFF, val, 2, 0);
 					break;
 			}
 		}
 	}
 
-	draw_text(RX, 86, "Press ESC to go back.", 0, 0);
+	draw_text(RX, 170, "Press ESC to go back.", 0, 0);
 }
 
 static void draw_keyconfig(void)
@@ -540,11 +616,37 @@ static void left(void)
 			}
 			break;
 		case ML_SETTINGS:
-			if (SET_SKIN == cur_settings)
+			switch (cur_settings)
 			{
-				decMod(&menu_skin, menu_skinnum, false);
-				menu_error[0] = '\0';
-				load_menu_bg(menu_skinentries[menu_skin].path);
+				case SET_SKIN:
+					decMod(&menu_skin, menu_skinnum, false);
+					menu_error[0] = '\0';
+					load_menu_bg(menu_skinentries[menu_skin].path);
+					break;
+				case SET_SPEECH:
+					speechon = !speechon;
+					break;
+				case SET_SMOOTHANIM:
+					smoothanim = !smoothanim;
+					break;
+				case SET_TETROMINO_COLOR:
+					decMod((int*)&tetrominocolor, TC_END, false);
+					break;
+				case SET_EASYSPIN:
+					easyspin = !easyspin;
+					break;
+				case SET_LOCKDELAY:
+					lockdelay = !lockdelay;
+					break;
+				case SET_DROPTYPE:
+					sonicdrop = !sonicdrop;
+					break;
+				case SET_RANDOMIZER:
+					decMod((int*)&randomalgo, RA_END, false);
+					randomizer_reset();
+					break;
+				default:
+					break;
 			}
 			break;
 		default:
@@ -578,11 +680,37 @@ static void right(void)
 			}
 			break;
 		case ML_SETTINGS:
-			if (SET_SKIN == cur_settings)
+			switch (cur_settings)
 			{
-				incMod(&menu_skin, menu_skinnum, false);
-				menu_error[0] = '\0';
-				load_menu_bg(menu_skinentries[menu_skin].path);
+				case SET_SKIN:
+					incMod(&menu_skin, menu_skinnum, false);
+					menu_error[0] = '\0';
+					load_menu_bg(menu_skinentries[menu_skin].path);
+					break;
+				case SET_SPEECH:
+					speechon = !speechon;
+					break;
+				case SET_SMOOTHANIM:
+					smoothanim = !smoothanim;
+					break;
+				case SET_TETROMINO_COLOR:
+					incMod((int*)&tetrominocolor, TC_END, false);
+					break;
+				case SET_EASYSPIN:
+					easyspin = !easyspin;
+					break;
+				case SET_LOCKDELAY:
+					lockdelay = !lockdelay;
+					break;
+				case SET_DROPTYPE:
+					sonicdrop = !sonicdrop;
+					break;
+				case SET_RANDOMIZER:
+					incMod((int*)&randomalgo, RA_END, false);
+					randomizer_reset();
+					break;
+				default:
+					break;
 			}
 			break;
 		default:
