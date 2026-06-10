@@ -35,6 +35,10 @@ void upscale2(uint32_t *to, uint32_t *from);
 void upscale3(uint32_t *to, uint32_t *from);
 void upscale4(uint32_t *to, uint32_t *from);
 void applyScanlines(uint32_t *pixels, int width, int height, int scale);
+void draw_text(int x, int y, const char *string, int alignx, int aligny);
+void draw_text_col(int x, int y, const char *string,
+                   int alignx, int aligny,
+                   Uint8 r, Uint8 g, Uint8 b);
 void frameCounter(void);
 int frameLimiter(void);
 

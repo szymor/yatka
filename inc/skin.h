@@ -133,6 +133,7 @@ void skin_init(struct Skin *skin);
 void skin_destroy(struct Skin *skin);
 bool skin_loadSkin(struct Skin *skin, const char *path);
 void skin_update_screen(struct Skin *skin, SDL_Surface *screen);
+void skin_draw_board(struct Skin *skin);
 
 /* ─── event callbacks (called from main.c) ─── */
 void skin_on_line_clear(struct Skin *skin, int lines,

@@ -12,6 +12,7 @@
 #include "sound.h"
 #include "skin.h"
 
+
 enum SettingsLine
 {
 	SL_TRACK_SELECT,
@@ -20,57 +21,85 @@ enum SettingsLine
 	SL_END
 };
 
-
 static int settings_pos = 0;
-static const char settings_text[][32] = {
-	"  track selection           %s",
-	"  music volume              %d",
-	"  repeat mode               %s",
-};
+static SDL_Surface *pause_bg = NULL;
 
-static char *generateSettingLine(char *buff, int pos);
+static const char *entry_names[SL_END] = {
+	"Track Selection",
+	"Music Volume",
+	"Repeat Mode"
+};
 
 static void up(void);
 static void down(void);
 static void left(void);
 static void right(void);
-static void quit(void);
 static void action(void);
 
 void settings_updateScreen(void)
 {
-	SDL_Surface *mask = NULL;
+	/* cache a frozen background on first frame so DEV mouse
+	 * handlers (which modify last_game_screen) don't cause
+	 * overlay flicker */
+	if (!pause_bg)
+	{
+		SDL_PixelFormat *f = screen->format;
+		pause_bg = SDL_CreateRGBSurface(0, SCREEN_WIDTH, SCREEN_HEIGHT,
+			f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
+		SDL_BlitSurface(last_game_screen, NULL, pause_bg, NULL);
+	}
 
-	SDL_BlitSurface(last_game_screen, NULL, screen, NULL);
-	SDL_PixelFormat *f = screen->format;
-	mask = SDL_CreateRGBSurface(0, SCREEN_WIDTH, SCREEN_HEIGHT, f->BitsPerPixel, f->Rmask, f->Gmask, f->Bmask, 0);
-	SDL_FillRect(mask, NULL, SDL_MapRGB(mask->format, 0, 0, 0));
-	SDL_SetAlpha(mask, SDL_SRCALPHA, 128);
-	SDL_BlitSurface(mask, NULL, screen, NULL);
-	SDL_FreeSurface(mask);
+	SDL_BlitSurface(pause_bg, NULL, screen, NULL);
 
-	SDL_Color col = {.r = 255, .g = 255, .b = 255};
-	SDL_Surface *text = NULL;
-	SDL_Rect rect;
-	char buff[256];
-	int spacing = 2;
+	/* semi-transparent overlay */
+	SDL_PixelFormat *fmt = screen->format;
+	SDL_Surface *overlay = SDL_CreateRGBSurface(
+		0, SCREEN_WIDTH, SCREEN_HEIGHT, fmt->BitsPerPixel,
+		fmt->Rmask, fmt->Gmask, fmt->Bmask, 0);
+	SDL_FillRect(overlay, NULL, SDL_MapRGB(fmt, 0, 0, 0));
+	SDL_SetAlpha(overlay, SDL_SRCALPHA, 128);
+	SDL_BlitSurface(overlay, NULL, screen, NULL);
+	SDL_FreeSurface(overlay);
 
-	sprintf(buff, "SETTINGS");
-	text = TTF_RenderUTF8_Blended(arcade_font, buff, col);
-	rect.x = (screen->w - text->w) / 2;
-	rect.y = (screen->h) / 6;
-	SDL_BlitSurface(text, NULL, screen, &rect);
-	SDL_FreeSurface(text);
+	/* title */
+	draw_text(SCREEN_WIDTH / 2, 40, "PAUSED", 1, 0);
 
-	rect.y += text->h + spacing;
-	rect.x = 10;
+	/* entries */
+	static const char *rep_names[] = { "all", "track once", "shuffled" };
+
 	for (int i = 0; i < SL_END; ++i)
 	{
-		rect.y += text->h + spacing;
-		text = TTF_RenderUTF8_Blended(arcade_font, generateSettingLine(buff, i), col);
-		SDL_BlitSurface(text, NULL, screen, &rect);
-		SDL_FreeSurface(text);
+		int y = 80 + i * 15;
+		char val[64];
+
+		switch (i)
+		{
+			case SL_TRACK_SELECT:
+				strcpy(val, music_name);
+				break;
+			case SL_MUSIC_VOL:
+				snprintf(val, sizeof val, "%d", Mix_VolumeMusic(-1));
+				break;
+			case SL_MUSIC_REPEAT:
+				strcpy(val, rep_names[repeattrack]);
+				break;
+		}
+
+		if (i == settings_pos)
+		{
+			char buf[80];
+			snprintf(buf, sizeof buf, "> %s", entry_names[i]);
+			draw_text_col(10, y, buf, 0, 0, 255, 255, 0);
+			draw_text_col(310, y, val, 2, 0, 255, 255, 0);
+		}
+		else
+		{
+			draw_text(10, y, entry_names[i], 0, 0);
+			draw_text(310, y, val, 2, 0);
+		}
 	}
+
+	draw_text(SCREEN_WIDTH / 2, 200, "Press ESC to resume", 1, 0);
 
 	flipScreenScaled();
 }
@@ -135,13 +164,13 @@ static void right(void)
 	}
 }
 
-static void quit(void)
-{
-	setGameState(GS_MAINMENU);
-}
-
 static void action(void)
 {
+	if (pause_bg)
+	{
+		SDL_FreeSurface(pause_bg);
+		pause_bg = NULL;
+	}
 	setGameState(GS_INGAME);
 }
 
@@ -177,10 +206,6 @@ void settings_processInputEvents(void)
 				{
 					action();
 				}
-				if (event.jbutton.button == JOY_QUIT)
-				{
-					quit();
-				}
 				break;
 			case SDL_KEYDOWN:
 				switch (event.key.keysym.sym)
@@ -201,13 +226,13 @@ void settings_processInputEvents(void)
 					{
 						right();
 					} break;
+					case SDLK_ESCAPE:
+					{
+						action();
+					} break;
 					default:
 					{
-						if (event.key.keysym.sym == kquit)
-						{
-							quit();
-						}
-						else if (event.key.keysym.sym == kpause)
+						if (event.key.keysym.sym == kpause)
 						{
 							action();
 						}
@@ -216,63 +241,47 @@ void settings_processInputEvents(void)
 				break;
 #ifdef DEV
 			case SDL_MOUSEBUTTONDOWN:
+			{
+				bool changed = false;
 				if (SDL_BUTTON_LEFT == event.button.button)
 				{
 					setBlockAtScreenXY(event.button.x, event.button.y, BO_FULL);
+					changed = true;
 				}
 				else if (SDL_BUTTON_RIGHT == event.button.button)
 				{
 					setBlockAtScreenXY(event.button.x, event.button.y, BO_EMPTY);
+					changed = true;
 				}
-				skin_update_screen(&gameskin, last_game_screen);
+				if (changed && pause_bg)
+				{
+					/* re‑render board_cache and apply to frozen background */
+					skin_draw_board(&gameskin);
+					SDL_BlitSurface(last_game_screen, NULL, pause_bg, NULL);
+					SDL_BlitSurface(gameskin.board_cache, NULL, pause_bg, NULL);
+				}
+			}
 				break;
 			case SDL_MOUSEMOTION:
-				// workaround for an apparent SDL bug
 				event.button.state = SDL_GetMouseState(NULL, NULL);
 				if (SDL_BUTTON_LMASK & event.button.state)
 				{
 					setBlockAtScreenXY(event.button.x, event.button.y, BO_FULL);
+					skin_draw_board(&gameskin);
+					SDL_BlitSurface(last_game_screen, NULL, pause_bg, NULL);
+					SDL_BlitSurface(gameskin.board_cache, NULL, pause_bg, NULL);
 				}
 				else if (SDL_BUTTON_RMASK & event.button.state)
 				{
 					setBlockAtScreenXY(event.button.x, event.button.y, BO_EMPTY);
+					skin_draw_board(&gameskin);
+					SDL_BlitSurface(last_game_screen, NULL, pause_bg, NULL);
+					SDL_BlitSurface(gameskin.board_cache, NULL, pause_bg, NULL);
 				}
-				skin_update_screen(&gameskin, last_game_screen);
 				break;
 #endif
 			case SDL_QUIT:
 				exit(0);
 				break;
 		}
-}
-
-static char *generateSettingLine(char *buff, int pos)
-{
-	if (pos >= SL_END)
-		return NULL;
-	switch (pos)
-	{
-		case SL_TRACK_SELECT:
-		{
-			sprintf(buff, settings_text[pos], music_name);
-		} break;
-		case SL_MUSIC_VOL:
-		{
-			sprintf(buff, settings_text[pos], Mix_VolumeMusic(-1));
-		} break;
-		case SL_MUSIC_REPEAT:
-		{
-			{
-			static const char *rep_names[] = { "all", "track once", "shuffled" };
-			sprintf(buff, settings_text[pos], rep_names[repeattrack]);
-		}
-		} break;
-		default:
-			break;
-	}
-
-	if (pos == settings_pos)
-		buff[0] = '>';
-
-	return buff;
 }

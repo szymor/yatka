@@ -23,6 +23,27 @@ void saveLastGameScreen(void)
 	SDL_BlitSurface(screen, NULL, last_game_screen, NULL);
 }
 
+void draw_text(int x, int y, const char *string, int alignx, int aligny)
+{
+	draw_text_col(x, y, string, alignx, aligny, 255, 255, 255);
+}
+
+void draw_text_col(int x, int y, const char *string,
+                   int alignx, int aligny,
+                   Uint8 r, Uint8 g, Uint8 b)
+{
+	SDL_Color col = { .r = r, .g = g, .b = b };
+	SDL_Surface *ts = TTF_RenderUTF8_Blended(arcade_font, string, col);
+	if (!ts) return;
+	SDL_Rect rect = { .x = x, .y = y };
+	if (1 == alignx) rect.x -= ts->w / 2;
+	else if (2 == alignx) rect.x -= ts->w;
+	if (1 == aligny) rect.y -= ts->h / 2;
+	else if (2 == aligny) rect.y -= ts->h;
+	SDL_BlitSurface(ts, NULL, screen, &rect);
+	SDL_FreeSurface(ts);
+}
+
 void flipScreenScaled(void)
 {
 	if (SDL_MUSTLOCK(screen_scaled))

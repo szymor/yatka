@@ -1388,7 +1388,7 @@ static void skin_composite_board(struct Skin *skin)
 	board_dirty = false;
 }
 
-static void skin_draw_board(struct Skin *skin)
+void skin_draw_board(struct Skin *skin)
 {
 	if (board_dirty || !skin->board_cache)
 		skin_composite_board(skin);
