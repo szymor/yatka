@@ -370,6 +370,7 @@ int main(int argc, char *argv[])
 							else
 							{
 								next_lock_time = 0;
+								markDrop();
 							}
 						}
 						if (ct > next_side_move_time)
@@ -879,8 +880,11 @@ void checkForPrelocking(void)
 	else
 	{
 		if (next_lock_time)
-			markDrop();
-		next_lock_time = 0;
+		{
+			if (lock_reset_count < LOCK_RESET_MAX)
+				markDrop();
+			next_lock_time = 0;
+		}
 	}
 	--figures[0]->y;
 }
