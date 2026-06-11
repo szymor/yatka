@@ -10,7 +10,7 @@ yet another tetris klone in action
 ## description
 YATKA is one of many Tetris implementations available. Motivation behind this one was, on the one hand, to create a game that would conform to modern rules of the game, while, on the other, to make possible running it on resource-limited platforms (e.g. Bittboy or JZ4760-based handheld consoles). This is the reason I use SDL 1.2, which is considered outdated, ~~or develop my own simplistic solutions instead of relying on third-party dependencies~~.
 
-**Wind of change:** my own implementation of different gameplay mechanics is sub-optimal, therefore I decided to use external dependencies, such as **Lua** and **cJSON**.
+**Wind of change:** my own implementation of different gameplay mechanics was sub-optimal, therefore I decided to use external dependencies, such as **Lua** and **cJSON**.
 
 The game is in constant development. Feel free to report errors, as it helps to improve the game. There are no full-time testers working on it, so I appreciate any feedback.
 
@@ -47,7 +47,7 @@ The easiest way to start your journey with creating skins is as follows:
 1. Go to skins/ in the game directory. Note that if you use a packed version of the game (e.g. you use OPK), you cannot enter the game directory without extracting the archive.
 2. Copy one of existing skin directories and rename it, e.g. duplicate default/ in skins/ and rename it to 'myownskin'.
 3. Replace the background file (usually named 'bg.png') with your custom picture.
-4. Modify 'game.txt' in the skin directory according to your needs. You can customize many parameters of the skin in there, e.g. tetromino colors, ghost piece, text strings, display of statistics, etc. Look at the existing skins for available options.
+4. Modify 'skin.lua' in the skin directory according to your needs. You can customize many parameters of the skin in there, e.g. tetromino colors, ghost piece, text strings, display of statistics, etc. Look at the existing skins for available options.
 
 If you use a packed (OPK) version of the game, it may be easier for you to copy your custom skins to .yatka/skins/ in your home directory (instead of skins/ in the game directory). Create it if it does not exist.
 
