@@ -1903,11 +1903,18 @@ void skin_update_screen(struct Skin *skin, SDL_Surface *screen)
 	if (smoothanim)
 	{
 		Uint32 ct = SDL_GetTicks();
-		double fraction;
+		double fraction = 0.0;
 		if (next_lock_time)
-			fraction = (double)(ct - last_drop_time) / (double)(next_lock_time - last_drop_time);
+		{
+			Uint32 denom = next_lock_time - last_drop_time;
+			if (denom) fraction = (double)(ct - last_drop_time) / (double)denom;
+		}
 		else
-			fraction = (double)(ct - last_drop_time) / (double)(getNextDropTime() - last_drop_time);
+		{
+			Uint32 denom = getNextDropTime() - last_drop_time;
+			if (denom) fraction = (double)(ct - last_drop_time) / (double)denom;
+		}
+		if (fraction > 1.0) fraction = 1.0;
 		int new_delta = (int)(skin->bricksize * fraction) - skin->bricksize;
 		if (new_delta > draw_delta_drop)
 		{

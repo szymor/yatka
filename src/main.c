@@ -949,6 +949,11 @@ void dropHard(void)
 		if (last_y != figures[0]->y)
 		{
 			onDrop();
+			/* piece is already at the bottom after an instant drop
+			 * (sonic or hard) — don't let smooth animation offset it
+			 * by one brick for the next frame */
+			if (smoothanim && sonicdrop)
+				draw_delta_drop = 0;
 		}
 	}
 }
@@ -1870,6 +1875,7 @@ void resetGame(void)
 	pressed_keys_num = 0;
 	left_move = false;
 	right_move = false;
+	draw_delta_drop = 0;
 
 	updateKPT();
 	randomizer_reset();
