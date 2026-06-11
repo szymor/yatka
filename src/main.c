@@ -25,8 +25,7 @@
 
 #define SIDE_MOVE_DELAY				60
 #define FIXED_LOCK_DELAY			500
-#define EASY_SPIN_DELAY				500
-#define EASY_SPIN_MAX_COUNT			16
+#define LOCK_RESET_MAX				16
 
 #define START_DROP_RATE				2.00
 
@@ -73,7 +72,6 @@ int statistics[FIGID_GRAY];
 bool nosound = false;
 static bool fullscreen = false;
 enum MusicRepeat repeattrack = MR_ALL;
-bool easyspin = false;
 bool lockdelay = false;
 bool sonicdrop = false;
 bool smoothanim = false;
@@ -146,7 +144,7 @@ int kquit = KEY_QUIT;
 static double drop_rate = START_DROP_RATE;
 static const double drop_rate_ratio_per_level = 1.20;
 Uint32 last_drop_time;
-static int easyspin_counter = 0;
+static int lock_reset_count = 0;
 static bool softdrop_pressed = false;
 static Uint32 softdrop_press_time = 0;
 Uint32 next_lock_time = 0;
@@ -260,7 +258,7 @@ void dropHard(void);
 void lockFigure(void);
 void holdFigure(void);
 void updateLockTime(void);
-void updateEasySpin(void);
+
 int removeFullLines(void);
 enum TSpinType getTSpinType(void);
 enum GameOverType checkGameEnd(void);
@@ -629,7 +627,6 @@ void moveLeft(int delay)
 		{
 			tst_rotation_last = false;
 			skin_on_move(&gameskin, "left");
-			updateEasySpin();
 			updateLockTime();
 			if (lockdelay)
 			{
@@ -654,7 +651,6 @@ void moveRight(int delay)
 		{
 			tst_rotation_last = false;
 			skin_on_move(&gameskin, "right");
-			updateEasySpin();
 			updateLockTime();
 			if (lockdelay)
 			{
@@ -1041,7 +1037,7 @@ void lockFigure(void)
 	board_dirty = true;
 	++board_gen;
 	next_lock_time = 0;
-	easyspin_counter = 0;
+	lock_reset_count = 0;
 	++dropped_pieces_num;
 	updateKPT();
 	handleAutoDebris();
@@ -1308,7 +1304,6 @@ static void rotate_cw(void)
 
 	if (success && figures[0] && figures[0]->id != FIGID_O)
 	{
-		updateEasySpin();
 		updateLockTime();
 		if (lockdelay)
 		{
@@ -1351,7 +1346,6 @@ static void rotate_ccw(void)
 
 	if (success && figures[0] && figures[0]->id != FIGID_O)
 	{
-		updateEasySpin();
 		updateLockTime();
 		if (lockdelay)
 		{
@@ -1896,17 +1890,10 @@ void resetGame(void)
 
 void updateLockTime(void)
 {
-	if (lockdelay && easyspin && next_lock_time && (easyspin_counter < EASY_SPIN_MAX_COUNT))
+	if (lockdelay && next_lock_time && (lock_reset_count < LOCK_RESET_MAX))
 	{
 		next_lock_time = SDL_GetTicks() + FIXED_LOCK_DELAY;
-	}
-}
-
-void updateEasySpin(void)
-{
-	if (next_lock_time)
-	{
-		++easyspin_counter;
+		++lock_reset_count;
 	}
 }
 

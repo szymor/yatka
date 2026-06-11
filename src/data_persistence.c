@@ -66,7 +66,6 @@ static void saveConfig(void)
 	/* settings */
 	cJSON *settings = cJSON_CreateObject();
 	cJSON_AddBoolToObject(settings, "smoothanim", smoothanim);
-	cJSON_AddBoolToObject(settings, "easyspin", easyspin);
 	cJSON_AddBoolToObject(settings, "lockdelay", lockdelay);
 	cJSON_AddBoolToObject(settings, "sonicdrop", sonicdrop);
 	{
@@ -142,9 +141,6 @@ static void loadConfig(void)
 	{
 		item = cJSON_GetObjectItem(settings, "smoothanim");
 		if (cJSON_IsBool(item)) smoothanim = item->valueint;
-
-		item = cJSON_GetObjectItem(settings, "easyspin");
-		if (cJSON_IsBool(item)) easyspin = item->valueint;
 
 		item = cJSON_GetObjectItem(settings, "lockdelay");
 		if (cJSON_IsBool(item)) lockdelay = item->valueint;

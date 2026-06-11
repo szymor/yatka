@@ -165,7 +165,6 @@ enum MusicRepeat
 	MR_END
 };
 extern enum MusicRepeat repeattrack;
-extern bool easyspin;
 extern bool lockdelay;
 extern bool sonicdrop;
 extern bool smoothanim;

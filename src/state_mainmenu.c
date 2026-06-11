@@ -55,7 +55,6 @@ enum SettingsEntry
 	SET_SPEECH,
 	SET_SMOOTHANIM,
 	SET_TETROMINO_COLOR,
-	SET_EASYSPIN,
 	SET_LOCKDELAY,
 	SET_DROPTYPE,
 	SET_RANDOMIZER,
@@ -474,7 +473,7 @@ static void draw_settings(void)
 	static const char *names[SET_END] = {
 		"Skin",
 		"Speech", "Smooth Animation",
-		"Tetromino Color", "Easy Spin", "Fixed Lock Delay",
+		"Tetromino Color", "Lock Delay",
 		"Drop Type", "Randomizer",
 		"Key Config"
 	};
@@ -483,8 +482,7 @@ static void draw_settings(void)
 		"Announce cleared lines\nwith speech synthesis.",
 		"Smooth piece movement.",
 		"Color scheme for pieces.",
-		"Easier T-spin detection.",
-		"Fixed delay before lock.",
+		"Lock delay with reset\non move/rotate.",
 		"Sonic drop or hard drop.",
 		"Algorithm that determines\nthe next tetromino.",
 		"Configure keyboard bindings\nfor all game actions.\nPress ENTER to configure."
@@ -515,9 +513,6 @@ static void draw_settings(void)
 				static const char *tc_names[] = { "random", "standard", "gray" };
 				strcpy(val, tc_names[tetrominocolor]);
 			}
-				break;
-			case SET_EASYSPIN:
-				strcpy(val, easyspin ? "on" : "off");
 				break;
 			case SET_LOCKDELAY:
 				strcpy(val, lockdelay ? "on" : "off");
@@ -798,9 +793,6 @@ static void left(void)
 				case SET_TETROMINO_COLOR:
 					decMod((int*)&tetrominocolor, TC_END, false);
 					break;
-				case SET_EASYSPIN:
-					easyspin = !easyspin;
-					break;
 				case SET_LOCKDELAY:
 					lockdelay = !lockdelay;
 					break;
@@ -861,9 +853,6 @@ static void right(void)
 					break;
 				case SET_TETROMINO_COLOR:
 					incMod((int*)&tetrominocolor, TC_END, false);
-					break;
-				case SET_EASYSPIN:
-					easyspin = !easyspin;
 					break;
 				case SET_LOCKDELAY:
 					lockdelay = !lockdelay;
