@@ -976,6 +976,7 @@ static int y_add_particle(lua_State *L)
 	p->ax = (float)luaL_optnumber(L, 10, 0.0f);
 	p->ay = (float)luaL_optnumber(L, 11, 0.0f);
 	p->no_remove = lua_toboolean(L, 12);
+	p->anim_playback_count = (int)luaL_optinteger(L, 13, 0);
 	lua_pushinteger(L, skin->particle_count - 1);
 	return 1;
 }
@@ -1036,7 +1037,13 @@ static void skin_draw_particles(struct Skin *skin)
 		if (p->anim)
 		{
 			Uint32 elapsed = now - p->anim_start_tick;
-			int frame = (elapsed / p->anim->frame_duration) % p->anim->frame_count;
+			int frame = elapsed / p->anim->frame_duration;
+			if (p->anim_playback_count > 0 && frame >= p->anim_playback_count * p->anim->frame_count)
+			{
+				skin->particles[i] = skin->particles[--skin->particle_count];
+				continue;
+			}
+			frame %= p->anim->frame_count;
 			srcrect.x = frame * p->anim->frame_w;
 			srcrect.y = 0;
 			srcrect.w = p->anim->frame_w;
@@ -1737,14 +1744,15 @@ void skin_on_piece_hold(struct Skin *skin, enum FigureId id)
 	if (lua_pcall(L, 1, 0, 0) != LUA_OK) lua_pop(L, 1);
 }
 
-void skin_on_hard_drop(struct Skin *skin, int rows)
+void skin_on_hard_drop(struct Skin *skin, int rows, int start_y)
 {
 	if (!skin->L) return;
 	lua_State *L = skin->L;
 	lua_getglobal(L, "on_hard_drop");
 	if (!lua_isfunction(L, -1)) { lua_pop(L, 1); return; }
 	lua_pushinteger(L, rows);
-	if (lua_pcall(L, 1, 0, 0) != LUA_OK) lua_pop(L, 1);
+	lua_pushinteger(L, start_y);
+	if (lua_pcall(L, 2, 0, 0) != LUA_OK) lua_pop(L, 1);
 }
 
 void skin_on_combo(struct Skin *skin, int count)

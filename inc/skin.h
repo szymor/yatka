@@ -83,6 +83,7 @@ struct Particle
 	SDL_Surface *sprite;
 	SDL_Rect srcrect;
 	bool no_remove;
+	int anim_playback_count;  /* play N times then remove (0 = loop forever) */
 	struct Animation *anim;
 	Uint32 anim_start_tick;
 };
@@ -144,7 +145,7 @@ void skin_on_game_over(struct Skin *skin, const char *reason);
 void skin_on_level_up(struct Skin *skin, int level);
 void skin_on_piece_lock(struct Skin *skin, enum FigureId id);
 void skin_on_piece_hold(struct Skin *skin, enum FigureId id);
-void skin_on_hard_drop(struct Skin *skin, int rows);
+void skin_on_hard_drop(struct Skin *skin, int rows, int start_y);
 void skin_on_combo(struct Skin *skin, int count);
 void skin_on_move(struct Skin *skin, const char *direction);
 

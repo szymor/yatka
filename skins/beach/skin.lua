@@ -1,4 +1,5 @@
 local bg_img, font, label_x
+local board_x, board_y, brick_w, star_anim
 
 function on_skin_load(r)
 	bg_img = r.load_image("bg.png")
@@ -12,8 +13,14 @@ function on_skin_load(r)
 	r.set_tetromino_color(fig.J, 128, 0, 101, 189)
 	r.set_tetromino_color(fig.L, 128, 255, 121, 0)
 
-	r.set_brick_size(12)
-	r.set_board_xy(100, 0)
+	brick_w = 12
+	r.set_brick_size(brick_w)
+	board_x = 100
+	board_y = 0
+	r.set_board_xy(board_x, board_y)
+
+	-- load the animated star spritesheet
+	star_anim = r.load_animation("star.png", 16, 16, 17)
 
 	-- bricksprite
 	local bmp = r.load_image("bricks.png")
@@ -97,6 +104,20 @@ end
 
 function on_move(direction)
 	res.play_sfx(sfx.click)
+end
+
+function on_hard_drop(rows, start_y)
+	local fig = figure.active()
+	if not fig then return end
+	local num_stars = math.min(rows, 5)
+	for i = 1, num_stars do
+		local t = i / (num_stars + 1)
+		local py = board_y + (start_y + t * rows - 1) * brick_w + math.random() * brick_w
+		local px = board_x + fig.x * brick_w + math.random() * brick_w
+		local vx = (math.random() - 0.5) * 30
+		local vy = -math.random() * 40 - 20
+		res.add_particle(px, py, vx, vy, star_anim, 0, 0, 16, 16, 0, 30, true, 1)
+	end
 end
 
 function on_piece_lock(data)

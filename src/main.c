@@ -930,6 +930,10 @@ void dropHard(void)
 		--figures[0]->y;
 		score -= 2;
 
+		int hd_rows = figures[0]->y - last_y;
+		if (hd_rows > 0)
+			skin_on_hard_drop(&gameskin, hd_rows, last_y);
+
 		if (!sonicdrop)
 		{
 			lockFigure();
