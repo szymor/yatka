@@ -878,6 +878,8 @@ void checkForPrelocking(void)
 	}
 	else
 	{
+		if (next_lock_time)
+			markDrop();
 		next_lock_time = 0;
 	}
 	--figures[0]->y;
