@@ -38,7 +38,6 @@ The game is in constant development. Feel free to report errors, as it helps to 
 - **--scale3x** - 960x720 mode
 - **--scale4x** - 1280x960 mode
 - **--scanlines** - enable scanline screen post-filter
-- **--startlevel <num>** - the higher level, the higher speed
 
 For more, please refer to the source code.
 

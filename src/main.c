@@ -308,11 +308,6 @@ int main(int argc, char *argv[])
 			screenscale = 4;
 		else if (!strcmp(argv[i],"--scanlines"))
 			scanlines = 1;
-		else if (!strcmp(argv[i],"--startlevel"))
-		{
-			++i;
-			menu_level = atoi(argv[i]);
-		}
 		else
 			printf("Unrecognized parameter: %s\n", argv[i]);
 	}
