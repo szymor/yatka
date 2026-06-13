@@ -140,13 +140,14 @@ void skin_draw_board(struct Skin *skin);
 void skin_on_line_clear(struct Skin *skin, int lines,
                         const char *tspin_type,
                         int combo, bool b2b, int score_earned,
-                        bool pc);
+                        bool pc, bool levelup);
 void skin_on_game_over(struct Skin *skin, const char *reason);
-void skin_on_level_up(struct Skin *skin, int level);
 void skin_on_piece_lock(struct Skin *skin, enum FigureId id);
 void skin_on_piece_hold(struct Skin *skin, enum FigureId id);
 void skin_on_hard_drop(struct Skin *skin, int rows, int start_y);
 void skin_on_combo(struct Skin *skin, int count);
 void skin_on_move(struct Skin *skin, const char *direction);
+void skin_on_rotate(struct Skin *skin, const char *direction);
+void skin_on_pause(struct Skin *skin);
 
 #endif

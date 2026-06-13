@@ -737,13 +737,21 @@ static int y_sfx_gc(lua_State *L)
 	return 0;
 }
 
-/* sfx.load(path) → sfx handle */
+/* sfx.load(path) → sfx handle
+ * Tries <skin_path>/<path> first, then falls back to <path> (CWD). */
 static int y_sfx_load(lua_State *L)
 {
-	const char *path = luaL_checkstring(L, 1);
+	struct Skin *skin = (struct Skin *)lua_touserdata(L, lua_upvalueindex(1));
+	const char *name = luaL_checkstring(L, 1);
+	char path[512];
+	snprintf(path, sizeof path, "%s%s", skin->path, name);
 	Mix_Chunk *chunk = Mix_LoadWAV(path);
 	if (!chunk)
-		return luaL_error(L, "Mix_LoadWAV(%s) failed", path);
+	{
+		chunk = Mix_LoadWAV(name);
+		if (!chunk)
+			return luaL_error(L, "Mix_LoadWAV(%s) and Mix_LoadWAV(%s) both failed", path, name);
+	}
 	Mix_Chunk **ud = (Mix_Chunk **)lua_newuserdata(L, sizeof(Mix_Chunk *));
 	*ud = chunk;
 	luaL_setmetatable(L, MT_SFX);
@@ -1275,7 +1283,9 @@ static void skin_init_lua(struct Skin *skin, const char *skin_path)
 
 	/* ─── sfx table (load / play / loadDefaults) ─── */
 	lua_newtable(L);
-	lua_pushcfunction(L, y_sfx_load);  lua_setfield(L, -2, "load");
+	lua_pushlightuserdata(L, skin);
+	lua_pushcclosure(L, y_sfx_load, 1);
+	lua_setfield(L, -2, "load");
 	lua_pushcfunction(L, y_sfx_play);  lua_setfield(L, -2, "play");
 	lua_pushcfunction(L, y_sfx_loadDefaults); lua_setfield(L, -2, "loadDefaults");
 	lua_setglobal(L, "sfx");
@@ -1735,7 +1745,7 @@ static void push_brick_sprite_table(struct Skin *skin, lua_State *L, int color, 
 void skin_on_line_clear(struct Skin *skin, int lines,
                             const char *tspin_type,
                             int combo, bool b2b, int score_earned,
-                            bool pc)
+                            bool pc, bool levelup)
 {
 	if (!skin->L) return;
 	lua_State *L = skin->L;
@@ -1750,6 +1760,7 @@ void skin_on_line_clear(struct Skin *skin, int lines,
 	lua_pushinteger(L, score_earned); lua_setfield(L, -2, "score");
 	lua_pushboolean(L, speechon);   lua_setfield(L, -2, "speech_on");
 	lua_pushboolean(L, pc);         lua_setfield(L, -2, "pc");
+	lua_pushboolean(L, levelup);    lua_setfield(L, -2, "levelup");
 
 	/* pass particles table (cleared brick positions + sprite surfaces) */
 	lua_newtable(L);
@@ -1782,16 +1793,6 @@ void skin_on_game_over(struct Skin *skin, const char *reason)
 		fprintf(stderr, "Lua on_game_over error: %s\n", lua_tostring(L, -1));
 		lua_pop(L, 1);
 	}
-}
-
-void skin_on_level_up(struct Skin *skin, int level)
-{
-	if (!skin->L) return;
-	lua_State *L = skin->L;
-	lua_getglobal(L, "on_level_up");
-	if (!lua_isfunction(L, -1)) { lua_pop(L, 1); return; }
-	lua_pushinteger(L, level);
-	if (lua_pcall(L, 1, 0, 0) != LUA_OK) lua_pop(L, 1);
 }
 
 void skin_on_piece_lock(struct Skin *skin, enum FigureId id)
@@ -1843,6 +1844,25 @@ void skin_on_move(struct Skin *skin, const char *direction)
 	if (!lua_isfunction(L, -1)) { lua_pop(L, 1); return; }
 	lua_pushstring(L, direction);
 	if (lua_pcall(L, 1, 0, 0) != LUA_OK) lua_pop(L, 1);
+}
+
+void skin_on_rotate(struct Skin *skin, const char *direction)
+{
+	if (!skin->L) return;
+	lua_State *L = skin->L;
+	lua_getglobal(L, "on_rotate");
+	if (!lua_isfunction(L, -1)) { lua_pop(L, 1); return; }
+	lua_pushstring(L, direction);
+	if (lua_pcall(L, 1, 0, 0) != LUA_OK) lua_pop(L, 1);
+}
+
+void skin_on_pause(struct Skin *skin)
+{
+	if (!skin->L) return;
+	lua_State *L = skin->L;
+	lua_getglobal(L, "on_pause");
+	if (!lua_isfunction(L, -1)) { lua_pop(L, 1); return; }
+	if (lua_pcall(L, 0, 0, 0) != LUA_OK) lua_pop(L, 1);
 }
 
 /* ─────────────────────────────────────────────

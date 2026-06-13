@@ -737,6 +737,17 @@ void onLineClear(int removed, bool pc, int pc_bonus)
 	extra += pc_bonus;
 	score += extra;
 
+	// adjust level if needed (Marathon only) before notifying skin
+	int levelup = 0;
+	if (GM_MARATHON == menu_gamemode)
+	{
+		levelup = lines_level_up / 30;
+		level += levelup;
+		if (levelup)
+			drop_rate *= drop_rate_ratio_per_level;
+		lines_level_up %= 30;
+	}
+
 	// notify a player about a special event
 	static char clear_text[5][16] = {
 		"Single", "Double", "Triple", "Tetris", "Cheatris"
@@ -744,7 +755,7 @@ void onLineClear(int removed, bool pc, int pc_bonus)
 	static char tspin_text[TST_END][16] = {
 		"", "T-Spin ", "Mini T-Spin "
 	};
-	skin_on_line_clear(&gameskin, removed, tspin_text[tst], combo, b2b, extra, pc);
+	skin_on_line_clear(&gameskin, removed, tspin_text[tst], combo, b2b, extra, pc, levelup > 0);
 
 	if (speechon)
 	{
@@ -787,18 +798,6 @@ void onLineClear(int removed, bool pc, int pc_bonus)
 		++b2b;
 	}
 
-	// adjust level if needed (Marathon only)
-	if (GM_MARATHON == menu_gamemode)
-	{
-		int levelup = lines_level_up / 30;
-		level += levelup;
-		if (levelup)
-		{
-			drop_rate *= drop_rate_ratio_per_level;
-		}
-		lines_level_up %= 30;
-	}
-
 	// calculate tetris percentage
 	if (lines != 0)
 		ttr = 4 * tetris_count * 100 / lines;
@@ -812,6 +811,15 @@ void onGameOver(enum GameOverType reason)
 	stopMusic();
 	updateTotalTime();
 	updateHiscores(menu_gamemode, reason);
+	static const char *reason_names[] = {
+		[GOT_LOCKOUT]   = "lockout",
+		[GOT_BLOCKOUT]  = "blockout",
+		[GOT_LINECLEAR] = "lineclear",
+		[GOT_TIMEUP]    = "timeup",
+	};
+	const char *rname = (reason >= 0 && reason < GOT_END)
+		? reason_names[reason] : "unknown";
+	skin_on_game_over(&gameskin, rname);
 	setGameState(GS_GAMEOVER);
 }
 
@@ -1301,6 +1309,11 @@ static void rotate_cw(void)
 		rotateFigureCCW();
 	}
 
+	if (success)
+	{
+		skin_on_rotate(&gameskin, "cw");
+	}
+
 	if (success && figures[0] && figures[0]->id != FIGID_O)
 	{
 		updateLockTime();
@@ -1343,6 +1356,11 @@ static void rotate_ccw(void)
 		rotateFigureCW();
 	}
 
+	if (success)
+	{
+		skin_on_rotate(&gameskin, "ccw");
+	}
+
 	if (success && figures[0] && figures[0]->id != FIGID_O)
 	{
 		updateLockTime();
@@ -1358,6 +1376,7 @@ static void rotate_ccw(void)
 
 static void pause(void)
 {
+	skin_on_pause(&gameskin);
 	setGameState(GS_SETTINGS);
 }
 
