@@ -55,13 +55,14 @@ function on_skin_unload() end
 function on_background_draw()
 	res.draw_image(bg_img, 0, 0)
 
+	local mode = game.mode()
 	-- HUD labels + values (aligned top-left)
 	local val_x = 45
 	local hiscore_type = ({
 		marathon = game.MARATHON_SCORE,
 		sprint   = game.SPRINT_TIME,
 		ultra    = game.ULTRA_SCORE
-	})[game.mode()]
+	})[mode]
 	local hiscore_val = game.hiscore(hiscore_type)
 	if hiscore_type == game.SPRINT_TIME then
 		hiscore_val = format_ms(hiscore_val)
@@ -76,11 +77,14 @@ function on_background_draw()
 	res.draw_text(font, game.level(), val_x + 1, 19, 0, 0, 0)
 	res.draw_text(font, game.level(), val_x, 18, 255, 255, 48)
 
-	res.draw_text(font, game.lines(), val_x + 1, 28, 0, 0, 0)
-	res.draw_text(font, game.lines(), val_x, 27, 255, 255, 48)
+	local lines = game.lines()
+	if mode == "sprint" then
+		lines = lines .. "/40"
+	end
+	res.draw_text(font, lines, val_x + 1, 28, 0, 0, 0)
+	res.draw_text(font, lines, val_x, 27, 255, 255, 48)
 
 	-- Timer (centred at top)
-	local mode = game.mode()
 	local t
 	if mode == "ultra" then
 		t = format_ms(game.ultra_time_left())
