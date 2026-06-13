@@ -1,7 +1,6 @@
 local bg_img, font, small_font, fg_overlay
 local stat_order = { 2, 5, 4, 1, 3, 6, 0 }  -- T, J, Z, O, S, L, I
-local game_over_sfx, level_up_sfx, pause_sfx
-local rotate_sfx, side_move_sfx, tetris_sfx
+local snd
 
 function on_skin_load(r)
 	bg_img = r.load_image("bg.png")
@@ -27,14 +26,15 @@ function on_skin_load(r)
 	font = r.load_font("arcade.ttf", 8)
 	small_font = r.load_font("arcade.ttf", 6)
 
-	sfx.hit = sfx.load("sfx/drop.wav")
-	sfx.clear = sfx.load("sfx/line_clear.wav")
-	sfx.click = sfx.load("sfx/side_move.wav")
-	game_over_sfx = sfx.load("sfx/game_over.wav")
-	level_up_sfx = sfx.load("sfx/level_up.wav")
-	pause_sfx = sfx.load("sfx/pause.wav")
-	rotate_sfx = sfx.load("sfx/rotate.wav")
-	tetris_sfx = sfx.load("sfx/tetris.wav")
+	snd = {}
+	snd.hit = sfx.load("sfx/drop.wav")
+	snd.clear = sfx.load("sfx/line_clear.wav")
+	snd.click = sfx.load("sfx/side_move.wav")
+	snd.game_over = sfx.load("sfx/game_over.wav")
+	snd.level_up = sfx.load("sfx/level_up.wav")
+	snd.pause = sfx.load("sfx/pause.wav")
+	snd.rotate = sfx.load("sfx/rotate.wav")
+	snd.tetris = sfx.load("sfx/tetris.wav")
 end
 
 function on_skin_unload() end
@@ -105,33 +105,33 @@ end
 -- ─── Event callbacks ───
 
 function on_move(direction)
-	sfx.play(sfx.click)
+	sfx.play(snd.click)
 end
 
 function on_piece_lock(id)
-	sfx.play(sfx.hit)
+	sfx.play(snd.hit)
 end
 
 function on_line_clear(data)
 	if data.levelup then
-		sfx.play(level_up_sfx)
+		sfx.play(snd.level_up)
 	elseif data.lines == 4 then
-		sfx.play(tetris_sfx)
+		sfx.play(snd.tetris)
 	else
-		sfx.play(sfx.clear)
+		sfx.play(snd.clear)
 	end
 end
 
 function on_game_over(reason)
-	sfx.play(game_over_sfx)
+	sfx.play(snd.game_over)
 end
 
 function on_pause()
-	sfx.play(pause_sfx)
+	sfx.play(snd.pause)
 end
 
 function on_rotate(direction)
-	sfx.play(rotate_sfx)
+	sfx.play(snd.rotate)
 end
 
 function format_ms(ms)

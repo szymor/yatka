@@ -769,52 +769,66 @@ static int y_sfx_play(lua_State *L)
 	return 0;
 }
 
-/* sfx.loadDefaults() — load all default sfx into named slots */
+/* sfx.loadDefaults() → { hit, clear, click, combo[] }
+ * Loads all default sfx and returns them in a table. */
 static int y_sfx_loadDefaults(lua_State *L)
 {
-	static const char *paths[] = {
-		"sfx/clear.wav", "sfx/hit.wav", "sfx/click.wav"
-	};
-	static const char *fields[] = {
-		"clear", "hit", "click"
-	};
+	if (nosound) { lua_pushnil(L); return 1; }
 
-	if (nosound) return 0;
+	lua_newtable(L);  /* result table at index -1 */
 
-	lua_getglobal(L, "sfx");
-
-	for (int i = 0; i < 3; i++)
+	/* hit */
+	Mix_Chunk *chunk = Mix_LoadWAV("sfx/hit.wav");
+	if (chunk)
 	{
-		Mix_Chunk *chunk = Mix_LoadWAV(paths[i]);
-		if (!chunk) continue;
 		Mix_Chunk **ud = (Mix_Chunk **)lua_newuserdata(L, sizeof(Mix_Chunk *));
 		*ud = chunk;
 		luaL_setmetatable(L, MT_SFX);
-		lua_setfield(L, -2, fields[i]);
+		lua_setfield(L, -2, "hit");
 	}
+	else { lua_pushnil(L); lua_setfield(L, -2, "hit"); }
 
-	/* sfx.combo = { handle1, handle2, ..., handle9 } */
+	/* clear */
+	chunk = Mix_LoadWAV("sfx/clear.wav");
+	if (chunk)
+	{
+		Mix_Chunk **ud = (Mix_Chunk **)lua_newuserdata(L, sizeof(Mix_Chunk *));
+		*ud = chunk;
+		luaL_setmetatable(L, MT_SFX);
+		lua_setfield(L, -2, "clear");
+	}
+	else { lua_pushnil(L); lua_setfield(L, -2, "clear"); }
+
+	/* click */
+	chunk = Mix_LoadWAV("sfx/click.wav");
+	if (chunk)
+	{
+		Mix_Chunk **ud = (Mix_Chunk **)lua_newuserdata(L, sizeof(Mix_Chunk *));
+		*ud = chunk;
+		luaL_setmetatable(L, MT_SFX);
+		lua_setfield(L, -2, "click");
+	}
+	else { lua_pushnil(L); lua_setfield(L, -2, "click"); }
+
+	/* combo[] */
 	lua_newtable(L);
 	for (int i = 0; i < 9; i++)
 	{
 		char path[32];
 		snprintf(path, sizeof path, "sfx/combo_%d.wav", i + 1);
-		Mix_Chunk *chunk = Mix_LoadWAV(path);
-		if (!chunk)
+		chunk = Mix_LoadWAV(path);
+		if (chunk)
 		{
-			lua_pushnil(L);
+			Mix_Chunk **ud = (Mix_Chunk **)lua_newuserdata(L, sizeof(Mix_Chunk *));
+			*ud = chunk;
+			luaL_setmetatable(L, MT_SFX);
 			lua_rawseti(L, -2, i + 1);
-			continue;
 		}
-		Mix_Chunk **ud = (Mix_Chunk **)lua_newuserdata(L, sizeof(Mix_Chunk *));
-		*ud = chunk;
-		luaL_setmetatable(L, MT_SFX);
-		lua_rawseti(L, -2, i + 1);
+		else { lua_pushnil(L); lua_rawseti(L, -2, i + 1); }
 	}
 	lua_setfield(L, -2, "combo");
 
-	lua_pop(L, 1);
-	return 0;
+	return 1;  /* return the result table */
 }
 
 /* res.show_timed_text(x, y, text, timeout_ms [, font, r, g, b, ax, ay]) */

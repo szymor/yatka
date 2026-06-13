@@ -1,7 +1,7 @@
 -- Yatka Lua skin: minimal example
 local bg_img, font, small_font
 local brick_w, brick_h, board_x, board_y
-local behelit_anim
+local behelit_anim, snd
 
 function on_skin_load(r)
 	bg_img = r.load_image("bg.png")
@@ -54,7 +54,7 @@ function on_skin_load(r)
 	for i = 0, 6 do
 		r.draw_piece_shape_to(bg_img, i, 6, 26 + i * 30, 7, 160)
 	end
-	sfx.loadDefaults()
+	snd = sfx.loadDefaults()
 end
 
 function on_skin_unload() end
@@ -108,16 +108,16 @@ function on_background_draw()
 end
 
 function on_move(direction)
-	sfx.play(sfx.click)
+	sfx.play(snd.click)
 end
 
 function on_piece_lock(data)
-	sfx.play(sfx.hit)
+	sfx.play(snd.hit)
 end
 
 function on_line_clear(data)
 	if not data.speech_on then
-		sfx.play(sfx.clear)
+		sfx.play(snd.clear)
 	end
 	local clear_names = { "Single", "Double", "Triple", "Tetris", "Cheatris" }
 	local lines = data.lines
@@ -144,7 +144,7 @@ function on_line_clear(data)
 	end
 	if data.combo and data.combo > 0 then
 		res.show_timed_text(160, 24, "combo " .. data.combo .. "x", 1500, small_font, 255, 255, 255, 1, 0)
-		sfx.play(sfx.combo[math.min(data.combo, 9)])
+		sfx.play(snd.combo[math.min(data.combo, 9)])
 	end
 
 	-- spawn particles from cleared lines (C handles update + drawing)
