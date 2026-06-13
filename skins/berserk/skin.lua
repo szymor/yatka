@@ -36,9 +36,10 @@ function on_skin_load(r)
 	behelit_anim = r.load_animation("behelit.png", 65, 72, 50)
 
 	-- Pre-render static HUD labels + semi-transparent boxes onto the background once
-	r.draw_text_to(bg_img, font, "Score:", 0, 0, 255, 255, 255)
-	r.draw_text_to(bg_img, font, "Level:", 0, 7, 255, 255, 255)
-	r.draw_text_to(bg_img, font, "Lines:", 0, 14, 255, 255, 255)
+	r.draw_text_to(bg_img, font, "Best:", 0, 0, 255, 255, 255)
+	r.draw_text_to(bg_img, font, "Score:", 0, 7, 255, 255, 255)
+	r.draw_text_to(bg_img, font, "Level:", 0, 14, 255, 255, 255)
+	r.draw_text_to(bg_img, font, "Lines:", 0, 21, 255, 255, 255)
 	r.draw_text_to(bg_img, big_font, "NEXT", 246, 11, 255, 255, 255)
 
 	r.draw_rect_to(bg_img, 100, 0, 120, 240, 255, 255, 255, 48)
@@ -61,17 +62,25 @@ function on_background_draw()
 	res.draw_image(bg_img, 0, 0)
 
 	-- HUD (dynamic values only; static labels + boxes are baked into bg_img)
-	res.draw_text(font, game.score(), 49, 0)
-	res.draw_text(font, game.level(), 49, 7)
+	local hiscore_type = ({
+		marathon = game.MARATHON_SCORE,
+		sprint   = game.SPRINT_TIME,
+		ultra    = game.ULTRA_SCORE
+	})[game.mode()]
+	local hiscore_val = game.hiscore(hiscore_type)
+	if hiscore_type == game.SPRINT_TIME then
+		hiscore_val = format_ms(hiscore_val)
+	end
+	res.draw_text(font, hiscore_val, 45, 0)
+	res.draw_text(font, game.score(), 45, 7)
+	res.draw_text(font, game.level(), 45, 14)
 
 	local mode = game.mode()
 	if mode == "sprint" then
-		res.draw_text(font, game.lines() .. " / 40", 49, 14)
+		res.draw_text(font, game.lines() .. " / 40", 45, 21)
 	else
-		res.draw_text(font, game.lines(), 49, 14)
+		res.draw_text(font, game.lines(), 45, 21)
 	end
-
-	res.draw_text(small_font, game.dropped() .. " pcs", 0, 21)
 
 	if mode == "ultra" then
 		res.draw_text(small_font, format_ms(game.ultra_time_left()), 320, 240, 255, 255, 255, 2, 2)

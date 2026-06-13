@@ -867,14 +867,9 @@ static int y_game_stat(lua_State *L)
 }
 static int y_game_hiscore(lua_State *L)
 {
-	enum RecordType rt;
-	switch (menu_gamemode)
-	{
-		case GM_SPRINT:  rt = RT_SPRINT_TIME;     break;
-		case GM_ULTRA:   rt = RT_ULTRA_SCORE;     break;
-		default:         rt = RT_MARATHON_SCORE;   break;
-	}
-	lua_pushinteger(L, getRecord(rt));
+	int id = luaL_checkinteger(L, 1);
+	if (id < 0 || id >= RT_END) id = 0;
+	lua_pushinteger(L, getRecord((enum RecordType)id));
 	return 1;
 }
 
@@ -1250,6 +1245,11 @@ static void skin_init_lua(struct Skin *skin, const char *skin_path)
 	lua_pushcfunction(L, y_game_ticks);      lua_setfield(L, -2, "ticks");
 	lua_pushcfunction(L, y_game_shape_cells); lua_setfield(L, -2, "shape_cells");
 	lua_pushcfunction(L, y_game_ghost_y);    lua_setfield(L, -2, "ghost_y");
+	lua_pushinteger(L, RT_MARATHON_SCORE); lua_setfield(L, -2, "MARATHON_SCORE");
+	lua_pushinteger(L, RT_MARATHON_LINES); lua_setfield(L, -2, "MARATHON_LINES");
+	lua_pushinteger(L, RT_SPRINT_TIME);    lua_setfield(L, -2, "SPRINT_TIME");
+	lua_pushinteger(L, RT_ULTRA_SCORE);    lua_setfield(L, -2, "ULTRA_SCORE");
+	lua_pushinteger(L, RT_ULTRA_LINES);    lua_setfield(L, -2, "ULTRA_LINES");
 	lua_setglobal(L, "game");
 
 	/* ─── figure table ─── */

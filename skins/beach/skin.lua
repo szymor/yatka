@@ -57,9 +57,18 @@ function on_background_draw()
 
 	-- HUD labels + values (aligned top-left)
 	local val_x = 45
+	local hiscore_type = ({
+		marathon = game.MARATHON_SCORE,
+		sprint   = game.SPRINT_TIME,
+		ultra    = game.ULTRA_SCORE
+	})[game.mode()]
+	local hiscore_val = game.hiscore(hiscore_type)
+	if hiscore_type == game.SPRINT_TIME then
+		hiscore_val = format_ms(hiscore_val)
+	end
 
-	res.draw_text(font, game.hiscore(), val_x + 1, 1, 0, 0, 0)
-	res.draw_text(font, game.hiscore(), val_x, 0, 255, 255, 48)
+	res.draw_text(font, hiscore_val, val_x + 1, 1, 0, 0, 0)
+	res.draw_text(font, hiscore_val, val_x, 0, 255, 255, 48)
 
 	res.draw_text(font, game.score(), val_x + 1, 10, 0, 0, 0)
 	res.draw_text(font, game.score(), val_x, 9, 255, 255, 48)
