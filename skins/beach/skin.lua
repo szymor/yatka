@@ -92,7 +92,7 @@ function on_background_draw()
 
 	-- Stats (bars)
 	for i = 0, 6 do
-		res.draw_bar(64, 50 + i * 27, 28, 7, game.stat(i), 56, 0,
+		res.draw_bar(64, 50 + i * 29, 28, 7, game.stat(i), 56, 0,
 			     255, 192, 192, 255,
 			     255, 255, 255, 64)
 	end
