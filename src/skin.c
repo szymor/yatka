@@ -889,6 +889,7 @@ static int y_game_ultra_time_left(lua_State *L)
 }
 static int y_game_fps(lua_State *L) { lua_pushinteger(L, fps); return 1; }
 static int y_game_ticks(lua_State *L) { lua_pushinteger(L, SDL_GetTicks()); return 1; }
+static int y_game_debris(lua_State *L) { lua_pushinteger(L, menu_debris); return 1; }
 static int y_game_ghost_y(lua_State *L)
 {
 	if (!figures[0]) { lua_pushnil(L); return 1; }
@@ -1245,6 +1246,7 @@ static void skin_init_lua(struct Skin *skin, const char *skin_path)
 	lua_pushcfunction(L, y_game_ticks);      lua_setfield(L, -2, "ticks");
 	lua_pushcfunction(L, y_game_shape_cells); lua_setfield(L, -2, "shape_cells");
 	lua_pushcfunction(L, y_game_ghost_y);    lua_setfield(L, -2, "ghost_y");
+	lua_pushcfunction(L, y_game_debris);     lua_setfield(L, -2, "debris");
 	lua_pushinteger(L, RT_MARATHON_SCORE); lua_setfield(L, -2, "MARATHON_SCORE");
 	lua_pushinteger(L, RT_MARATHON_LINES); lua_setfield(L, -2, "MARATHON_LINES");
 	lua_pushinteger(L, RT_SPRINT_TIME);    lua_setfield(L, -2, "SPRINT_TIME");
