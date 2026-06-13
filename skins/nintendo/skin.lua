@@ -3,6 +3,7 @@ local stat_order = { 2, 5, 4, 1, 3, 6, 0 }  -- T, J, Z, O, S, L, I
 
 function on_skin_load(r)
 	bg_img = r.load_image("bg.png")
+	fg_overlay = r.load_image("fg.png")
 
 	-- tetromino colours (from game.txt)
 	r.set_tetromino_color(fig.I, 255, 215, 64, 0)
@@ -49,14 +50,6 @@ function on_background_draw()
 		hs = format_ms(hs)
 	end
 
-	if mode == "sprint" then
-		res.draw_text(font, "Lines " .. game.lines() .. "/40", 168, 24, 255, 255, 255, 1, 0)
-	elseif mode == "ultra" then
-		res.draw_text(font, format_ms(game.ultra_time_left()), 168, 24, 255, 255, 255, 1, 0)
-	else
-		res.draw_text(font, "Lines " .. game.lines(), 168, 24, 255, 255, 255, 1, 0)
-	end
-
 	res.draw_text(font, "Top", 224, 30, 255, 255, 255)
 	res.draw_text(font, hs, 224, 39, 255, 255, 255)
 	if mode == "sprint" then
@@ -87,7 +80,18 @@ function on_background_draw()
 	end
 end
 
-function on_foreground_draw() end
+function on_foreground_draw()
+	res.draw_image(fg_overlay, 119, 0)
+
+	local mode = game.mode()
+	if mode == "sprint" then
+		res.draw_text(font, "Lines " .. game.lines() .. "/40", 168, 24, 255, 255, 255, 1, 0)
+	elseif mode == "ultra" then
+		res.draw_text(font, format_ms(game.ultra_time_left()), 168, 24, 255, 255, 255, 1, 0)
+	else
+		res.draw_text(font, "Lines " .. game.lines(), 168, 24, 255, 255, 255, 1, 0)
+	end
+end
 
 function format_ms(ms)
 	local ss = math.floor(ms / 1000) % 60
