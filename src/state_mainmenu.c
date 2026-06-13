@@ -723,7 +723,7 @@ void mainmenu_updateScreen(void)
 
 static void up(void)
 {
-	playEffect(SE_CLICK);
+	Mix_PlayChannel(-1, menu_click, 0);
 	switch (cur_level)
 	{
 		case ML_TOP:        decMod(&cur_top, TE_END, false);          break;
@@ -735,7 +735,7 @@ static void up(void)
 
 static void down(void)
 {
-	playEffect(SE_CLICK);
+	Mix_PlayChannel(-1, menu_click, 0);
 	switch (cur_level)
 	{
 		case ML_TOP:        incMod(&cur_top, TE_END, false);          break;
@@ -747,7 +747,7 @@ static void down(void)
 
 static void left(void)
 {
-	playEffect(SE_CLICK);
+	Mix_PlayChannel(-1, menu_click, 0);
 	switch (cur_level)
 	{
 		case ML_GAME_SETUP:
@@ -808,7 +808,7 @@ static void left(void)
 
 static void right(void)
 {
-	playEffect(SE_CLICK);
+	Mix_PlayChannel(-1, menu_click, 0);
 	switch (cur_level)
 	{
 		case ML_GAME_SETUP:
@@ -869,7 +869,7 @@ static void right(void)
 
 static void level_back(void)
 {
-	playEffect(SE_CLICK);
+	Mix_PlayChannel(-1, menu_click, 0);
 	switch (cur_level)
 	{
 		case ML_TOP:
@@ -905,7 +905,7 @@ static void level_back(void)
 
 static void action(void)
 {
-	playEffect(SE_CLICK);
+	Mix_PlayChannel(-1, menu_click, 0);
 
 	switch (cur_level)
 	{

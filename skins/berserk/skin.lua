@@ -54,6 +54,7 @@ function on_skin_load(r)
 	for i = 0, 6 do
 		r.draw_piece_shape_to(bg_img, i, 6, 26 + i * 30, 7, 160)
 	end
+	sfx.loadDefaults()
 end
 
 function on_skin_unload() end
@@ -107,16 +108,16 @@ function on_background_draw()
 end
 
 function on_move(direction)
-	res.play_sfx(sfx.click)
+	sfx.play(sfx.click)
 end
 
 function on_piece_lock(data)
-	res.play_sfx(sfx.hit)
+	sfx.play(sfx.hit)
 end
 
 function on_line_clear(data)
 	if not data.speech_on then
-		res.play_sfx(sfx.clear)
+		sfx.play(sfx.clear)
 	end
 	local clear_names = { "Single", "Double", "Triple", "Tetris", "Cheatris" }
 	local lines = data.lines
@@ -143,7 +144,7 @@ function on_line_clear(data)
 	end
 	if data.combo and data.combo > 0 then
 		res.show_timed_text(160, 24, "combo " .. data.combo .. "x", 1500, small_font, 255, 255, 255, 1, 0)
-		res.play_sfx(math.min(sfx.combo_1 + data.combo - 1, sfx.combo_9))
+		sfx.play(sfx.combo[math.min(data.combo, 9)])
 	end
 
 	-- spawn particles from cleared lines (C handles update + drawing)

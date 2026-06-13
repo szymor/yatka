@@ -25,6 +25,7 @@
 static const char *MT_SURFACE   = "y_surface";
 static const char *MT_FONT      = "y_font";
 static const char *MT_ANIMATION = "y_animation";
+static const char *MT_SFX       = "y_sfx";
 
 static SDL_Surface *rect_scratch = NULL;  /* reusable surface for draw_rect */
 
@@ -724,12 +725,87 @@ static int y_set_ghost_alpha(lua_State *L)
 	return 0;
 }
 
-/* res.play_sfx(id) — play a sound effect by enum index */
-static int y_play_sfx(lua_State *L)
+/* sfx.gc — free a Mix_Chunk when Lua garbage‑collects the handle */
+static int y_sfx_gc(lua_State *L)
 {
-	int id = luaL_checkinteger(L, 1);
-	if (id >= 0 && id < SE_END)
-		playEffect((enum SfxEffect)id);
+	Mix_Chunk **ud = (Mix_Chunk **)luaL_checkudata(L, 1, MT_SFX);
+	if (ud && *ud)
+	{
+		Mix_FreeChunk(*ud);
+		*ud = NULL;
+	}
+	return 0;
+}
+
+/* sfx.load(path) → sfx handle */
+static int y_sfx_load(lua_State *L)
+{
+	const char *path = luaL_checkstring(L, 1);
+	Mix_Chunk *chunk = Mix_LoadWAV(path);
+	if (!chunk)
+		return luaL_error(L, "Mix_LoadWAV(%s) failed", path);
+	Mix_Chunk **ud = (Mix_Chunk **)lua_newuserdata(L, sizeof(Mix_Chunk *));
+	*ud = chunk;
+	luaL_setmetatable(L, MT_SFX);
+	return 1;
+}
+
+/* sfx.play(handle) — play a sound effect */
+static int y_sfx_play(lua_State *L)
+{
+	if (nosound) return 0;
+	if (lua_isnil(L, 1)) return 0;
+	Mix_Chunk **ud = (Mix_Chunk **)luaL_checkudata(L, 1, MT_SFX);
+	if (!ud || !*ud) return 0;
+	Mix_PlayChannel(-1, *ud, 0);
+	return 0;
+}
+
+/* sfx.loadDefaults() — load all default sfx into named slots */
+static int y_sfx_loadDefaults(lua_State *L)
+{
+	static const char *paths[] = {
+		"sfx/clear.wav", "sfx/hit.wav", "sfx/click.wav"
+	};
+	static const char *fields[] = {
+		"clear", "hit", "click"
+	};
+
+	if (nosound) return 0;
+
+	lua_getglobal(L, "sfx");
+
+	for (int i = 0; i < 3; i++)
+	{
+		Mix_Chunk *chunk = Mix_LoadWAV(paths[i]);
+		if (!chunk) continue;
+		Mix_Chunk **ud = (Mix_Chunk **)lua_newuserdata(L, sizeof(Mix_Chunk *));
+		*ud = chunk;
+		luaL_setmetatable(L, MT_SFX);
+		lua_setfield(L, -2, fields[i]);
+	}
+
+	/* sfx.combo = { handle1, handle2, ..., handle9 } */
+	lua_newtable(L);
+	for (int i = 0; i < 9; i++)
+	{
+		char path[32];
+		snprintf(path, sizeof path, "sfx/combo_%d.wav", i + 1);
+		Mix_Chunk *chunk = Mix_LoadWAV(path);
+		if (!chunk)
+		{
+			lua_pushnil(L);
+			lua_rawseti(L, -2, i + 1);
+			continue;
+		}
+		Mix_Chunk **ud = (Mix_Chunk **)lua_newuserdata(L, sizeof(Mix_Chunk *));
+		*ud = chunk;
+		luaL_setmetatable(L, MT_SFX);
+		lua_rawseti(L, -2, i + 1);
+	}
+	lua_setfield(L, -2, "combo");
+
+	lua_pop(L, 1);
 	return 0;
 }
 
@@ -1092,6 +1168,11 @@ static void skin_init_lua(struct Skin *skin, const char *skin_path)
 	lua_setfield(L, -2, "__gc");
 	lua_pop(L, 1);
 
+	luaL_newmetatable(L, MT_SFX);
+	lua_pushcfunction(L, y_sfx_gc);
+	lua_setfield(L, -2, "__gc");
+	lua_pop(L, 1);
+
 	/* create the `res` table with C functions + skin upvalue */
 	lua_pushlightuserdata(L, skin);
 	lua_pushcclosure(L, y_draw_brick, 1);
@@ -1174,9 +1255,6 @@ static void skin_init_lua(struct Skin *skin, const char *skin_path)
 	lua_pushcclosure(L, y_draw_piece_shape_to, 1);
 	lua_setfield(L, -2, "draw_piece_shape_to");
 
-	lua_pushcfunction(L, y_play_sfx);
-	lua_setfield(L, -2, "play_sfx");
-
 	lua_pushlightuserdata(L, skin);
 	lua_pushcclosure(L, y_load_animation, 1);
 	lua_setfield(L, -2, "load_animation");
@@ -1195,21 +1273,11 @@ static void skin_init_lua(struct Skin *skin, const char *skin_path)
 
 	lua_pop(L, 1);  /* pop res */
 
-	/* ─── sfx table (named sound effect constants) ─── */
+	/* ─── sfx table (load / play / loadDefaults) ─── */
 	lua_newtable(L);
-	lua_pushinteger(L, SE_NONE);     lua_setfield(L, -2, "none");
-	lua_pushinteger(L, SE_CLEAR);    lua_setfield(L, -2, "clear");
-	lua_pushinteger(L, SE_COMBO_1X); lua_setfield(L, -2, "combo_1");
-	lua_pushinteger(L, SE_COMBO_2X); lua_setfield(L, -2, "combo_2");
-	lua_pushinteger(L, SE_COMBO_3X); lua_setfield(L, -2, "combo_3");
-	lua_pushinteger(L, SE_COMBO_4X); lua_setfield(L, -2, "combo_4");
-	lua_pushinteger(L, SE_COMBO_5X); lua_setfield(L, -2, "combo_5");
-	lua_pushinteger(L, SE_COMBO_6X); lua_setfield(L, -2, "combo_6");
-	lua_pushinteger(L, SE_COMBO_7X); lua_setfield(L, -2, "combo_7");
-	lua_pushinteger(L, SE_COMBO_8X); lua_setfield(L, -2, "combo_8");
-	lua_pushinteger(L, SE_COMBO_9X); lua_setfield(L, -2, "combo_9");
-	lua_pushinteger(L, SE_HIT);      lua_setfield(L, -2, "hit");
-	lua_pushinteger(L, SE_CLICK);    lua_setfield(L, -2, "click");
+	lua_pushcfunction(L, y_sfx_load);  lua_setfield(L, -2, "load");
+	lua_pushcfunction(L, y_sfx_play);  lua_setfield(L, -2, "play");
+	lua_pushcfunction(L, y_sfx_loadDefaults); lua_setfield(L, -2, "loadDefaults");
 	lua_setglobal(L, "sfx");
 
 	/* ─── fig table (symbolic tetromino IDs) ─── */

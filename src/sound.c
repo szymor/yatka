@@ -15,27 +15,11 @@
 int initmusvol = MIX_MAX_VOLUME / 4;
 Mix_Music *music = NULL;
 char music_name[32] = "<none>";
-Mix_Chunk *sfx_effects[SE_END] = { NULL };
+Mix_Chunk *menu_click = NULL;
 Mix_Chunk *sfx_speech[SS_END] = { NULL };
 
 
 int ssflags_planned = 0;
-
-static const char sfx_effect_paths[SE_END][32] = {
-	"none",
-	"sfx/clear.wav",
-	"sfx/combo_1.wav",
-	"sfx/combo_2.wav",
-	"sfx/combo_3.wav",
-	"sfx/combo_4.wav",
-	"sfx/combo_5.wav",
-	"sfx/combo_6.wav",
-	"sfx/combo_7.wav",
-	"sfx/combo_8.wav",
-	"sfx/combo_9.wav",
-	"sfx/hit.wav",
-	"sfx/click.wav"
-};
 
 static const char sfx_speech_paths[SS_END][32] = {
 	"sfx/b2b.wav",
@@ -172,12 +156,9 @@ void initSound(void)
 		exit(ERROR_OPENAUDIO);
 	}
 
-	for (int i = SE_CLEAR; i < SE_END; ++i)
-	{
-		sfx_effects[i] = Mix_LoadWAV(sfx_effect_paths[i]);
-		if (!sfx_effects[i])
-			exit(ERROR_NOSNDFILE);
-	}
+	menu_click = Mix_LoadWAV("sfx/click.wav");
+	if (!menu_click)
+		exit(ERROR_NOSNDFILE);
 
 	for (int i = SS_B2B; i < SS_END; ++i)
 	{
@@ -215,6 +196,11 @@ void initSound(void)
 
 void deinitSound(void)
 {
+	if (menu_click)
+	{
+		Mix_FreeChunk(menu_click);
+		menu_click = NULL;
+	}
 	if (music)
 	{
 		Mix_FreeMusic(music);
@@ -334,61 +320,4 @@ void playSpeech(int ssflags)
 	}
 	Mix_PlayChannel(SFXSPEECH_CHANNEL, sfx_speech[shift], 0);
 	ssflags_planned = ssflags & ~(1 << shift);
-}
-
-void playEffect(enum SfxEffect se)
-{
-	if (nosound) return;
-	if (SE_NONE == se)
-		return;
-	Mix_PlayChannel(-1, sfx_effects[se], 0);
-}
-
-/* try to load skin sounds from skin_path + "sfx/"; fall back to default paths */
-void loadSkinSfx(const char *skin_path)
-{
-	if (nosound) return;
-	for (int i = SE_NONE + 1; i < SE_END; ++i)
-	{
-		if (sfx_effects[i]) Mix_FreeChunk(sfx_effects[i]);
-
-		const char *base = strrchr(sfx_effect_paths[i], '/');
-		base = base ? base + 1 : sfx_effect_paths[i];
-		char path[384];
-		snprintf(path, sizeof path, "%ssfx/%s", skin_path, base);
-
-		sfx_effects[i] = Mix_LoadWAV(path);
-		if (!sfx_effects[i])
-			sfx_effects[i] = Mix_LoadWAV(sfx_effect_paths[i]);
-	}
-
-	for (int i = 0; i < SS_END; ++i)
-	{
-		if (sfx_speech[i]) Mix_FreeChunk(sfx_speech[i]);
-
-		const char *base = strrchr(sfx_speech_paths[i], '/');
-		base = base ? base + 1 : sfx_speech_paths[i];
-		char path[384];
-		snprintf(path, sizeof path, "%ssfx/%s", skin_path, base);
-
-		sfx_speech[i] = Mix_LoadWAV(path);
-		if (!sfx_speech[i])
-			sfx_speech[i] = Mix_LoadWAV(sfx_speech_paths[i]);
-	}
-}
-
-/* reload all sounds from their original default paths */
-void restoreDefaultSfx(void)
-{
-	if (nosound) return;
-	for (int i = SE_NONE + 1; i < SE_END; ++i)
-	{
-		if (sfx_effects[i]) Mix_FreeChunk(sfx_effects[i]);
-		sfx_effects[i] = Mix_LoadWAV(sfx_effect_paths[i]);
-	}
-	for (int i = 0; i < SS_END; ++i)
-	{
-		if (sfx_speech[i]) Mix_FreeChunk(sfx_speech[i]);
-		sfx_speech[i] = Mix_LoadWAV(sfx_speech_paths[i]);
-	}
 }

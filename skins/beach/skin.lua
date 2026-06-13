@@ -48,6 +48,7 @@ function on_skin_load(r)
 	res.draw_text_to(bg_img, font, "Score:", label_x, 9, 255, 255, 48)
 	res.draw_text_to(bg_img, font, "Level:", label_x, 18, 255, 255, 48)
 	res.draw_text_to(bg_img, font, "Lines:", label_x, 27, 255, 255, 48)
+	sfx.loadDefaults()
 end
 
 function on_skin_unload() end
@@ -116,7 +117,7 @@ function on_background_draw()
 end
 
 function on_move(direction)
-	res.play_sfx(sfx.click)
+	sfx.play(sfx.click)
 end
 
 function on_hard_drop(rows, start_y)
@@ -134,12 +135,12 @@ function on_hard_drop(rows, start_y)
 end
 
 function on_piece_lock(data)
-	res.play_sfx(sfx.hit)
+	sfx.play(sfx.hit)
 end
 
 function on_line_clear(data)
 	if not data.speech_on then
-		res.play_sfx(sfx.clear)
+		sfx.play(sfx.clear)
 	end
 
 	local clear_names = { "Single", "Double", "Triple", "Tetris", "Cheatris" }
@@ -158,7 +159,7 @@ function on_line_clear(data)
 	if data.combo and data.combo > 0 then
 		res.show_timed_text(161, 41, "combo " .. data.combo .. "x", 1500, font, 0, 0, 0, 1, 0)
 		res.show_timed_text(160, 40, "combo " .. data.combo .. "x", 1500, font, 255, 255, 48, 1, 0)
-		res.play_sfx(math.min(sfx.combo_1 + data.combo - 1, sfx.combo_9))
+		sfx.play(sfx.combo[math.min(data.combo, 9)])
 	end
 	if data.pc then
 		res.show_timed_text(161, 51, "Perfect Clear", 1500, font, 0, 0, 0, 1, 0)

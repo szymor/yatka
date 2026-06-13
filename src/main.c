@@ -83,17 +83,6 @@ enum GameState gamestate = GS_MAINMENU;
 
 void setGameState(enum GameState new_state)
 {
-	enum GameState old = gamestate;
-
-	/* entering gameplay — switch to skin sounds */
-	if (new_state == GS_INGAME && old != GS_INGAME)
-		loadSkinSfx(gameskin.path);
-
-	/* leaving gameplay for menu/gameover — revert to defaults */
-	if ((old == GS_INGAME || old == GS_SETTINGS)
-	    && (new_state == GS_MAINMENU || new_state == GS_GAMEOVER))
-		restoreDefaultSfx();
-
 	gamestate = new_state;
 }
 
