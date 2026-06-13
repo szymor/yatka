@@ -76,12 +76,6 @@ enum KeyId
 	KI_END
 };
 
-struct SkinEntry
-{
-	char name[MAX_SKIN_NAME_LEN];
-	char path[MAX_SKIN_PATH_LEN];
-};
-
 int menu_skinnum = 0;
 struct SkinEntry menu_skinentries[MAX_SKIN_NUM];
 int menu_gamemode = GM_MARATHON;
