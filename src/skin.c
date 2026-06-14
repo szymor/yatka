@@ -165,17 +165,65 @@ static int y_font_gc(lua_State *L)
 }
 
 
-/* font:print(x, y, text [, r, g, b, ax, ay]) */
+/* shared text rendering — reads no upvalues, takes explicit params */
+static int render_text_to_screen(struct Skin *skin, TTF_Font *font,
+                                 const char *str, int x, int y,
+                                 int r, int g, int b,
+                                 int alignx, int aligny)
+{
+	if (!font || !str || !*str) return 0;
+
+	SDL_Surface *ts = NULL;
+	for (int i = 0; i < TEXT_CACHE_SIZE; ++i)
+	{
+		struct TextCacheEntry *e = &skin->text_cache[i];
+		if (e->surface && e->font == font && e->r == r && e->g == g && e->b == b
+		    && strcmp(e->text, str) == 0)
+		{
+			ts = e->surface;
+			break;
+		}
+	}
+	if (!ts)
+	{
+		SDL_Color col = { .r = r, .g = g, .b = b };
+		ts = TTF_RenderUTF8_Blended(font, str, col);
+		if (!ts) return 0;
+
+		/* store in cache (FIFO eviction) */
+		static int next_slot = 0;
+		struct TextCacheEntry *e = &skin->text_cache[next_slot];
+		if (e->surface) SDL_FreeSurface(e->surface);
+		e->font = font;
+		strncpy(e->text, str, TIMED_TEXT_LEN - 1);
+		e->text[TIMED_TEXT_LEN - 1] = '\0';
+		e->r = r; e->g = g; e->b = b;
+		e->surface = ts;
+		next_slot = (next_slot + 1) % TEXT_CACHE_SIZE;
+	}
+	SDL_Rect dst = { .x = x, .y = y };
+	if (alignx == 1) dst.x -= ts->w / 2;
+	else if (alignx == 2) dst.x -= ts->w;
+	if (aligny == 1) dst.y -= ts->h / 2;
+	else if (aligny == 2) dst.y -= ts->h;
+	SDL_BlitSurface(ts, NULL, screen, &dst);
+	return 0;
+}
+
+/* font:print(text, x, y [, r, g, b, ax, ay]) */
 static int y_font_print(lua_State *L)
 {
-	/* rearrange from (self, x, y, text, ...) to (font_self, text, x, y, ...) */
-	lua_pushvalue(L, 1);
-	lua_pushvalue(L, 4);
-	lua_pushvalue(L, 2);
-	lua_pushvalue(L, 3);
-	for (int i = 5; i <= lua_gettop(L); i++)
-		lua_pushvalue(L, i);
-	return y_draw_text(L);
+	struct Skin *skin = (struct Skin *)lua_touserdata(L, lua_upvalueindex(1));
+	TTF_Font **fud = check_font(L, 1);
+	return render_text_to_screen(skin, *fud,
+		luaL_checkstring(L, 2),
+		luaL_checkinteger(L, 3),
+		luaL_checkinteger(L, 4),
+		(int)luaL_optinteger(L, 5, 255),
+		(int)luaL_optinteger(L, 6, 255),
+		(int)luaL_optinteger(L, 7, 255),
+		(int)luaL_optinteger(L, 8, 0),
+		(int)luaL_optinteger(L, 9, 0));
 }
 
 /* font:measure(text) -> w, h */
@@ -321,57 +369,15 @@ static int y_draw_text(lua_State *L)
 {
 	struct Skin *skin = (struct Skin *)lua_touserdata(L, lua_upvalueindex(1));
 	TTF_Font **fud = check_font(L, 1);
-	const char *str = luaL_checkstring(L, 2);
-	int x = luaL_checkinteger(L, 3);
-	int y = luaL_checkinteger(L, 4);
-	int r = (int)luaL_optinteger(L, 5, 255);
-	int g = (int)luaL_optinteger(L, 6, 255);
-	int b = (int)luaL_optinteger(L, 7, 255);
-	int alignx = (int)luaL_optinteger(L, 8, 0);
-	int aligny = (int)luaL_optinteger(L, 9, 0);
-
-	if (!*fud) return 0;
-	if (!str || !*str) return 0;
-
-	/* look up cached surface */
-	SDL_Surface *ts = NULL;
-	for (int i = 0; i < TEXT_CACHE_SIZE; ++i)
-	{
-		struct TextCacheEntry *e = &skin->text_cache[i];
-		if (e->surface && e->font == *fud && e->r == r && e->g == g && e->b == b
-		    && strcmp(e->text, str) == 0)
-		{
-			ts = e->surface;
-			break;
-		}
-	}
-
-	if (!ts)
-	{
-		SDL_Color col = { .r = r, .g = g, .b = b };
-		ts = TTF_RenderUTF8_Blended(*fud, str, col);
-		if (!ts) return 0;
-
-		/* store in cache (FIFO eviction) */
-		static int next_slot = 0;
-		struct TextCacheEntry *e = &skin->text_cache[next_slot];
-		if (e->surface) SDL_FreeSurface(e->surface);
-		e->font = *fud;
-		strncpy(e->text, str, TIMED_TEXT_LEN - 1);
-		e->text[TIMED_TEXT_LEN - 1] = '\0';
-		e->r = r; e->g = g; e->b = b;
-		e->surface = ts;
-		next_slot = (next_slot + 1) % TEXT_CACHE_SIZE;
-	}
-
-	SDL_Rect dst = { .x = x, .y = y };
-	if (alignx == 1) dst.x -= ts->w / 2;
-	else if (alignx == 2) dst.x -= ts->w;
-	if (aligny == 1) dst.y -= ts->h / 2;
-	else if (aligny == 2) dst.y -= ts->h;
-
-	SDL_BlitSurface(ts, NULL, screen, &dst);
-	return 0;
+	return render_text_to_screen(skin, *fud,
+		luaL_checkstring(L, 2),
+		luaL_checkinteger(L, 3),
+		luaL_checkinteger(L, 4),
+		(int)luaL_optinteger(L, 5, 255),
+		(int)luaL_optinteger(L, 6, 255),
+		(int)luaL_optinteger(L, 7, 255),
+		(int)luaL_optinteger(L, 8, 0),
+		(int)luaL_optinteger(L, 9, 0));
 }
 
 /* r.draw_text_to(surface, font, text, x, y [, r, g, b])
@@ -1286,7 +1292,8 @@ static void skin_init_lua(struct Skin *skin, const char *skin_path)
 	lua_setfield(L, -2, "__gc");
 	lua_pushvalue(L, -1);
 	lua_setfield(L, -2, "__index");
-	lua_pushcfunction(L, y_font_print);
+	lua_pushlightuserdata(L, skin);
+	lua_pushcclosure(L, y_font_print, 1);
 	lua_setfield(L, -2, "print");
 	lua_pushcfunction(L, y_font_measure);
 	lua_setfield(L, -2, "measure");
