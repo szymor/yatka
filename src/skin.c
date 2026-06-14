@@ -225,6 +225,36 @@ static int y_load_animation(lua_State *L)
 	return 1;
 }
 
+/* r.create_surface(w, h, r, g, b) → solid‑colour image surface */
+static int y_create_surface(lua_State *L)
+{
+	int w = luaL_checkinteger(L, 1);
+	int h = luaL_checkinteger(L, 2);
+	int r = (int)luaL_checkinteger(L, 3);
+	int g = (int)luaL_checkinteger(L, 4);
+	int b = (int)luaL_checkinteger(L, 5);
+
+	if (w < 1) w = 1;
+	if (h < 1) h = 1;
+
+	SDL_Surface *s = SDL_CreateRGBSurface(SDL_SWSURFACE, w, h, 32,
+		0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+	if (!s)
+		return luaL_error(L, "SDL_CreateRGBSurface failed");
+
+	SDL_FillRect(s, NULL, SDL_MapRGB(s->format, r, g, b));
+
+	SDL_Surface *opt = SDL_DisplayFormat(s);
+	SDL_FreeSurface(s);
+	if (!opt)
+		return luaL_error(L, "SDL_DisplayFormat failed");
+
+	SDL_Surface **ud = (SDL_Surface **)lua_newuserdata(L, sizeof(SDL_Surface *));
+	*ud = opt;
+	luaL_setmetatable(L, MT_SURFACE);
+	return 1;
+}
+
 static int y_draw_image(lua_State *L)
 {
 	SDL_Surface **ud = check_surface(L, 1);
@@ -1155,8 +1185,9 @@ static void skin_draw_particles(struct Skin *skin)
  * ───────────────────────────────────────────── */
 
 static const luaL_Reg ylib[] = {
-	{ "draw_image",  y_draw_image  },
-	{ "draw_rect",   y_draw_rect   },
+	{ "draw_image",     y_draw_image     },
+	{ "create_surface", y_create_surface },
+	{ "draw_rect",      y_draw_rect      },
 	{ "draw_bar",    y_draw_bar    },
 	{ "screen_w",    y_screen_w    },
 	{ "screen_h",    y_screen_h    },

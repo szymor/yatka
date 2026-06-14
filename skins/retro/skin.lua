@@ -9,7 +9,7 @@ local clear_names = { "Single", "Double", "Triple", "Tetris", "Cheatris" }
 
 function on_skin_load(r)
 	local mode = game.mode()
-	bg_img = r.load_image("bg.png")
+	bg_img = r.create_surface(320, 240, 0, 0, 0)
 
 	-- tetromino colours (classic retro palette)
 	r.set_tetromino_color(fig.I, 128, 0, 255, 255)
