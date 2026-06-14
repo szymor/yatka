@@ -1810,7 +1810,7 @@ static void generateDebris(int rows)
 		while (bricks_per_row != menu_debris_chance)
 		{
 			int x = rand() % BOARD_WIDTH;
-			int y = BOARD_HEIGHT - INVISIBLE_ROW_COUNT - yy;
+			int y = BOARD_HEIGHT - 1 - yy;
 			int i = y * BOARD_WIDTH + x;
 			if (BO_FULL == board[i].orientation)
 				continue;
