@@ -1009,6 +1009,7 @@ void lockFigure(void)
 	}
 
 	// storing the figure in the board
+	bool had_visible = false;
 	for (int i = 0; i < (FIG_DIM*FIG_DIM); ++i)
 		if (figures[0]->shape.blockmap[i] != BO_EMPTY)
 		{
@@ -1018,13 +1019,32 @@ void lockFigure(void)
 			{
 				board[y*BOARD_WIDTH + x].color = figures[0]->color;
 				board[y*BOARD_WIDTH + x].orientation = figures[0]->shape.blockmap[i];
+				if (y >= INVISIBLE_ROW_COUNT)
+					had_visible = true;
 			}
 		}
 
 	enum FigureId locked_id = figures[0]->id;
+
+	/* lock out — locked piece placed no cells in the visible playfield */
+	if (!had_visible)
+	{
+		free(figures[0]);
+		figures[0] = NULL;
+		onGameOver(GOT_LOCKOUT);
+		return;
+	}
+
 	free(figures[0]);
 	figures[0] = NULL;
 	spawnFigure();
+
+	/* block out — newly spawned piece collides immediately at spawn */
+	if (isFigureColliding())
+	{
+		onGameOver(GOT_BLOCKOUT);
+		return;
+	}
 
 	int removed = removeFullLines();
 
@@ -1545,19 +1565,6 @@ void ingame_processInputEvents(void)
 enum GameOverType checkGameEnd(void)
 {
 	enum GameOverType ret = GOT_PLAYING;
-	// block out
-	if (isFigureColliding())
-		ret = GOT_BLOCKOUT;
-
-	// lock out (does not conform to Tetris Design Guideline 2009)
-	// simply check the top-most row
-
-	for (int i = 0; i < BOARD_WIDTH; ++i)
-		if (board[i].orientation != BO_EMPTY)
-		{
-			ret = GOT_LOCKOUT;
-			break;
-		}
 
 	// target number of lines cleared (Sprint only)
 	if (GM_SPRINT == menu_gamemode)
@@ -1589,7 +1596,7 @@ void spawnFigure(void)
 
 	if (figures[0] != NULL)
 	{
-		figures[0]->y = -FIG_DIM + 3;
+		figures[0]->y = -FIG_DIM + 5;
 		figures[0]->x = (BOARD_WIDTH - FIG_DIM) / 2;	// center a figure
 		memcpy(&figures[0]->shape, getShape(figures[0]->id), sizeof(figures[0]->shape));
 		++statistics[figures[0]->id];

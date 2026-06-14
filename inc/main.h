@@ -49,8 +49,8 @@
 #endif
 
 #define BOARD_WIDTH					10
-#define BOARD_HEIGHT				21
-#define INVISIBLE_ROW_COUNT			1
+#define BOARD_HEIGHT				24
+#define INVISIBLE_ROW_COUNT			4
 #define FIG_DIM						4
 
 #define FIG_NUM				(7)

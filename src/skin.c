@@ -1318,7 +1318,7 @@ static void skin_init_lua(struct Skin *skin, const char *skin_path)
 	/* ─── board table ─── */
 	lua_newtable(L);
 	lua_pushinteger(L, BOARD_WIDTH);  lua_setfield(L, -2, "width");
-	lua_pushinteger(L, BOARD_HEIGHT); lua_setfield(L, -2, "height");
+	lua_pushinteger(L, BOARD_HEIGHT - INVISIBLE_ROW_COUNT); lua_setfield(L, -2, "height");
 	lua_pushcfunction(L, y_board_get); lua_setfield(L, -2, "get");
 	lua_setglobal(L, "board");
 
