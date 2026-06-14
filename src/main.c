@@ -1806,17 +1806,23 @@ static void generateDebris(int rows)
 {
 	for (int yy = 0; yy < rows; ++yy)
 	{
-		int bricks_per_row = 0;
-		while (bricks_per_row != menu_debris_chance)
+		int y = BOARD_HEIGHT - 1 - yy;
+		/* count how many empty cells are available in this row */
+		int empty = 0;
+		for (int x = 0; x < BOARD_WIDTH; ++x)
+			if (board[y * BOARD_WIDTH + x].orientation == BO_EMPTY)
+				++empty;
+		int target = menu_debris_chance;
+		if (target > empty) target = empty;
+		/* place target bricks at random empty positions */
+		for (int placed = 0; placed < target; )
 		{
 			int x = rand() % BOARD_WIDTH;
-			int y = BOARD_HEIGHT - 1 - yy;
 			int i = y * BOARD_WIDTH + x;
-			if (BO_FULL == board[i].orientation)
-				continue;
+			if (board[i].orientation != BO_EMPTY) continue;
 			board[i].orientation = BO_FULL;
 			board[i].color = FIGID_GRAY;
-			++bricks_per_row;
+			++placed;
 		}
 	}
 }
