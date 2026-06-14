@@ -361,7 +361,16 @@ static int y_draw_image(lua_State *L)
 	int y = luaL_checkinteger(L, 3);
 	if (!*ud) return 0;
 	SDL_Rect dst = { .x = x, .y = y };
-	SDL_BlitSurface(*ud, NULL, screen, &dst);
+	SDL_Rect src, *srcrect = NULL;
+	if (lua_gettop(L) >= 7)
+	{
+		src.x = luaL_checkinteger(L, 4);
+		src.y = luaL_checkinteger(L, 5);
+		src.w = luaL_checkinteger(L, 6);
+		src.h = luaL_checkinteger(L, 7);
+		srcrect = &src;
+	}
+	SDL_BlitSurface(*ud, srcrect, screen, &dst);
 	return 0;
 }
 
