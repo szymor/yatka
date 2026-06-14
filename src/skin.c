@@ -72,8 +72,10 @@ static TTF_Font **check_font(lua_State *L, int idx)
 	return (TTF_Font **)luaL_checkudata(L, idx, MT_FONT);
 }
 
+static int y_draw_text(lua_State *L);
+
 /* ─────────────────────────────────────────────
- * C functions exposed to Lua via `res` table
+ * C functions exposed to Lua
  * ───────────────────────────────────────────── */
 
 static Uint32 read_pixel(SDL_Surface *surface, int x, int y)
@@ -162,6 +164,35 @@ static int y_font_gc(lua_State *L)
 	return 0;
 }
 
+
+/* font:print(x, y, text [, r, g, b, ax, ay]) */
+static int y_font_print(lua_State *L)
+{
+	/* rearrange from (self, x, y, text, ...) to (font_self, text, x, y, ...) */
+	lua_pushvalue(L, 1);
+	lua_pushvalue(L, 4);
+	lua_pushvalue(L, 2);
+	lua_pushvalue(L, 3);
+	for (int i = 5; i <= lua_gettop(L); i++)
+		lua_pushvalue(L, i);
+	return y_draw_text(L);
+}
+
+/* font:measure(text) -> w, h */
+static int y_font_measure(lua_State *L)
+{
+	TTF_Font **fud = check_font(L, 1);
+	if (!*fud) return 0;
+	const char *str = luaL_checkstring(L, 2);
+	int w, h;
+	if (TTF_SizeUTF8(*fud, str, &w, &h) == 0)
+	{
+		lua_pushinteger(L, w);
+		lua_pushinteger(L, h);
+		return 2;
+	}
+	return 0;
+}
 static struct Animation **check_animation(lua_State *L, int idx)
 {
 	return (struct Animation **)luaL_checkudata(L, idx, MT_ANIMATION);
@@ -176,6 +207,26 @@ static int y_animation_gc(lua_State *L)
 		free(*ud);
 		*ud = NULL;
 	}
+	return 0;
+}
+
+/* anim:draw(frame, x, y) -- draw a single animation frame */
+static int y_anim_draw(lua_State *L)
+{
+	struct Animation **ud = check_animation(L, 1);
+	if (!ud || !*ud || !(*ud)->spritesheet) return 0;
+	int frame = luaL_checkinteger(L, 2);
+	int x = luaL_checkinteger(L, 3);
+	int y = luaL_checkinteger(L, 4);
+	struct Animation *anim = *ud;
+	SDL_Rect srcrect = {
+		.x = (frame % anim->frame_count) * anim->frame_w,
+		.y = 0,
+		.w = anim->frame_w,
+		.h = anim->frame_h
+	};
+	SDL_Rect dst = { .x = x, .y = y };
+	SDL_BlitSurface(anim->spritesheet, &srcrect, screen, &dst);
 	return 0;
 }
 
@@ -225,8 +276,8 @@ static int y_load_animation(lua_State *L)
 	return 1;
 }
 
-/* r.create_surface(w, h, r, g, b) → solid‑colour image surface */
-static int y_create_surface(lua_State *L)
+/* gfx.create_image(w, h, r, g, b) → solid‑colour image surface */
+static int y_create_image(lua_State *L)
 {
 	int w = luaL_checkinteger(L, 1);
 	int h = luaL_checkinteger(L, 2);
@@ -412,6 +463,16 @@ static int y_draw_rect(lua_State *L)
 	SDL_Rect src = { .x = 0, .y = 0, .w = w, .h = h };
 	SDL_Rect dst = { .x = x, .y = y };
 	SDL_BlitSurface(rect_scratch, &src, screen, &dst);
+	return 0;
+}
+
+/* screen.clear(r, g, b) — fill entire screen with a solid colour */
+static int y_clear_screen(lua_State *L)
+{
+	int r = (int)luaL_checkinteger(L, 1);
+	int g = (int)luaL_checkinteger(L, 2);
+	int b = (int)luaL_checkinteger(L, 3);
+	SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, r, g, b));
 	return 0;
 }
 
@@ -1127,6 +1188,13 @@ static int y_remove_particle(lua_State *L)
 	return 0;
 }
 
+static int y_particle_clear(lua_State *L)
+{
+	struct Skin *skin = (struct Skin *)lua_touserdata(L, lua_upvalueindex(1));
+	skin->particle_count = 0;
+	return 0;
+}
+
 static void skin_update_particles(struct Skin *skin)
 {
 	Uint32 now = SDL_GetTicks();
@@ -1185,12 +1253,6 @@ static void skin_draw_particles(struct Skin *skin)
  * ───────────────────────────────────────────── */
 
 static const luaL_Reg ylib[] = {
-	{ "draw_image",     y_draw_image     },
-	{ "create_surface", y_create_surface },
-	{ "draw_rect",      y_draw_rect      },
-	{ "draw_bar",    y_draw_bar    },
-	{ "screen_w",    y_screen_w    },
-	{ "screen_h",    y_screen_h    },
 	{ NULL, NULL }
 };
 
@@ -1205,126 +1267,105 @@ static void skin_init_lua(struct Skin *skin, const char *skin_path)
 	luaL_openlibs(L);
 	skin->L = L;
 
-	/* create metatables for gc */
+	/* create metatables for gc + surface methods */
 	luaL_newmetatable(L, MT_SURFACE);
 	lua_pushcfunction(L, y_surface_gc);
 	lua_setfield(L, -2, "__gc");
+	lua_pushvalue(L, -1);
+	lua_setfield(L, -2, "__index");
+	lua_pushcfunction(L, y_draw_image);            lua_setfield(L, -2, "draw");
+	lua_pushcfunction(L, y_draw_text_to);           lua_setfield(L, -2, "draw_text");
+	lua_pushcfunction(L, y_draw_rect_to);           lua_setfield(L, -2, "draw_rect");
+	lua_pushlightuserdata(L, skin);
+	lua_pushcclosure(L, y_draw_piece_shape_to, 1);
+	lua_setfield(L, -2, "draw_shape");
 	lua_pop(L, 1);
 
 	luaL_newmetatable(L, MT_FONT);
 	lua_pushcfunction(L, y_font_gc);
 	lua_setfield(L, -2, "__gc");
+	lua_pushvalue(L, -1);
+	lua_setfield(L, -2, "__index");
+	lua_pushcfunction(L, y_font_print);
+	lua_setfield(L, -2, "print");
+	lua_pushcfunction(L, y_font_measure);
+	lua_setfield(L, -2, "measure");
 	lua_pop(L, 1);
 
 	luaL_newmetatable(L, MT_ANIMATION);
 	lua_pushcfunction(L, y_animation_gc);
 	lua_setfield(L, -2, "__gc");
+	lua_pushvalue(L, -1);
+	lua_setfield(L, -2, "__index");
+	lua_pushcfunction(L, y_anim_draw);
+	lua_setfield(L, -2, "draw");
 	lua_pop(L, 1);
 
 	luaL_newmetatable(L, MT_SFX);
 	lua_pushcfunction(L, y_sfx_gc);
 	lua_setfield(L, -2, "__gc");
+	lua_pushvalue(L, -1);
+	lua_setfield(L, -2, "__index");
+	lua_pushcfunction(L, y_sfx_play);
+	lua_setfield(L, -2, "play");
 	lua_pop(L, 1);
 
-	/* create the `res` table with C functions + skin upvalue */
-	lua_pushlightuserdata(L, skin);
-	lua_pushcclosure(L, y_draw_brick, 1);
-	lua_setglobal(L, "y_draw_brick");
-
-	lua_pushlightuserdata(L, skin);
-	lua_pushcclosure(L, y_brick_size, 1);
-	lua_setglobal(L, "y_brick_size");
-
-	lua_pushlightuserdata(L, skin);
-	lua_pushcclosure(L, y_draw_piece_shape, 1);
-	lua_setglobal(L, "y_draw_piece_shape");
-
+	/* ─── cfg table (configuration setters) ─── */
 	lua_newtable(L);
-	luaL_setfuncs(L, ylib, 0);
-
-	lua_getglobal(L, "y_draw_brick");
-	lua_setfield(L, -2, "draw_brick");
-	lua_getglobal(L, "y_brick_size");
-	lua_setfield(L, -2, "brick_size");
-	lua_getglobal(L, "y_draw_piece_shape");
-	lua_setfield(L, -2, "draw_piece_shape");
-
-	lua_setglobal(L, "res");
-
-	/* add setter functions with skin upvalue into res table */
-	lua_getglobal(L, "res");
-
 	lua_pushlightuserdata(L, skin);
 	lua_pushcclosure(L, y_set_brick_size, 1);
 	lua_setfield(L, -2, "set_brick_size");
-
 	lua_pushlightuserdata(L, skin);
 	lua_pushcclosure(L, y_set_board_xy, 1);
 	lua_setfield(L, -2, "set_board_xy");
-
 	lua_pushlightuserdata(L, skin);
 	lua_pushcclosure(L, y_set_holdmode, 1);
 	lua_setfield(L, -2, "set_holdmode");
-
-	lua_pushlightuserdata(L, skin);
-	lua_pushcclosure(L, y_load_image, 1);
-	lua_setfield(L, -2, "load_image");
-
-	lua_pushlightuserdata(L, skin);
-	lua_pushcclosure(L, y_load_font, 1);
-	lua_setfield(L, -2, "load_font");
-
 	lua_pushlightuserdata(L, skin);
 	lua_pushcclosure(L, y_set_tc, 1);
 	lua_setfield(L, -2, "set_tetromino_color");
-
 	lua_pushlightuserdata(L, skin);
 	lua_pushcclosure(L, y_set_bricksprite, 1);
 	lua_setfield(L, -2, "set_bricksprite");
-
 	lua_pushlightuserdata(L, skin);
 	lua_pushcclosure(L, y_set_shadow, 1);
 	lua_setfield(L, -2, "set_shadow");
-
 	lua_pushlightuserdata(L, skin);
 	lua_pushcclosure(L, y_set_ghost_alpha, 1);
 	lua_setfield(L, -2, "set_ghost_alpha");
+	lua_setglobal(L, "cfg");
 
+	/* ─── gfx table (load_image, create_image, load_font, load_animation) ─── */
+	lua_newtable(L);
 	lua_pushlightuserdata(L, skin);
-	lua_pushcclosure(L, y_show_timed_text, 1);
-	lua_setfield(L, -2, "show_timed_text");
-
+	lua_pushcclosure(L, y_load_image, 1);
+	lua_setfield(L, -2, "load_image");
 	lua_pushlightuserdata(L, skin);
-	lua_pushcclosure(L, y_draw_text, 1);
-	lua_setfield(L, -2, "draw_text");
-
-	lua_pushcfunction(L, y_draw_text_to);
-	lua_setfield(L, -2, "draw_text_to");
-
-	lua_pushcfunction(L, y_draw_rect_to);
-	lua_setfield(L, -2, "draw_rect_to");
-
+	lua_pushcclosure(L, y_create_image, 1);
+	lua_setfield(L, -2, "create_image");
 	lua_pushlightuserdata(L, skin);
-	lua_pushcclosure(L, y_draw_piece_shape_to, 1);
-	lua_setfield(L, -2, "draw_piece_shape_to");
-
+	lua_pushcclosure(L, y_load_font, 1);
+	lua_setfield(L, -2, "load_font");
 	lua_pushlightuserdata(L, skin);
 	lua_pushcclosure(L, y_load_animation, 1);
 	lua_setfield(L, -2, "load_animation");
+	lua_setglobal(L, "gfx");
 
+	/* ─── particle table (add / move / remove / clear) ─── */
+	lua_newtable(L);
 	lua_pushlightuserdata(L, skin);
 	lua_pushcclosure(L, y_add_particle, 1);
-	lua_setfield(L, -2, "add_particle");
-
+	lua_setfield(L, -2, "add");
 	lua_pushlightuserdata(L, skin);
 	lua_pushcclosure(L, y_move_particle, 1);
-	lua_setfield(L, -2, "move_particle");
-
+	lua_setfield(L, -2, "move");
 	lua_pushlightuserdata(L, skin);
 	lua_pushcclosure(L, y_remove_particle, 1);
-	lua_setfield(L, -2, "remove_particle");
-
-	lua_pop(L, 1);  /* pop res */
+	lua_setfield(L, -2, "remove");
+	lua_pushlightuserdata(L, skin);
+	lua_pushcclosure(L, y_particle_clear, 1);
+	lua_setfield(L, -2, "clear");
+	lua_setglobal(L, "particle");
 
 	/* ─── sfx table (load / play / loadDefaults) ─── */
 	lua_newtable(L);
@@ -1334,6 +1375,29 @@ static void skin_init_lua(struct Skin *skin, const char *skin_path)
 	lua_pushcfunction(L, y_sfx_play);  lua_setfield(L, -2, "play");
 	lua_pushcfunction(L, y_sfx_loadDefaults); lua_setfield(L, -2, "loadDefaults");
 	lua_setglobal(L, "sfx");
+
+	/* ─── screen table (width, height + drawing functions) ─── */
+	lua_newtable(L);
+	lua_pushinteger(L, SCREEN_WIDTH);             lua_setfield(L, -2, "width");
+	lua_pushinteger(L, SCREEN_HEIGHT);            lua_setfield(L, -2, "height");
+	lua_pushcfunction(L, y_draw_image);           lua_setfield(L, -2, "draw_image");
+	lua_pushcfunction(L, y_draw_rect);            lua_setfield(L, -2, "draw_rect");
+	lua_pushcfunction(L, y_draw_bar);             lua_setfield(L, -2, "draw_bar");
+	lua_pushlightuserdata(L, skin);
+	lua_pushcclosure(L, y_draw_text, 1);
+	lua_setfield(L, -2, "draw_text");
+	lua_pushlightuserdata(L, skin);
+	lua_pushcclosure(L, y_draw_brick, 1);
+	lua_setfield(L, -2, "draw_brick");
+	lua_pushlightuserdata(L, skin);
+	lua_pushcclosure(L, y_draw_piece_shape, 1);
+	lua_setfield(L, -2, "draw_shape");
+	lua_pushlightuserdata(L, skin);
+	lua_pushcclosure(L, y_show_timed_text, 1);
+	lua_setfield(L, -2, "pop_up");
+	lua_pushcfunction(L, y_clear_screen);
+	lua_setfield(L, -2, "clear");
+	lua_setglobal(L, "screen");
 
 	/* ─── fig table (symbolic tetromino IDs) ─── */
 	lua_newtable(L);
@@ -1349,8 +1413,12 @@ static void skin_init_lua(struct Skin *skin, const char *skin_path)
 	/* ─── board table ─── */
 	lua_newtable(L);
 	lua_pushinteger(L, BOARD_WIDTH);  lua_setfield(L, -2, "width");
-	lua_pushinteger(L, BOARD_HEIGHT - INVISIBLE_ROW_COUNT); lua_setfield(L, -2, "height");
+	lua_pushinteger(L, BOARD_HEIGHT); lua_setfield(L, -2, "height");
+	lua_pushinteger(L, INVISIBLE_ROW_COUNT); lua_setfield(L, -2, "invisible");
 	lua_pushcfunction(L, y_board_get); lua_setfield(L, -2, "get");
+	lua_pushlightuserdata(L, skin);
+	lua_pushcclosure(L, y_brick_size, 1);
+	lua_setfield(L, -2, "brick_size");
 	lua_setglobal(L, "board");
 
 	/* ─── game table ─── */
@@ -1370,12 +1438,18 @@ static void skin_init_lua(struct Skin *skin, const char *skin_path)
 	lua_pushcfunction(L, y_game_shape_cells); lua_setfield(L, -2, "shape_cells");
 	lua_pushcfunction(L, y_game_ghost_y);    lua_setfield(L, -2, "ghost_y");
 	lua_pushcfunction(L, y_game_debris);     lua_setfield(L, -2, "debris");
+	lua_pushinteger(L, SPRINT_LINE_COUNT);   lua_setfield(L, -2, "sprint_target");
+	lua_pushinteger(L, ULTRA_MS_LEN);        lua_setfield(L, -2, "ultra_duration");
+	lua_setglobal(L, "game");
+
+	/* ─── record table (hiscore type constants) ─── */
+	lua_newtable(L);
 	lua_pushinteger(L, RT_MARATHON_SCORE); lua_setfield(L, -2, "MARATHON_SCORE");
 	lua_pushinteger(L, RT_MARATHON_LINES); lua_setfield(L, -2, "MARATHON_LINES");
 	lua_pushinteger(L, RT_SPRINT_TIME);    lua_setfield(L, -2, "SPRINT_TIME");
 	lua_pushinteger(L, RT_ULTRA_SCORE);    lua_setfield(L, -2, "ULTRA_SCORE");
 	lua_pushinteger(L, RT_ULTRA_LINES);    lua_setfield(L, -2, "ULTRA_LINES");
-	lua_setglobal(L, "game");
+	lua_setglobal(L, "record");
 
 	/* ─── figure table ─── */
 	lua_newtable(L);
@@ -1394,12 +1468,11 @@ static void skin_init_lua(struct Skin *skin, const char *skin_path)
 		lua_pop(L, 1);
 	}
 
-	/* call skin.load(res) */
+	/* call skin.load() */
 	lua_getglobal(L, "on_skin_load");
 	if (lua_isfunction(L, -1))
 	{
-		lua_getglobal(L, "res");
-		if (lua_pcall(L, 1, 0, 0) != LUA_OK)
+		if (lua_pcall(L, 0, 0, 0) != LUA_OK)
 		{
 			fprintf(stderr, "Lua on_skin_load error: %s\n", lua_tostring(L, -1));
 			lua_pop(L, 1);

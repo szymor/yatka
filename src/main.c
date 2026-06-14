@@ -1136,7 +1136,7 @@ int removeFullLines(void)
 	int removed_lines = 0;
 
 	// checking and removing full lines
-	for (int y = 1; y < BOARD_HEIGHT; ++y)
+	for (int y = 0; y < BOARD_HEIGHT; ++y)
 	{
 		bool flag = true;
 		for (int x = 0; x < BOARD_WIDTH; ++x)
