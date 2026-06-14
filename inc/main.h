@@ -56,9 +56,7 @@
 #define FIG_NUM				(7)
 #define MAX_NEXTBLOCKS		(FIG_NUM - 1)
 
-#define GAMETIMER_STRLEN	(16)
-#define PPS_LEN				(16)
-#define KPT_LEN				(16)
+
 
 #define ULTRA_MS_LEN				(3*60*1000)
 #define SPRINT_LINE_COUNT			(40)
@@ -184,7 +182,7 @@ extern int score;
 extern int lines;
 extern int level;
 extern int tetris_count;
-extern int ttr;
+
 extern int dropped_pieces_num;
 extern int pressed_keys_num;
 extern int statistics[FIGID_GRAY];
@@ -192,9 +190,6 @@ extern int statistics[FIGID_GRAY];
 
 
 extern Uint32 game_totaltime;
-extern char gametimer[GAMETIMER_STRLEN];
-extern char pieces_per_second[PPS_LEN];
-extern char keys_per_tetromino[KPT_LEN];
 
 // key settings
 extern int kleft;
@@ -216,7 +211,6 @@ Uint32 getNextDropTime(void);
 void setDropRate(int level);
 void softDropTimeCounter(void);
 void updateTotalTime(void);
-void convertMsToStr(Uint32 ms, char *dest);
 
 void getShapeDimensions(const struct Shape *shape, int *minx, int *maxx, int *miny, int *maxy);
 struct Shape* getShape(enum FigureId id);

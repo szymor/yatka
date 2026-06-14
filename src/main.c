@@ -92,7 +92,6 @@ int score = 0;
 int lines = 0;
 int level = 0;
 int tetris_count = 0;
-int ttr = 0;
 int b2b = 0;	// back2back bonus
 int pc_b2b = 0;	// perfect-clear back2back
 int combo = 0;	// combo bonus
@@ -105,9 +104,6 @@ static int lines_level_up = 0;
 Uint32 game_lastpausetime = 0;
 Uint32 game_startbias = 0;
 Uint32 game_totaltime = 0;
-char gametimer[GAMETIMER_STRLEN];
-char pieces_per_second[PPS_LEN];
-char keys_per_tetromino[KPT_LEN];
 struct ClearedBrick cleared_bricks[MAX_CLEARED_BRICKS];
 int cleared_brick_count;
 
@@ -256,9 +252,7 @@ void onLineClear(int removed, bool pc, int pc_bonus);
 void onGameOver(enum GameOverType reason);
 void checkForPrelocking(void);
 
-void updateGTimer(void);
 void updateTotalTime(void);
-void updateKPT(void);
 void updateHiscores(enum GameMode gm, enum GameOverType got);
 
 void initFigures(void);
@@ -369,7 +363,6 @@ int main(int argc, char *argv[])
 							}
 						}
 
-						updateGTimer();
 					}
 				}
 				saveLastGameScreen();
@@ -793,12 +786,6 @@ void onLineClear(int removed, bool pc, int pc_bonus)
 		++b2b;
 	}
 
-	// calculate tetris percentage
-	if (lines != 0)
-		ttr = 4 * tetris_count * 100 / lines;
-	else
-		ttr = 0;
-
 }
 
 void onGameOver(enum GameOverType reason)
@@ -1061,7 +1048,6 @@ void lockFigure(void)
 	next_lock_time = 0;
 	lock_reset_count = 0;
 	++dropped_pieces_num;
-	updateKPT();
 	handleAutoDebris();
 }
 
@@ -1491,13 +1477,13 @@ void ingame_processInputEvents(void)
 				{
 					rotate_cw();
 					++pressed_keys_num;
-					updateKPT();
+
 				}
 				else if (event.key.keysym.sym == krotateccw)
 				{
 					rotate_ccw();
 					++pressed_keys_num;
-					updateKPT();
+
 				}
 				else if (event.key.keysym.sym == ksoftdrop)
 				{
@@ -1515,13 +1501,13 @@ void ingame_processInputEvents(void)
 				{
 					left_on();
 					++pressed_keys_num;
-					updateKPT();
+
 				}
 				else if (event.key.keysym.sym == kright)
 				{
 					right_on();
 					++pressed_keys_num;
-					updateKPT();
+
 				}
 				else if (event.key.keysym.sym == kpause)
 				{
@@ -1883,7 +1869,6 @@ void resetGame(void)
 	setDropRate(level);
 	score = 0;
 	tetris_count = 0;
-	ttr = 0;
 	b2b = 0;
 	pc_b2b = 0;
 	combo = 0;
@@ -1893,7 +1878,6 @@ void resetGame(void)
 	right_move = false;
 	draw_delta_drop = 0;
 
-	updateKPT();
 	randomizer_reset();
 
 	for (int i = 0; i < FIG_NUM - 1; ++i)
@@ -1925,45 +1909,16 @@ void updateLockTime(void)
 
 
 
-void convertMsToStr(Uint32 ms, char *dest)
-{
-	int hh, mm, ss, cs;
-	hh = ms / (1000 * 60 * 60);
-	ms = ms % (1000 * 60 * 60);
-	mm = ms / (1000 * 60);
-	ms = ms % (1000 * 60);
-	ss = ms / 1000;
-	ms = ms % 1000;
-	cs = ms / 10;
-	if (hh)
-	{
-		sprintf(dest, "%02d:%02d:%02d.%02d", hh, mm, ss, cs);
-	}
-	else
-	{
-		sprintf(dest, "%02d:%02d.%02d", mm, ss, cs);
-	}
-}
 
-void updateGTimer(void)
-{
-	updateTotalTime();
-	convertMsToStr(game_totaltime, gametimer);
 
-	// calculate pieces per second
-	sprintf(pieces_per_second, "%.2f", 1000.0 * dropped_pieces_num / game_totaltime);
-}
+
 
 void updateTotalTime(void)
 {
 	game_totaltime = SDL_GetTicks() - game_lastpausetime + game_startbias;
 }
 
-void updateKPT(void)
-{
-	// calculate keys per tetromino
-	sprintf(keys_per_tetromino, "%.2f", (double) pressed_keys_num / (dropped_pieces_num + 1));
-}
+
 
 void updateHiscores(enum GameMode gm, enum GameOverType got)
 {

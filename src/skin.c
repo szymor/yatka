@@ -1074,7 +1074,7 @@ static int y_game_mode(lua_State *L)
 	lua_pushstring(L, names[menu_gamemode]);
 	return 1;
 }
-static int y_game_timer(lua_State *L) { lua_pushinteger(L, (int)game_totaltime); return 1; }
+static int y_game_timer(lua_State *L) { updateTotalTime(); lua_pushinteger(L, (int)game_totaltime); return 1; }
 static int y_game_ultra_time_left(lua_State *L)
 {
 	updateTotalTime();
