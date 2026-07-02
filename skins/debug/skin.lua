@@ -13,7 +13,7 @@ local next_x = { 152, 152, 152, 152, 152, 152 }
 local next_y = { 36, 72, 108, 144, 180, 216 }
 
 function on_skin_load()
-	bg_img = gfx.load_image("bg.png")
+	bg_img = gfx.create_image(320, 240, 0, 0, 0)
 
 	-- Classic Tetris colour palette
 	cfg.set_tetromino_color(fig.I, 128, 0, 255, 255)
