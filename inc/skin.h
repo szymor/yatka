@@ -102,6 +102,8 @@ struct Skin
 	int bricksize;
 	int brickyoffset;
 	int ghost;
+	bool debris_dim;         /* true = render debris bricks in dim (grayscale) colour */
+	bool active_figure_dim;  /* true = render active falling piece in dim (grayscale) colour */
 	SDL_Surface *brick_shadow;
 	int shadowx;
 	int shadowy;

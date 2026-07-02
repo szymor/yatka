@@ -831,6 +831,20 @@ static int y_set_ghost_alpha(lua_State *L)
 	return 0;
 }
 
+static int y_set_debris_dim(lua_State *L)
+{
+	struct Skin *skin = (struct Skin *)lua_touserdata(L, lua_upvalueindex(1));
+	skin->debris_dim = lua_toboolean(L, 1);
+	return 0;
+}
+
+static int y_set_active_figure_dim(lua_State *L)
+{
+	struct Skin *skin = (struct Skin *)lua_touserdata(L, lua_upvalueindex(1));
+	skin->active_figure_dim = lua_toboolean(L, 1);
+	return 0;
+}
+
 /* sfx.gc — free a Mix_Chunk when Lua garbage‑collects the handle */
 static int y_sfx_gc(lua_State *L)
 {
@@ -1349,6 +1363,12 @@ static void skin_init_lua(struct Skin *skin, const char *skin_path)
 	lua_pushlightuserdata(L, skin);
 	lua_pushcclosure(L, y_set_ghost_alpha, 1);
 	lua_setfield(L, -2, "set_ghost_alpha");
+	lua_pushlightuserdata(L, skin);
+	lua_pushcclosure(L, y_set_debris_dim, 1);
+	lua_setfield(L, -2, "set_debris_dim");
+	lua_pushlightuserdata(L, skin);
+	lua_pushcclosure(L, y_set_active_figure_dim, 1);
+	lua_setfield(L, -2, "set_active_figure_dim");
 	lua_setglobal(L, "cfg");
 
 	/* ─── gfx table (load_image, create_image, load_font, load_animation) ─── */
@@ -1424,6 +1444,7 @@ static void skin_init_lua(struct Skin *skin, const char *skin_path)
 	lua_pushinteger(L, FIGID_Z); lua_setfield(L, -2, "Z");
 	lua_pushinteger(L, FIGID_J); lua_setfield(L, -2, "J");
 	lua_pushinteger(L, FIGID_L); lua_setfield(L, -2, "L");
+	lua_pushinteger(L, FIGID_GRAY); lua_setfield(L, -2, "GRAY");
 	lua_setglobal(L, "fig");
 
 	/* ─── board table ─── */
@@ -1573,6 +1594,9 @@ static void skin_composite_board(struct Skin *skin)
 
 		int color = board[i].color;
 		if (color < 0 || color >= FIGID_END) continue;
+		/* debris_dim: render debris bricks in the dim (grayscale) colour slot */
+		if (skin->debris_dim)
+			color = FIGID_GRAY;
 		if (!skin->bricksprite[color]) continue;
 
 		int x = (i % BOARD_WIDTH) * bw + skin->boardx;
@@ -1821,6 +1845,8 @@ static void skin_draw_active_figure(struct Skin *skin, int interp_y)
 
 	struct Figure *fig = figures[0];
 	int color = fig->color;
+	if (skin->active_figure_dim)
+		color = FIGID_GRAY;
 	if (color < 0 || color >= FIGID_END) return;
 	if (!skin->bricksprite[color]) return;
 
@@ -2027,6 +2053,8 @@ void skin_init(struct Skin *skin)
 	skin->colors[6] = SDL_MapRGB(f, 255, 121, 0);
 	skin->brickstyle = BS_SIMPLE;
 	skin->ghost = 128;
+	skin->debris_dim = false;
+	skin->active_figure_dim = false;
 	skin->bricksize = 12;
 	skin->brickyoffset = 0;
 	skin->brick_shadow = NULL;
