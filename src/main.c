@@ -916,10 +916,10 @@ void dropHard(void)
 		if (!sonicdrop)
 		{
 			lockFigure();
-			if (last_y != figures[0]->y)
+			if (figures[0] != NULL && last_y != figures[0]->y)
 				onDrop();
 		}
-		else if (last_y != figures[0]->y)
+		else if (figures[0] != NULL && last_y != figures[0]->y)
 		{
 			onDrop();
 			/* piece is at the bottom — don't let smooth animation
