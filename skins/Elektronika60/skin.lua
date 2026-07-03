@@ -68,12 +68,6 @@ function on_background_draw()
 		screen.draw_text(font, t, 230, 236, r, g, b, 0, 2)
 	end
 
-	-- Hold piece
-	local held = figure.held()
-	if held then
-		screen.draw_shape(held.id, 230, 110, fig.GRAY, 255)
-	end
-
 	-- Next pieces (3 previews, 30px spacing)
 	for i = 1, 3 do
 		local nxt = figure.next(i)

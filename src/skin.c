@@ -1929,7 +1929,10 @@ void skin_on_line_clear(struct Skin *skin, int lines,
 		lua_newtable(L);
 		lua_pushinteger(L, cleared_bricks[i].x);     lua_setfield(L, -2, "x");
 		lua_pushinteger(L, cleared_bricks[i].y);     lua_setfield(L, -2, "y");
-		push_brick_sprite_table(skin, L, cleared_bricks[i].color, cleared_bricks[i].orient);
+		int pcolor = cleared_bricks[i].color;
+		if (skin->debris_dim)
+			pcolor = FIGID_GRAY;
+		push_brick_sprite_table(skin, L, pcolor, cleared_bricks[i].orient);
 		lua_rawseti(L, -2, i + 1);
 	}
 	lua_setfield(L, -2, "particles");

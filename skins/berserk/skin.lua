@@ -28,6 +28,7 @@ function on_skin_load()
 	cfg.set_shadow(4, 4, 48, 0, 0, 192)
 
 	cfg.set_ghost_alpha(128)
+	cfg.set_debris_dim(true)
 
 	big_font = gfx.load_font("arcade.ttf", 8)
 	font = gfx.load_font("arcade.ttf", 7)
