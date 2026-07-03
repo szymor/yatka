@@ -389,8 +389,9 @@ static int y_draw_text(lua_State *L)
 		(int)luaL_optinteger(L, 9, 0));
 }
 
-/* r.draw_text_to(surface, font, text, x, y [, r, g, b])
+/* r.draw_text_to(surface, font, text, x, y [, r, g, b [, alignx, aligny]])
  * Renders text onto an arbitrary image surface (not the screen).
+ * alignx/aligny: 0=left/top, 1=center, 2=right/bottom.
  * The text surface is freed after blit — call this once during skin_load
  * for static labels, then just blit the image in draw_background. */
 static int y_draw_text_to(lua_State *L)
@@ -403,6 +404,8 @@ static int y_draw_text_to(lua_State *L)
 	int r = (int)luaL_optinteger(L, 6, 255);
 	int g = (int)luaL_optinteger(L, 7, 255);
 	int b = (int)luaL_optinteger(L, 8, 255);
+	int alignx = (int)luaL_optinteger(L, 9, 0);
+	int aligny = (int)luaL_optinteger(L, 10, 0);
 
 	if (!*sud || !*fud) return 0;
 	if (!str || !*str) return 0;
@@ -412,6 +415,10 @@ static int y_draw_text_to(lua_State *L)
 	if (!ts) return 0;
 
 	SDL_Rect dst = { .x = x, .y = y };
+	if (alignx == 1) dst.x -= ts->w / 2;
+	else if (alignx == 2) dst.x -= ts->w;
+	if (aligny == 1) dst.y -= ts->h / 2;
+	else if (aligny == 2) dst.y -= ts->h;
 	SDL_BlitSurface(ts, NULL, *sud, &dst);
 	SDL_FreeSurface(ts);
 	return 0;
@@ -1447,6 +1454,15 @@ static void skin_init_lua(struct Skin *skin, const char *skin_path)
 	lua_pushinteger(L, FIGID_GRAY); lua_setfield(L, -2, "GRAY");
 	lua_setglobal(L, "fig");
 
+	/* ─── align table (text alignment constants) ─── */
+	lua_newtable(L);
+	lua_pushinteger(L, 0); lua_setfield(L, -2, "LEFT");
+	lua_pushinteger(L, 1); lua_setfield(L, -2, "CENTER");
+	lua_pushinteger(L, 2); lua_setfield(L, -2, "RIGHT");
+	lua_pushinteger(L, 0); lua_setfield(L, -2, "TOP");
+	lua_pushinteger(L, 2); lua_setfield(L, -2, "BOTTOM");
+	lua_setglobal(L, "align");
+
 	/* ─── board table ─── */
 	lua_newtable(L);
 	lua_pushinteger(L, BOARD_WIDTH);  lua_setfield(L, -2, "width");
@@ -1976,6 +1992,15 @@ void skin_on_piece_hold(struct Skin *skin, enum FigureId id)
 	if (!lua_isfunction(L, -1)) { lua_pop(L, 1); return; }
 	lua_pushinteger(L, (int)id);
 	if (lua_pcall(L, 1, 0, 0) != LUA_OK) lua_pop(L, 1);
+}
+
+void skin_on_hold_fail(struct Skin *skin)
+{
+	if (!skin->L) return;
+	lua_State *L = skin->L;
+	lua_getglobal(L, "on_hold_fail");
+	if (!lua_isfunction(L, -1)) { lua_pop(L, 1); return; }
+	if (lua_pcall(L, 0, 0, 0) != LUA_OK) lua_pop(L, 1);
 }
 
 void skin_on_hard_drop(struct Skin *skin, int rows, int start_y)

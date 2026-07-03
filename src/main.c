@@ -1056,11 +1056,13 @@ void holdFigure(void)
 	switch (gameskin.holdmode)
 	{
 		case HM_OFF:
+			skin_on_hold_fail(&gameskin);
 			break;	// do nothing
 		case HM_EXCHANGE:
 		{
 			if (hold_ready && figures[0])
 			{
+				enum FigureId held_id = figures[0]->id;
 				--statistics[figures[0]->id];
 				struct Figure temp = *figures[0];
 				*figures[0] = *figures[1];
@@ -1073,12 +1075,18 @@ void holdFigure(void)
 				memcpy(&figures[0]->shape, getShape(figures[0]->id), sizeof(figures[0]->shape));
 
 				hold_ready = false;
+				skin_on_piece_hold(&gameskin, held_id);
+			}
+			else
+			{
+				skin_on_hold_fail(&gameskin);
 			}
 		} break;
 		case HM_PRESERVE:
 		{
 			if (hold_ready && figures[0])
 			{
+				enum FigureId held_id = figures[0]->id;
 				if (preserved.id != FIGID_END)
 				{
 					struct Figure temp = *figures[0];
@@ -1101,6 +1109,11 @@ void holdFigure(void)
 					spawnFigure();
 				}
 				hold_ready = false;
+				skin_on_piece_hold(&gameskin, held_id);
+			}
+			else
+			{
+				skin_on_hold_fail(&gameskin);
 			}
 		} break;
 	}

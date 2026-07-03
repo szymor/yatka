@@ -25,9 +25,9 @@ function on_skin_load()
 	font = gfx.load_font("arcade.ttf", 8)
 
 	-- Pre-render static labels onto background
-	bg_img:draw_text(font, "SCORE", 25, 9, 255, 255, 255, 1, 0)
-	bg_img:draw_text(font, "LEVEL", 25, 47, 255, 255, 255, 1, 0)
-	bg_img:draw_text(font, game.mode() == "sprint" and "LEFT" or "LINES", 25, 85, 255, 255, 255, 1, 0)
+	bg_img:draw_text(font, "SCORE", 25, 9, 255, 255, 255)
+	bg_img:draw_text(font, "LEVEL", 25, 47, 255, 255, 255)
+	bg_img:draw_text(font, game.mode() == "sprint" and "LEFT" or "LINES", 25, 85, 255, 255, 255)
 
 	-- Load default sounds
 	snd = sfx.loadDefaults()
